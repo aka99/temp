@@ -53,9 +53,15 @@ def sane(x):
             r=r+i
     return r
 
-def lhex(x):
+def lhex(x, aligned = True):
     if type(x) in (int,long):
-        return hex(x)
+        if aligned:
+            length = len(hex(x)) - 2
+            additional_bytes_needed = length % 2
+            fmt = "0x%0" + ("%d" % (length + additional_bytes_needed)) + "x"
+            return fmt % x
+        else:
+            return hex(x)
     elif type(x) is tuple:
         return "(%s)" % ", ".join(map(lhex, x))
     elif type(x) is list:
