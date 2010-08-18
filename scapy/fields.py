@@ -767,6 +767,12 @@ class LEShortEnumField(EnumField):
     def __init__(self, name, default, enum):
         EnumField.__init__(self, name, default, enum, "<H")
 
+class LEXShortEnumField(LEShortEnumField):
+    def i2repr_one(self, pkt, x):
+        if self not in conf.noenum and not isinstance(x,VolatileValue) and x in self.i2s:
+            return self.i2s[x]
+        return lhex(x)
+
 class ByteEnumField(EnumField):
     def __init__(self, name, default, enum):
         EnumField.__init__(self, name, default, enum, "B")
