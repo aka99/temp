@@ -614,6 +614,15 @@ class LenField(Field):
             x = len(pkt.payload)
         return x
 
+class IntLenField(LenField):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, fmt="I")
+
+class LEIntLenField(LenField):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, fmt="<I")
+
+
 class BCDFloatField(Field):
     def i2m(self, pkt, x):
         return int(256*x)
