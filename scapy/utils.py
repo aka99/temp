@@ -319,7 +319,8 @@ def do_graph(graph,prog=None,format=None,target=None,type=None,string=None,optio
             target = "| %s" % conf.prog.display
     if format is not None:
         format = "-T %s" % format
-    w,r = os.popen2("%s %s %s %s" % (prog,options or "", format or "", target))
+    cmd = "%s %s %s %s" % (prog,options or "", format or "", target)
+    w,r = os.popen2(cmd)
     w.write(graph)
     w.close()
     if start_viewer:
