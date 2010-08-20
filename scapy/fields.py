@@ -354,6 +354,21 @@ class StrField(Field):
     def randval(self):
         return RandBin(RandNum(0,1200))
 
+class CodecStrField(StrField):
+    codec = 'ascii'
+    def __init__(self, name, default, fmt="H", remain=0, codec=codec):
+        #FIXME: Why doesn't this work?
+        #         super(CodecStrField, self).__init__(name, default, fmt, remain)
+        StrField.__init__(self, name, default, fmt, remain) 
+        self.codec = self.codec or codec
+    def i2h(self, pkt, i):
+        # That doesn't work for a weird reason:
+        # return super(UTF16LEStrField, self).i2h(pkt, i.decode(self.codec, 'ignore'))
+        return StrField.i2h(self, pkt, i.decode(self.codec, 'ignore'))
+
+class UTF16LEStrField(CodecStrField):
+    codec = 'utf_16_le'
+
 class PacketField(StrField):
     holds_packets=1
     def __init__(self, name, default, cls, remain=0):
