@@ -533,7 +533,15 @@ class FieldListField(Field):
         self.count_from = count_from
         self.length_from = length_from
         self.field = field            
-            
+
+
+    def i2repr(self, pkt, val):
+        if type(val) is list:
+            vl = [self.field.i2repr(pkt, v) for v in val]
+            l = ", ".join(vl)
+            return "[%s]" % l
+        return val
+
     def i2count(self, pkt, val):
         if type(val) is list:
             return len(val)
