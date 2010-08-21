@@ -732,7 +732,7 @@ class EnumField(Field):
     def __init__(self, name, default, enum, fmt = "H"):
         i2s = self.i2s = {}
         s2i = self.s2i = {}
-        if type(enum) is list:
+        if isinstance(enum, (list, tuple)):
             keys = xrange(len(enum))
         else:
             keys = enum.keys()
