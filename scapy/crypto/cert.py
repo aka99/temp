@@ -7,14 +7,10 @@
 Cryptographic certificates.
 """
 
-import os, sys, math, socket, struct, sha, hmac, string, time
+import os, sys, math, socket, struct, hmac, string, time
 import random, popen2, tempfile
 from scapy.utils import strxor
-try:
-    HAS_HASHLIB=True
-    import hashlib
-except:
-    HAS_HASHLIB=False
+import hashlib
 
 from Crypto.PublicKey import *
 from Crypto.Cipher import *
@@ -109,29 +105,24 @@ _hashFuncParams = {
     "md5"    : (16, 
                 lambda x: MD5.new(x).digest(), 
                 '\x30\x20\x30\x0c\x06\x08\x2a\x86\x48\x86\xf7\x0d\x02\x05\x05\x00\x04\x10'),
-    "sha1"   : (20,
-                lambda x: SHA.new(x).digest(), 
-                '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'),
     "tls"    : (36,
-                lambda x: MD5.new(x).digest() + SHA.new(x).digest(),
-                '') }
-
-if HAS_HASHLIB:
-    _hashFuncParams["sha224"] = (28, 
+                lambda x: MD5.new(x).digest() + hashlib.sha1(x).digest(),
+                ''),
+    "sha1"   : (20,
+                lambda x: hashlib.sha1(x).digest(),
+                '\x30\x21\x30\x09\x06\x05\x2b\x0e\x03\x02\x1a\x05\x00\x04\x14'),
+    "sha224" : (28, 
                 lambda x: hashlib.sha224(x).digest(),
-                '\x30\x2d\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x04\x05\x00\x04\x1c')
-    _hashFuncParams["sha256"] = (32, 
+                '\x30\x2d\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x04\x05\x00\x04\x1c'),
+    "sha256" : (32, 
                 lambda x: hashlib.sha256(x).digest(), 
-                '\x30\x31\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\x04\x20')
-    _hashFuncParams["sha384"] = (48, 
+                '\x30\x31\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x01\x05\x00\x04\x20'),
+    "sha384" : (48, 
                 lambda x: hashlib.sha384(x).digest(),
-               '\x30\x41\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x02\x05\x00\x04\x30')
-    _hashFuncParams["sha512"] = (64, 
+                '\x30\x41\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x02\x05\x00\x04\x30'),
+    "sha512" : (64, 
                lambda x: hashlib.sha512(x).digest(),
-               '\x30\x51\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x03\x05\x00\x04\x40')
-else:
-    warning("hashlib support is not available. Consider installing it")
-    warning("if you need sha224, sha256, sha384 and sha512 algs.")
+               '\x30\x51\x30\x0d\x06\x09\x60\x86\x48\x01\x65\x03\x04\x02\x03\x05\x00\x04\x40')}
     
 def pkcs_mgf1(mgfSeed, maskLen, h):
     """
@@ -2027,7 +2018,7 @@ class Cert(OSSLHelper, _EncryptAndVerify):
         while i<l: # get a string version of modulus
             res.append(struct.pack("B", int(m[i:i+2], 16)))
             i += 2
-        return sha.new("".join(res)).digest()    
+        return hashlib.sha1("".join(res)).digest()
 
     def output(self, fmt="DER"):
         if fmt == "DER":

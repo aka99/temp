@@ -394,8 +394,8 @@ def in6_getLocalUniquePrefix():
     mac = ":".join(map(lambda x: "%.02x" % ord(x), list(rawmac)))
     # construct modified EUI-64 ID
     eui64 = inet_pton(socket.AF_INET6, '::' + in6_mactoifaceid(mac))[8:] 
-    import sha
-    globalid = sha.new(tod+eui64).digest()[:5]
+    import hashlib
+    globalid = hashlib.sha1(tod+eui64).digest()[:5]
     return inet_ntop(socket.AF_INET6, '\xfd' + globalid + '\x00'*10)
 
 def in6_getRandomizedIfaceId(ifaceid, previous=None):
