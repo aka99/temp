@@ -19,7 +19,7 @@ class IrLAPHead(Packet):
     name = "IrDA Link Access Protocol Header"
     fields_desc = [ XBitField("address", 0x7f, 7),
                     BitEnumField("type", 1, 1, {"response":0,
-                                                "command":1})]
+                                                "cmd":1})]
 
 class IrLAPCommand(Packet):
     name = "IrDA Link Access Protocol Command"
