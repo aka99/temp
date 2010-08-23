@@ -44,7 +44,7 @@ def _usage():
 
 
 from config import conf
-from themes import DefaultTheme
+from themes import DefaultTheme, ColorOnBlackTheme
 
 
 ######################
@@ -88,8 +88,8 @@ def save_session(fname=None, session=None, pickleProto=-1):
 
     for k in to_be_saved.keys():
         if type(to_be_saved[k]) in [types.TypeType, types.ClassType, types.ModuleType]:
-             log_interactive.error("[%s] (%s) can't be saved." % (k, type(to_be_saved[k])))
-             del(to_be_saved[k])
+            log_interactive.error("[%s] (%s) can't be saved." % (k, type(to_be_saved[k])))
+            del(to_be_saved[k])
 
     try:
         os.rename(fname, fname+".bak")
@@ -255,7 +255,10 @@ def interact(mydict=None,argv=None,mybanner=None,loglevel=20):
         globkeys += mydict.keys()
     
 
-    conf.color_theme = DefaultTheme()
+    if utils.WINDOWS:
+        conf.color_theme = ColorOnBlackTheme()
+    else:
+        conf.color_theme = DefaultTheme()
     if STARTUP_FILE:
         _read_config_file(STARTUP_FILE)
         
