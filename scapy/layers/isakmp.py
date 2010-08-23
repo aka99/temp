@@ -162,6 +162,7 @@ ISAKMP_exchange_type = ["None","base","identity prot.",
 
 
 class ISAKMP_class(Packet):
+    name = "ISAKMP dummy class"
     def guess_payload_class(self, payload):
         np = self.next_payload
         if np == 0:

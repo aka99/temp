@@ -17,6 +17,7 @@ from scapy.layers.inet import UDP
 from scapy.layers.ppp import PPP
 
 class L2TP(Packet):
+    name = "L2TP"
     fields_desc = [ ShortEnumField("pkt_type",2,{2:"data"}),
                     ShortField("len", None),
                     ShortField("tunnel_id", 0),

@@ -185,6 +185,7 @@ class _SCTPChunkGuessPayload:
 
 
 class SCTP(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP"
     fields_desc = [ ShortField("sport", None),
                     ShortField("dport", None),
                     XIntField("tag", None),
@@ -224,6 +225,7 @@ class _SCTPChunkParam:
         return "",s[:]
 
 class SCTPChunkParamHearbeatInfo(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Heartbeat Info"
     fields_desc = [ ShortEnumField("type", 1, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="data",
                                   adjust = lambda pkt,x:x+4),
@@ -232,16 +234,19 @@ class SCTPChunkParamHearbeatInfo(_SCTPChunkParam, Packet):
                              4, padwith="\x00"),]
 
 class SCTPChunkParamIPv4Addr(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: IPv4 Address"
     fields_desc = [ ShortEnumField("type", 5, sctpchunkparamtypes),
                     ShortField("len", 8),
                     IPField("addr","127.0.0.1"), ]
 
 class SCTPChunkParamIPv6Addr(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: IPv6 Address"
     fields_desc = [ ShortEnumField("type", 6, sctpchunkparamtypes),
                     ShortField("len", 20),
                     IP6Field("addr","::1"), ]
 
 class SCTPChunkParamStateCookie(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: State Cookie"
     fields_desc = [ ShortEnumField("type", 7, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="cookie",
                                   adjust = lambda pkt,x:x+4),
@@ -250,6 +255,7 @@ class SCTPChunkParamStateCookie(_SCTPChunkParam, Packet):
                              4, padwith="\x00"),]
 
 class SCTPChunkParamUnrocognizedParam(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Unrecognized Parameter"
     fields_desc = [ ShortEnumField("type", 8, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="param",
                                   adjust = lambda pkt,x:x+4),
@@ -258,11 +264,13 @@ class SCTPChunkParamUnrocognizedParam(_SCTPChunkParam, Packet):
                              4, padwith="\x00"),]
 
 class SCTPChunkParamCookiePreservative(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Cookie Preservative"
     fields_desc = [ ShortEnumField("type", 9, sctpchunkparamtypes),
                     ShortField("len", 8),
                     XIntField("sug_cookie_inc", None), ]
 
 class SCTPChunkParamHostname(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Host Name Address"
     fields_desc = [ ShortEnumField("type", 11, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="hostname",
                                   adjust = lambda pkt,x:x+4),
@@ -271,6 +279,7 @@ class SCTPChunkParamHostname(_SCTPChunkParam, Packet):
                              4, padwith="\x00"), ]
 
 class SCTPChunkParamSupportedAddrTypes(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Supported Address Types"
     fields_desc = [ ShortEnumField("type", 12, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="addr_type_list",
                                   adjust = lambda pkt,x:x+4),
@@ -280,14 +289,17 @@ class SCTPChunkParamSupportedAddrTypes(_SCTPChunkParam, Packet):
                              4, padwith="\x00"), ]
 
 class SCTPChunkParamECNCapable(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: ECN Capable"
     fields_desc = [ ShortEnumField("type", 32768, sctpchunkparamtypes),
                     ShortField("len", 4), ]
 
 class SCTPChunkParamFwdTSN(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Forward TSN supported"
     fields_desc = [ ShortEnumField("type", 49152, sctpchunkparamtypes),
                     ShortField("len", 4), ]
 
 class SCTPChunkParamAdaptationLayer(_SCTPChunkParam, Packet):
+    name = "SCTP Chunk Parameter: Adaptation Layer Indication"
     fields_desc = [ ShortEnumField("type", 49158, sctpchunkparamtypes),
                     ShortField("len", 8),
                     XIntField("indication", None), ]
@@ -295,6 +307,7 @@ class SCTPChunkParamAdaptationLayer(_SCTPChunkParam, Packet):
 ############## SCTP Chunks
 
 class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Payload Data"
     fields_desc = [ ByteEnumField("type", 0, sctpchunktypes),
                     BitField("reserved", None, 4),
                     BitField("delay_sack", 0, 1),
@@ -311,6 +324,7 @@ class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
                     ]
 
 class SCTPChunkInit(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Initiation"
     fields_desc = [ ByteEnumField("type", 1, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+20),
@@ -323,6 +337,7 @@ class SCTPChunkInit(_SCTPChunkGuessPayload, Packet):
                     ]
 
 class SCTPChunkInitAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Initiation Ack"
     fields_desc = [ ByteEnumField("type", 2, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+20),
@@ -351,6 +366,7 @@ class GapAckField(Field):
         return x
 
 class SCTPChunkSACK(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Selective Ack"
     fields_desc = [ ByteEnumField("type", 3, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", None),
@@ -369,6 +385,7 @@ class SCTPChunkSACK(_SCTPChunkGuessPayload, Packet):
 
 
 class SCTPChunkHeartbeatReq(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Heartbeat Request"
     fields_desc = [ ByteEnumField("type", 4, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+4),
@@ -376,6 +393,7 @@ class SCTPChunkHeartbeatReq(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkHeartbeatAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Heartbeat Ack"
     fields_desc = [ ByteEnumField("type", 5, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+4),
@@ -383,6 +401,7 @@ class SCTPChunkHeartbeatAck(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkAbort(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Abort"
     fields_desc = [ ByteEnumField("type", 6, sctpchunktypes),
                     BitField("reserved", None, 7),
                     BitField("TCB", 0, 1),
@@ -392,6 +411,7 @@ class SCTPChunkAbort(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkShutdown(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Shutdown"
     fields_desc = [ ByteEnumField("type", 7, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", 8),
@@ -399,12 +419,14 @@ class SCTPChunkShutdown(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkShutdownAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Shutdown Ack"
     fields_desc = [ ByteEnumField("type", 8, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", 4),
                    ]
 
 class SCTPChunkError(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Operation Error"
     fields_desc = [ ByteEnumField("type", 9, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="error_causes", adjust = lambda pkt,x:x+4),
@@ -413,6 +435,7 @@ class SCTPChunkError(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkCookieEcho(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: State Cookie"
     fields_desc = [ ByteEnumField("type", 10, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="cookie", adjust = lambda pkt,x:x+4),
@@ -421,12 +444,14 @@ class SCTPChunkCookieEcho(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkCookieAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Cookie Ack"
     fields_desc = [ ByteEnumField("type", 11, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", 4),
                    ]
 
 class SCTPChunkShutdownComplete(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Shutdown Complete"
     fields_desc = [ ByteEnumField("type", 12, sctpchunktypes),
                     BitField("reserved", None, 7),
                     BitField("TCB", 0, 1),

@@ -191,6 +191,7 @@ _PPP_proto = { 0x0001: "Padding Protocol",
 
 
 class HDLC(Packet):
+    name = "HDLC"
     fields_desc = [ XByteField("address",0xff),
                     XByteField("control",0x03)  ]
 
@@ -289,6 +290,7 @@ class PPP_IPCP_Option_NBNS2(PPP_IPCP_Option):
 
 
 class PPP_IPCP(Packet):
+    name = "PPP IPCP"
     fields_desc = [ ByteEnumField("code" , 1, _PPP_conftypes),
 		    XByteField("id", 0 ),
                     FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
@@ -320,6 +322,7 @@ class PPP_ECP_Option(Packet):
         return cls
 
 class PPP_ECP_Option_OUI(PPP_ECP_Option):
+    name = "PPP ECP Option: OUI"
     fields_desc = [ ByteEnumField("type" , 0 , _PPP_ecpopttypes),
                     FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+6),
                     StrFixedLenField("oui","",3),
@@ -329,6 +332,7 @@ class PPP_ECP_Option_OUI(PPP_ECP_Option):
 
 
 class PPP_ECP(Packet):
+    name = "PPP ECP"
     fields_desc = [ ByteEnumField("code" , 1, _PPP_conftypes),
 		    XByteField("id", 0 ),
                     FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),

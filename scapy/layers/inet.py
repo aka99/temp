@@ -69,11 +69,13 @@ _ip_options_names = { 0: "end_of_list",
                       
 
 class _IPOption_HDR(Packet):
+    name = "Abstract IP Option Header"
     fields_desc = [ BitField("copy_flag",0, 1),
                     BitEnumField("optclass",0,2,{0:"control",2:"debug"}),
                     BitEnumField("option",0,5, _ip_options_names) ]
     
 class IPOption(Packet):
+    name = "IP Option"
     fields_desc = [ _IPOption_HDR,
                     FieldLenField("length", None, fmt="B",  # Only option 0 and 1 have no length and value
                                   length_of="value", adjust=lambda pkt,l:l+2),
@@ -95,15 +97,18 @@ class IPOption(Packet):
         return cls
 
 class IPOption_EOL(IPOption):
+    name = "IP Option End of List"
     option = 0
     fields_desc = [ _IPOption_HDR ]
     
 
 class IPOption_NOP(IPOption):
+    name = "IP Option NOP"
     option=1
     fields_desc = [ _IPOption_HDR ]
 
 class IPOption_Security(IPOption):
+    name = "IP Option Security"
     copy_flag = 1
     option = 2
     fields_desc = [ _IPOption_HDR,
@@ -122,7 +127,7 @@ class IPOption_LSRR(IPOption):
                     FieldLenField("length", None, fmt="B",
                                   length_of="routers", adjust=lambda pkt,l:l+3),
                     ByteField("pointer",4), # 4 is first IP
-                    FieldListField("routers",[],IPField("","0.0.0.0"), 
+                    FieldListField("routers",[],IPField("router","0.0.0.0"), 
                                    length_from=lambda pkt:pkt.length-3)
                     ]
     def get_current_router(self):
@@ -155,6 +160,7 @@ class IPOption_MTU_Reply(IPOption_MTU_Probe):
     option = 12
 
 class IPOption_Traceroute(IPOption):
+    name = "IP Option Traceroute"
     copy_flag = 1
     option = 18
     fields_desc = [ _IPOption_HDR,
@@ -189,7 +195,7 @@ class IPOption_SDBM(IPOption):
     fields_desc = [ _IPOption_HDR,
                     FieldLenField("length", None, fmt="B",
                                   length_of="addresses", adjust=lambda pkt,l:l+2),
-                    FieldListField("addresses",[],IPField("","0.0.0.0"), 
+                    FieldListField("addresses",[],IPField("address","0.0.0.0"), 
                                    length_from=lambda pkt:pkt.length-2)
                     ]
     

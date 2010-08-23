@@ -52,12 +52,14 @@ class TFTP_DATA(Packet):
         return self.sprintf("DATA %block%"),[UDP]
 
 class TFTP_Option(Packet):
+    name = "TFTP Option"
     fields_desc = [ StrNullField("oname",""),
                     StrNullField("value","") ]
     def extract_padding(self, pkt):
         return "",pkt
 
 class TFTP_Options(Packet):
+    name = "TFTP Options"
     fields_desc = [ PacketListField("options", [], TFTP_Option, length_from=lambda x:None) ]
 
     
