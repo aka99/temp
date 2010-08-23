@@ -45,7 +45,7 @@ class L2CAP_Hdr(Packet):
         p += pay
         if self.len is None:
             l = len(p)-4
-            p = p[:2]+chr(l&0xff)+chr((l>>8)&0xff)+p[4:]
+            p = chr(l&0xff)+chr((l>>8)&0xff)+p[2:]
         return p
                     
                 
