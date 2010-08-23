@@ -35,9 +35,9 @@ def inet_pton(af, addr):
             if part == JOKER:
                 # Wildcard is only allowed once
                 if joker_pos is None:
-                   joker_pos = len(result)
+                    joker_pos = len(result)
                 else:
-                   raise Exception("Illegal syntax for IP address")
+                    raise Exception("Illegal syntax for IP address")
             elif part == ipv4_addr: # FIXME: Make sure IPv4 can only be last part
                 # FIXME: inet_aton allows IPv4 addresses with less than 4 octets 
                 result += socket.inet_aton(ipv4_addr)
@@ -61,7 +61,7 @@ def inet_pton(af, addr):
 
 
 def inet_ntop(af, addr):
-    """Convert an IP address from binary form into text represenation"""
+    """Convert an IP address from binary form into text representation"""
     if af == socket.AF_INET:
         return inet_ntoa(addr)
     elif af == socket.AF_INET6:
@@ -69,21 +69,29 @@ def inet_ntop(af, addr):
         if len(addr) != 16:
             raise Exception("Illegal syntax for IP address")
         parts = []
-        for left in [0, 2, 4, 6, 8, 10, 12, 14]:
+        start = 0
+        end = found = -1
+        for i,left in enumerate(range(0,15,2)):
             try: 
                 value = struct.unpack("!H", addr[left:left+2])[0]
-                hexstr = hex(value)[2:]
+                hexstr = hex(value)[2:].lstrip("0").lower()
             except TypeError:
                 raise Exception("Illegal syntax for IP address")
-            parts.append(hexstr.lstrip("0").lower())
+            if hexstr:
+                parts.append(hexstr)
+                found = -1
+            else:
+                parts.append("0")
+                if found == -1: # start of new run of zeros
+                    found = i
+                if i - found > end - start: # longest run of zeros
+                    start,end = found,i
+        if end - start > -1:
+            for i in range(start, end+1): # clear longest run for ::
+                parts[i] = ""
         result = ":".join(parts)
         while ":::" in result:
             result = result.replace(":::", "::")
-        # Leaving out leading and trailing zeros is only allowed with ::
-        if result.endswith(":") and not result.endswith("::"):
-            result = result + "0"
-        if result.startswith(":") and not result.startswith("::"):
-            result = "0" + result
         return result
     else:
         raise Exception("Address family not supported yet")        
