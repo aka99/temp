@@ -235,9 +235,11 @@ _PPP_ipcpopttypes = {     1:"IP-Addresses (Deprecated)",
 
 class PPP_IPCP_Option(Packet):
     name = "PPP IPCP Option"
-    fields_desc = [ ByteEnumField("type" , None , _PPP_ipcpopttypes),
-                    FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+2),
-                    StrLenField("data", "", length_from=lambda p:max(0,p.len-2)) ]
+    fields_desc = [
+        ByteEnumField("type" , None , _PPP_ipcpopttypes),
+        FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+2),
+        StrLenField("data", "", length_from=lambda p:max(0,p.len-2))
+    ]
     def extract_padding(self, pay):
         return "",pay
 
@@ -291,10 +293,12 @@ class PPP_IPCP_Option_NBNS2(PPP_IPCP_Option):
 
 class PPP_IPCP(Packet):
     name = "PPP IPCP"
-    fields_desc = [ ByteEnumField("code" , 1, _PPP_conftypes),
-		    XByteField("id", 0 ),
-                    FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
-                    PacketListField("options", [],  PPP_IPCP_Option, length_from=lambda p:p.len-4,) ]
+    fields_desc = [
+        ByteEnumField("code" , 1, _PPP_conftypes),
+        XByteField("id", 0 ),
+        FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
+        PacketListField("options", [],  PPP_IPCP_Option, length_from=lambda p:p.len-4,)
+    ]
 
 
 ### ECP
