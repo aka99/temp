@@ -639,11 +639,11 @@ class LenField(Field):
 
 class IntLenField(LenField):
     def __init__(self, name, default):
-        Field.__init__(self, name, default, fmt="I")
+        LenField.__init__(self, name, default, fmt="I")
 
 class LEIntLenField(LenField):
     def __init__(self, name, default):
-        Field.__init__(self, name, default, fmt="<I")
+        LenField.__init__(self, name, default, fmt="<I")
 
 
 class BCDFloatField(Field):
