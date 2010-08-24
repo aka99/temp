@@ -1204,8 +1204,8 @@ class ICMPv6PacketTooBig(_ICMPv6Error):
 class ICMPv6TimeExceeded(_ICMPv6Error):
     name = "ICMPv6 Time Exceeded"
     fields_desc = [ ByteEnumField("type",3, icmp6types),
-                    ByteField("code",{ 0: "hop limit exceeded in transit",
-                                       1: "fragment reassembly time exceeded"}),
+                    ByteEnumField("code",0, { 0: "hop limit exceeded in transit",
+                                              1: "fragment reassembly time exceeded"}),
                     XShortField("cksum", None),
                     XIntField("unused",0x00000000)]
 

@@ -28,8 +28,7 @@ class VRRP(Packet):
         XShortField("chksum", None),
         FieldListField("addrlist", [], IPField("addr", "0.0.0.0"),
                        count_from = lambda pkt: pkt.ipcount),
-        IntField("auth1", 0),
-        IntField("auth2", 0) ]
+        StrFixedLenField("auth", "\x00"*8, 8) ]
 
     def post_build(self, p, pay):
         if self.chksum is None:

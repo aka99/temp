@@ -36,9 +36,9 @@ class BOOTP(Packet):
                     IPField("yiaddr","0.0.0.0"),
                     IPField("siaddr","0.0.0.0"),
                     IPField("giaddr","0.0.0.0"),
-                    Field("chaddr","", "16s"),
-                    Field("sname","","64s"),
-                    Field("file","","128s"),
+                    StrFixedLenField("chaddr","",16),
+                    StrFixedLenField("sname","",64),
+                    StrFixedLenField("file","",128),
                     StrField("options","") ]
     def guess_payload_class(self, payload):
         if self.options[:len(dhcpmagic)] == dhcpmagic:
