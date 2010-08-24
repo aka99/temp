@@ -738,6 +738,14 @@ class ByteLenField(LenField):
     def __init__(self, name, default):
         LenField.__init__(self, name, default, fmt="B")
 
+class ShortLenField(LenField):
+    '''Just another name for LenField to be more explicit about its size'''
+    pass
+class LEShortLenField(LenField):
+    '''Same as LenField but Little Endian'''
+    def __init__(self, name, default):
+        LenField.__init__(self, name, default, fmt="<H")
+
 class IntLenField(LenField):
     def __init__(self, name, default):
         LenField.__init__(self, name, default, fmt="I")
