@@ -637,6 +637,32 @@ class LenField(Field):
             x = len(pkt.payload)
         return x
 
+class ByteLenField(LenField):
+    '''Field representing the length of the payload of the packet in one byte
+    
+    >>> from scapy.packet import Packet
+    >>> class Foo(Packet):
+    ...     fields_desc = [
+    ...         ByteLenField('length', None),
+    ...     ]
+    ...
+    >>> p = Foo()/'some payload'
+    >>> p.default_fields
+    {'length': None}
+    >>> p.length
+    
+    >>> [hex(ord(x)) for x in str(p)]
+    ['0xc', '0x73', '0x6f', '0x6d', '0x65', '0x20', '0x70', '0x61', '0x79', '0x6c', '0x6f', '0x61', '0x64']
+    >>> str(p)
+    '\\x0csome payload'
+    >>> len(str(p)) == 1 + len('some payload')
+    True
+    >>> ord(str(p)[0]) == len('some payload')
+    True
+    '''
+    def __init__(self, name, default):
+        LenField.__init__(self, name, default, fmt="B")
+
 class IntLenField(LenField):
     def __init__(self, name, default):
         LenField.__init__(self, name, default, fmt="I")
