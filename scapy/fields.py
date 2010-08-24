@@ -632,6 +632,28 @@ class StrStopField(StrField):
         return RandTermString(RandNum(0,1200),self.stop)
 
 class LenField(Field):
+    '''Field representing the length of the payload in a Big Endian short.
+    
+    >>> from scapy.packet import Packet
+    >>> class Foo(Packet):
+    ...     fields_desc = [
+    ...         LenField('length', None),
+    ...     ]
+    ...
+    >>> p = Foo()/'some payload'
+    >>> p.length
+    
+    >>> str(p)
+    '\\x00\\x0csome payload'
+    >>> len(str(p)) == 2 + len('some payload')
+    True
+    >>> ord(str(p)[0])<<8
+    0
+    >>> ord(str(p)[1])
+    12
+    >>> (ord(str(p)[0])<<8) + ord(str(p)[1]) == len('some payload')
+    True
+    '''
     def i2m(self, pkt, x):
         if x is None:
             x = len(pkt.payload)
