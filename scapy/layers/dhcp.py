@@ -66,6 +66,7 @@ class BOOTP(Packet):
 #= range(4)
 #
 
+# http://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 DHCPTypes = {
                 1: "discover",
                 2: "offer",
@@ -82,10 +83,11 @@ DHCPTypes = {
                 13:"lease_active",
                 }
 
+# http://www.iana.org/assignments/bootp-dhcp-parameters/bootp-dhcp-parameters.xhtml
 DHCPOptions = {
     0: "pad",
     1: IPField("subnet_mask", "0.0.0.0"),
-    2: "time_zone",
+    2: SignedIntField("time_zone", 0),
     3: IPField("router","0.0.0.0"),
     4: IPField("time_server","0.0.0.0"),
     5: IPField("IEN_name_server","0.0.0.0"),
@@ -93,37 +95,64 @@ DHCPOptions = {
     7: IPField("log_server","0.0.0.0"),
     8: IPField("cookie_server","0.0.0.0"),
     9: IPField("lpr_server","0.0.0.0"),
+    10: IPField("impress_server","0.0.0.0"),
     12: "hostname",
+    13: ShortField("boot_file_size", 0),
     14: "dump_path",
     15: "domain",
+    16: IPField("swap_server","0.0.0.0"),
     17: "root_disk_path",
-    22: "max_dgram_reass_size",
-    23: "default_ttl",
-    24: "pmtu_timeout",
+    18: "extensions_path",
+    19: ByteEnumField("ip_forwarding", 0, {0:"disable",1:"enable"}),
+    20: ByteEnumField("nonlocal_source", 0, {0:"disable",1:"enable"}),
+    21: IPField("policy_filter","0.0.0.0"), # requires IP/mask pairs of addresses
+    22: ShortField("max_dgram_reass_size", 576),
+    23: ByteField("default_ttl", 1),
+    24: IntField("pmtu_timeout", 0),
+    25: ShortField("pmtu_plateau_table", 68),
+    26: ShortField("interface_mtu", 68),
+    27: ByteEnumField("all_subnets_local", 0, {0:"false",1:"true"}),
     28: IPField("broadcast_address","0.0.0.0"),
-    35: "arp_cache_timeout",
-    36: "ether_or_dot3",
-    37: "tcp_ttl",
-    38: "tcp_keepalive_interval",
-    39: "tcp_keepalive_garbage",
+    29: ByteEnumField("mask_discovery", 0, {0:"disable",1:"enable"}),
+    30: ByteEnumField("mask_supplier", 0, {0:"disable",1:"enable"}),
+    31: ByteEnumField("router_discovery", 0, {0:"disable",1:"enable"}),
+    32: IPField("router_solicit_address","0.0.0.0"),
+    33: IPField("static_route","0.0.0.0"), # requires dest/router pairs of addresses
+    34: ByteEnumField("trailers", 0, {0:"disable",1:"enable"}),
+    35: IntField("arp_cache_timeout", 0),
+    36: ByteEnumField("ether_or_dot3", 0, {0:"ether",1:"dot3"}),
+    37: ByteField("tcp_ttl",1),
+    38: IntField("tcp_keepalive_interval",0),
+    39: ByteEnumField("tcp_keepalive_garbage", 0, {0:"disable",1:"enable"}),
     40: "NIS_domain",
     41: IPField("NIS_server","0.0.0.0"),
     42: IPField("NTP_server","0.0.0.0"),
     43: "vendor_specific",
     44: IPField("NetBIOS_server","0.0.0.0"),
     45: IPField("NetBIOS_dist_server","0.0.0.0"),
+    46: ByteEnumField("NetBIOS_node_type", 1, {1:"b-node",2:"p-node",4:"m-node",8:"h-node"}),
+    47: "NetBIOS_scope",
+    48: IPField("xwindow_font_server","0.0.0.0"),
+    49: IPField("xwindow_display_manager","0.0.0.0"),
     50: IPField("requested_addr","0.0.0.0"),
     51: IntField("lease_time", 43200),
+    52: ByteEnumField("option_overload", 1, {1:"file",2:"sname",3:"both"}),
+    53: ByteEnumField("message-type", 1, DHCPTypes),
     54: IPField("server_id","0.0.0.0"),
-    55: "param_req_list",
+#    55: ByteEnumField("request-list", 1, DHCPNameOptions), # defined later due to circular reference
+    56: "message",
     57: ShortField("max_dhcp_size", 1500),
     58: IntField("renewal_time", 21600),
     59: IntField("rebinding_time", 37800),
     60: "vendor_class_id",
     61: "client_id",
-    
+    62: "netware_domain",
+    63: "netware_option",
     64: "NISplus_domain",
     65: IPField("NISplus_server","0.0.0.0"),
+    66: "TFTP_server_name",
+    67: "bootfile",
+    68: IPField("IP_home_agent","0.0.0.0"),
     69: IPField("SMTP_server","0.0.0.0"),
     70: IPField("POP3_server","0.0.0.0"),
     71: IPField("NNTP_server","0.0.0.0"),
@@ -132,12 +161,72 @@ DHCPOptions = {
     74: IPField("IRC_server","0.0.0.0"),
     75: IPField("StreetTalk_server","0.0.0.0"),
     76: "StreetTalk_Dir_Assistance",
+    77: "user_class",
+    78: "SLP_dir_agent",
+    79: "SLP_scope",
+    80: "rapid_commit",
+    81: "client_FQDN",
     82: "relay_agent_Information",
-    53: ByteEnumField("message-type", 1, DHCPTypes),
-    #             55: DHCPRequestListField("request-list"),
+    83: "iSNS",
+    #84: (unassigned)
+    85: IPField("NDS_server","0.0.0.0"),
+    86: "NDS_tree_name",
+    87: "NDS_context",
+    88: "BCMCS_domain_list",
+    89: IPField("BCMCS_address","0.0.0.0"),
+    90: "authentication",
+    91: IntField("client-last-transaction-time", 0),
+    92: IPField("associated-ip","0.0.0.0"),
+    93: ShortField("client_system", 0),
+    94: "client_NDI",
+    95: "LDAP",
+    #96: (unassigned)
+    97: "client_UUID",
+    98: "user_auth",
+    99: "GEOCONF_CIVIC",
+    100: "time_zone_pcode",
+    101: "time_zone_tcode",
+    #102-111: (unassigned)
+    112: "netinfo_address",
+    113: "netinfo_tag",
+    114: "default_URL",
+    #115: (unassigned)
+    116: ByteEnumField("auto_configure", 0, {0:"disable",1:"enable"}),
+    117: ShortField("name_service_search", 0),
+    118: IPField("subnet_selection","0.0.0.0"),
+    119: "domain_search",
+    120: "SIP_server",
+    121: "classless_route",
+    122: "CableLabs_client_config",
+    123: StrFixedLenField("location_config_info", "", 16),
+    124: "V-I_vendor_class",
+    125: "V-I_vendor_opts",
+    #126-127: (unused option code extensions)
+    128: "PXE_opt_128",
+    129: "PXE_opt_129",
+    130: "PXE_opt_130",
+    131: "PXE_opt_131",
+    132: "PXE_opt_132",
+    133: "PXE_opt_133",
+    134: "PXE_opt_134",
+    135: "PXE_opt_135",
+    136: IPField("PANA_agent","0.0.0.0"),
+    137: "LoST_server",
+    138: IPField("CAPWAP_AC","0.0.0.0"),
+    139: "MoS_address",
+    140: "MoS_domain_name",
+    #141-207: (unassigned or tentatively assigned)
+    208: StrFixedLenField("PXELINUX_magic", "\xF1\x00\x74\x7E", 4),
+    209: "PXELINUX_config",
+    210: "PXELINUX_path_prefix",
+    211: IntField("PXELINUX_reboot_time", 0),
+    212: "6rd",
+    #213-223: (unassigned or tentatively assigned)
+    #224-254: (reserved)
     255: "end"
     }
 
+DHCPNameOptions = {}
 DHCPRevOptions = {}
 
 for k,v in DHCPOptions.iteritems():
@@ -146,10 +235,16 @@ for k,v in DHCPOptions.iteritems():
         v = None
     else:
         n = v.name
+    DHCPNameOptions[k] = (n)
     DHCPRevOptions[n] = (k,v)
 del(n)
 del(v)
 del(k)
+
+# circular reference, must define the option list first
+DHCPNameOptions[55] = "request-list"
+DHCPOptions[55] = ByteEnumField("request-list", 1, DHCPNameOptions)
+DHCPRevOptions["request-list"] = (55, DHCPOptions[55])
     
     
 
