@@ -1036,3 +1036,7 @@ class FixedPointField(BitField):
         return int_part+frac_part
     def i2repr(self, pkt, val):
         return self.i2h(pkt, val)
+
+if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
