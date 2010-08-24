@@ -399,6 +399,9 @@ class _OptReqListField(StrLenField):
     
     def i2m(self, pkt, x):
         return "".join(map(lambda y: struct.pack("!H", y), x))
+    
+    def randval(self):
+        return [RandNum(0,255)]
 
 # A client may include an ORO in a solicit, Request, Renew, Rebind,
 # Confirm or Information-request
@@ -796,6 +799,8 @@ class DomainNameField(StrLenField):
             return ""
         tmp = "".join(map(lambda z: chr(len(z))+z, x.split('.')))
         return conditionalTrailingDot(tmp)
+    def randval(self):
+        return RandBin(RandNum(0,253))
 
 class DHCP6OptNISDomain(_DHCP6OptGuessPayload):             #RFC3898
     name = "DHCP6 Option - NIS Domain Name"

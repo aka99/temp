@@ -386,6 +386,8 @@ class PacketField(StrField):
             del(r.underlayer.payload)
             remain = r.load
         return remain,i
+    def randval(self):
+        return packet.fuzz(self.cls())
     
 class PacketLenField(PacketField):
     holds_packets=1
@@ -515,6 +517,8 @@ class PacketListField(PacketField):
         return remain+ret,lst
     def addfield(self, pkt, s, val):
         return s+"".join(map(str, val))
+    def randval(self):
+        return [packet.fuzz(self.cls())]
 
 
 class StrFixedLenField(StrField):
@@ -636,6 +640,8 @@ class FieldListField(Field):
             s,v = self.field.getfield(pkt, s)
             val.append(v)
         return s+ret, val
+    def randval(self):
+        return [self.field.randval()]
 
 class FieldLenField(Field):
     def __init__(self, name, default,  length_of=None, fmt = "H", count_of=None, adjust=lambda pkt,x:x, fld=None):
@@ -1043,6 +1049,8 @@ class FixedPointField(BitField):
         return int_part+frac_part
     def i2repr(self, pkt, val):
         return self.i2h(pkt, val)
+
+import packet
 
 if __name__ == '__main__':
     import doctest

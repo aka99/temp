@@ -178,6 +178,8 @@ class ASN1F_BIT_STRING(ASN1F_STRING):
     
 class ASN1F_IPADDRESS(ASN1F_STRING):
     ASN1_tag = ASN1_Class_UNIVERSAL.IPADDRESS    
+    def randval(self):
+        return RandIP()
 
 class ASN1F_TIME_TICKS(ASN1F_INTEGER):
     ASN1_tag = ASN1_Class_UNIVERSAL.TIME_TICKS

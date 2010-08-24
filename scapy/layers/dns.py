@@ -50,6 +50,9 @@ class DNSStrField(StrField):
                 s = s[l:]
         return s, n
 
+    def randval(self):
+        return RandBin(RandNum(0,255))
+
 
 class DNSRRCountField(ShortField):
     holds_packets=1
@@ -166,6 +169,8 @@ class DNSRRField(StrField):
             return (s,p),ret
         else:
             return s[p:],ret
+    def randval(self):
+        return fuzz(DNSRR())
             
             
 class DNSQRField(DNSRRField):
@@ -176,7 +181,8 @@ class DNSQRField(DNSRRField):
         rr = DNSQR("\x00"+ret)
         rr.qname = name
         return rr,p
-        
+    def randval(self):
+        return fuzz(DNSQR())
         
 
 class RDataField(StrLenField):

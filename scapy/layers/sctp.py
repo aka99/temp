@@ -423,7 +423,10 @@ class GapAckField(Field):
     def i2m(self, pkt, x):
         if x is None:
             return "\0\0\0\0"
-        sta, end = map(int, x.split(":"))
+        if type(x) in (list,tuple):
+            sta, end = map(int, x[:2])
+        else:
+            sta, end = map(int, x.split(":"))
         args = tuple([">HH", sta, end])
         return struct.pack(*args)
     def m2i(self, pkt, x):
@@ -432,6 +435,8 @@ class GapAckField(Field):
         if type(x) is tuple and len(x) == 2:
             return "%d:%d"%(x)
         return x
+    def randval(self):
+        return (RandShort(),RandShort())
 
 class SCTPChunkSACK(_SCTPChunkGuessPayload, Packet):
     name = "SCTP Chunk: Selective Ack"

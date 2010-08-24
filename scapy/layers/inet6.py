@@ -325,6 +325,9 @@ class IP6ListField(StrField):
         for y in x:
             s.append('%s' % y)
         return "[ %s ]" % (", ".join(s))
+
+    def randval(self):
+        return [RandIP6()]
         
 class _IPv6GuessPayload:        
     name = "Dummy class that implements guess_payload_class() for IPv6"
