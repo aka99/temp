@@ -698,7 +698,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
     def haslayer(self, cls):
         """true if self has a layer that is an instance of cls. Superseded by "cls in self" syntax."""
         if self.__class__ == cls or self.__class__.__name__ == cls:
-            return 1
+            return True
         for f in self.packetfields:
             fvalue_gen = self.getfieldval(f.name)
             if fvalue_gen is None:
@@ -709,7 +709,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
                 if isinstance(fvalue, Packet):
                     ret = fvalue.haslayer(cls)
                     if ret:
-                        return ret
+                        return True
         return self.payload.haslayer(cls)
     def getlayer(self, cls, nb=1, _track=None):
         """Return the nb^th layer that is an instance of cls."""
@@ -1078,7 +1078,7 @@ class NoPayload(Packet):
     def answers(self, other):
         return isinstance(other, NoPayload) or isinstance(other, Padding)
     def haslayer(self, cls):
-        return 0
+        return False
     def getlayer(self, cls, nb=1, _track=None):
         if _track is not None:
             _track.append(nb)
