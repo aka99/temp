@@ -163,7 +163,7 @@ class NBNSNodeStatusResponseService(Packet):
 
 # End of Node Status Response packet
 class NBNSNodeStatusResponseEnd(Packet):
-    name="NBNS Node Status Response"
+    name="NBNS Node Status Response End"
     fields_desc = [SourceMACField("MAC_ADDRESS"),
                    BitField("STATISTICS",0,57*8)]
 

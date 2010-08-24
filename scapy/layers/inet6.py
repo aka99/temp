@@ -663,7 +663,7 @@ class _OTypeField(ByteEnumField):
         return "%s [%s, %s]" % (s, polstr, enroutechangestr)
 
 class HBHOptUnknown(Packet): # IPv6 Hop-By-Hop Option
-    name = "Scapy6 Unknown Option"
+    name = "IPv6 Unknown Option"
     fields_desc = [_OTypeField("otype", 0x01, _hbhopts), 
                    FieldLenField("optlen", None, length_of="optdata", fmt="B"),
                    StrLenField("optdata", "",
@@ -1181,7 +1181,7 @@ class _ICMPv6Error(_ICMPv6):
         return IPerror6
 
 class ICMPv6Unknown(_ICMPv6):
-    name = "Scapy6 ICMPv6 fallback class"
+    name = "ICMPv6 fallback class"
     fields_desc = [ ByteEnumField("type",1, icmp6types),
                     ByteField("code",0),
                     XShortField("cksum", None),
@@ -1276,7 +1276,7 @@ class _ICMPv6ML(_ICMPv6):
 # TODO : See what we can do to automatically include a Router Alert
 #        Option in a Destination Option Header.
 class ICMPv6MLQuery(_ICMPv6ML): # RFC 2710
-    name = "MLD - Multicast Listener Query"
+    name = "ICMPv6 Multicast Listener Query"
     type   = 130
     mrd    = 10000
     mladdr = "::" # 10s for mrd
@@ -1291,7 +1291,7 @@ class ICMPv6MLQuery(_ICMPv6ML): # RFC 2710
 # TODO : See what we can do to automatically include a Router Alert
 #        Option in a Destination Option Header.
 class ICMPv6MLReport(_ICMPv6ML): # RFC 2710
-    name = "MLD - Multicast Listener Report"
+    name = "ICMPv6 Multicast Listener Report"
     type = 131
     overload_fields = {IPv6: {"hlim": 1}}
     # implementer le hashret et le answers
@@ -1303,7 +1303,7 @@ class ICMPv6MLReport(_ICMPv6ML): # RFC 2710
 # TODO : See what we can do to automatically include a Router Alert
 #        Option in a Destination Option Header.
 class ICMPv6MLDone(_ICMPv6ML): # RFC 2710
-    name = "MLD - Multicast Listener Done"
+    name = "ICMPv6 Multicast Listener Done"
     type = 132
     overload_fields = {IPv6: { "dst": "ff02::2", "hlim": 1}}
 
@@ -1528,7 +1528,7 @@ class ICMPv6NDOptShortcutLimit(_ICMPv6NDGuessPayload, Packet): # RFC 2491
                     IntField("res2", 0) ]
     
 class ICMPv6NDOptAdvInterval(_ICMPv6NDGuessPayload, Packet):
-    name = "ICMPv6 Neighbor Discovery - Interval Advertisement"
+    name = "ICMPv6 Neighbor Discovery Option - Interval Advertisement"
     fields_desc = [ ByteField("type",7),
                     ByteField("len",1),
                     ShortField("res", 0),
@@ -1537,7 +1537,7 @@ class ICMPv6NDOptAdvInterval(_ICMPv6NDGuessPayload, Packet):
         return self.sprintf("%name% %advint% milliseconds")
 
 class ICMPv6NDOptHAInfo(_ICMPv6NDGuessPayload, Packet): 
-    name = "ICMPv6 Neighbor Discovery - Home Agent Information"
+    name = "ICMPv6 Neighbor Discovery Option - Home Agent Information"
     fields_desc = [ ByteField("type",8),
                     ByteField("len",1),
                     ShortField("res", 0),
@@ -1551,7 +1551,7 @@ class ICMPv6NDOptHAInfo(_ICMPv6NDGuessPayload, Packet):
 # type 10 : See ICMPv6NDOptTgtAddrList class below in IND (RFC 3122) support
 
 class ICMPv6NDOptIPAddr(_ICMPv6NDGuessPayload, Packet):  # RFC 4068
-    name = "ICMPv6 Neighbor Discovery - IP Address Option (FH for MIPv6)"
+    name = "ICMPv6 Neighbor Discovery Option - IP Address (FH for MIPv6)"
     fields_desc = [ ByteField("type",17),
                     ByteField("len", 3),
                     ByteEnumField("optcode", 1, {1: "Old Care-Of Address",
@@ -1562,7 +1562,7 @@ class ICMPv6NDOptIPAddr(_ICMPv6NDGuessPayload, Packet):  # RFC 4068
                     IP6Field("addr", "::") ]
 
 class ICMPv6NDOptNewRtrPrefix(_ICMPv6NDGuessPayload, Packet): # RFC 4068
-    name = "ICMPv6 Neighbor Discovery - New Router Prefix Information Option (FH for MIPv6)"
+    name = "ICMPv6 Neighbor Discovery Option - New Router Prefix Information (FH for MIPv6)"
     fields_desc = [ ByteField("type",18),
                     ByteField("len", 3),
                     ByteField("optcode", 0),
@@ -1580,14 +1580,14 @@ _rfc4068_lla_optcode = {0: "Wildcard requesting resolution for all nearby AP",
                         7: "No fast handovers support for AP identified by the LLA" }
 
 class ICMPv6NDOptLLA(_ICMPv6NDGuessPayload, Packet):     # RFC 4068
-    name = "ICMPv6 Neighbor Discovery - Link-Layer Address (LLA) Option (FH for MIPv6)"
+    name = "ICMPv6 Neighbor Discovery Option - Link-Layer Address (LLA) (FH for MIPv6)"
     fields_desc = [ ByteField("type", 19),
                     ByteField("len", 1),
                     ByteEnumField("optcode", 0, _rfc4068_lla_optcode),
                     MACField("lla", ETHER_ANY) ] # We only support ethernet
 
 class ICMPv6NDOptMAP(_ICMPv6NDGuessPayload, Packet):     # RFC 4140
-    name = "ICMPv6 Neighbor Discovery - MAP Option"
+    name = "ICMPv6 Neighbor Discovery Option - MAP"
     fields_desc = [ ByteField("type", 23),
                     ByteField("len", 3),
                     BitField("dist", 1, 4),
@@ -2355,7 +2355,7 @@ class _MIP6OptAlign:
     
 
 class MIP6OptBRAdvice(_MIP6OptAlign, Packet):
-    name = 'Mobile IPv6 Option - Binding Refresh Advice' 
+    name = 'MIPv6 Option - Binding Refresh Advice' 
     fields_desc = [ ByteEnumField('otype', 2, _mobopttypes),
                     ByteField('olen', 2),
                     ShortField('rinter', 0) ] 
@@ -2384,7 +2384,7 @@ class MIP6OptBindingAuthData(_MIP6OptAlign, Packet):
     x = 8 ; y = 2 # alignment requirement: 8n+2
 
 class MIP6OptMobNetPrefix(_MIP6OptAlign, Packet): # NEMO - RFC 3963 
-    name = 'NEMO Option - Mobile Network Prefix'
+    name = 'MIPv6 Option - Mobile Network Prefix'
     fields_desc = [ ByteEnumField("otype", 6, _mobopttypes),
                     ByteField("olen", 18),
                     ByteField("reserved", 0),
@@ -2448,14 +2448,14 @@ class NTPTimestampField(LongField):
         return "%s (%d)" % (t, x)
 
 class MIP6OptReplayProtection(_MIP6OptAlign, Packet): # RFC 4285 (Sect. 6)
-    name = "MIPv6 option - Replay Protection"
+    name = "MIPv6 Option - Replay Protection"
     fields_desc = [ ByteEnumField("otype", 10, _mobopttypes),
                     ByteField("olen", 8),
                     NTPTimestampField("timestamp", 0) ]
     x = 8 ; y = 2 # alignment requirement: 8n+2
 
 class MIP6OptCGAParamsReq(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.6)
-    name = "MIPv6 option - CGA Parameters Request"
+    name = "MIPv6 Option - CGA Parameters Request"
     fields_desc = [ ByteEnumField("otype", 11, _mobopttypes),
                     ByteField("olen", 0) ]
     x = 0 ; y = 0 # alignment requirement: none
@@ -2464,7 +2464,7 @@ class MIP6OptCGAParamsReq(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.6)
 # XXX       version. Passing of a big CGAParam structure should be 
 # XXX       simplified. Make it hold packets, by the way  --arno
 class MIP6OptCGAParams(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.1)
-    name = "MIPv6 option - CGA Parameters"
+    name = "MIPv6 Option - CGA Parameters"
     fields_desc = [ ByteEnumField("otype", 12, _mobopttypes),
                     FieldLenField("olen", None, length_of="cgaparams", fmt="B"),
                     StrLenField("cgaparams", "",
@@ -2472,7 +2472,7 @@ class MIP6OptCGAParams(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.1)
     x = 0 ; y = 0 # alignment requirement: none
 
 class MIP6OptSignature(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.2)
-    name = "MIPv6 option - Signature"
+    name = "MIPv6 Option - Signature"
     fields_desc = [ ByteEnumField("otype", 13, _mobopttypes),
                     FieldLenField("olen", None, length_of="sig", fmt="B"),
                     StrLenField("sig", "",
@@ -2480,7 +2480,7 @@ class MIP6OptSignature(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.2)
     x = 0 ; y = 0 # alignment requirement: none
 
 class MIP6OptHomeKeygenToken(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.3)
-    name = "MIPv6 option - Home Keygen Token"
+    name = "MIPv6 Option - Home Keygen Token"
     fields_desc = [ ByteEnumField("otype", 14, _mobopttypes),
                     FieldLenField("olen", None, length_of="hkt", fmt="B"),
                     StrLenField("hkt", "",
@@ -2488,13 +2488,13 @@ class MIP6OptHomeKeygenToken(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.3)
     x = 0 ; y = 0 # alignment requirement: none
 
 class MIP6OptCareOfTestInit(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.4)
-    name = "MIPv6 option - Care-of Test Init"
+    name = "MIPv6 Option - Care-of Test Init"
     fields_desc = [ ByteEnumField("otype", 15, _mobopttypes),
                     ByteField("olen", 0) ]
     x = 0 ; y = 0 # alignment requirement: none
 
 class MIP6OptCareOfTest(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.5)
-    name = "MIPv6 option - Care-of Test"
+    name = "MIPv6 Option - Care-of Test"
     fields_desc = [ ByteEnumField("otype", 16, _mobopttypes),
                     FieldLenField("olen", None, length_of="cokt", fmt="B"),
                     StrLenField("cokt", '\x00'*8,
@@ -2502,7 +2502,7 @@ class MIP6OptCareOfTest(_MIP6OptAlign, Packet): # RFC 4866 (Sect. 5.5)
     x = 0 ; y = 0 # alignment requirement: none
 
 class MIP6OptUnknown(_MIP6OptAlign, Packet):
-    name = 'Scapy6 - Unknown Mobility Option'
+    name = 'MIPv6 unknown option'
     fields_desc = [ ByteEnumField("otype", 6, _mobopttypes),
                     FieldLenField("olen", None, length_of="odata", fmt="B"),
                     StrLenField("odata", "",

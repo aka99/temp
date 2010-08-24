@@ -253,6 +253,7 @@ duid_cls = { 1: "DUID_LLT",
 #####################################################################
 
 class _DHCP6OptGuessPayload(Packet):
+    name = "DHCP6 Option dummy class"
     def guess_payload_class(self, payload):
         cls = Raw
         if len(payload) > 2 :
@@ -261,7 +262,7 @@ class _DHCP6OptGuessPayload(Packet):
         return cls
 
 class DHCP6OptUnknown(_DHCP6OptGuessPayload): # A generic DHCPv6 Option
-    name = "Unknown DHCPv6 OPtion"
+    name = "DHCP6 Option - Unknown Option"
     fields_desc = [ ShortEnumField("optcode", 0, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="data", fmt="!H"),
                     StrLenField("data", "",
@@ -289,7 +290,7 @@ class _DUIDField(PacketField):
  
 
 class DHCP6OptClientId(_DHCP6OptGuessPayload):     # RFC sect 22.2
-    name = "DHCP6 Client Identifier Option"
+    name = "DHCP6 Option - Client Identifier"
     fields_desc = [ ShortEnumField("optcode", 1, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="duid", fmt="!H"),
                     _DUIDField("duid", "",
@@ -297,14 +298,14 @@ class DHCP6OptClientId(_DHCP6OptGuessPayload):     # RFC sect 22.2
 
 
 class DHCP6OptServerId(DHCP6OptClientId):     # RFC sect 22.3
-    name = "DHCP6 Server Identifier Option"
+    name = "DHCP6 Option - Server Identifier"
     optcode = 2
 
 # Should be encapsulated in the option field of IA_NA or IA_TA options
 # Can only appear at that location.
 # TODO : last field IAaddr-options is not defined in the reference document
 class DHCP6OptIAAddress(_DHCP6OptGuessPayload):    # RFC sect 22.6
-    name = "DHCP6 IA Address Option (IA_TA or IA_NA suboption)"
+    name = "DHCP6 Option - IA Address (IA_TA or IA_NA suboption)"
     fields_desc = [ ShortEnumField("optcode", 5, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="iaaddropts",
                                   fmt="!H", adjust = lambda pkt,x: x+24),
@@ -339,7 +340,7 @@ class _IANAOptField(PacketListField):
         return payl,lst
 
 class DHCP6OptIA_NA(_DHCP6OptGuessPayload):         # RFC sect 22.4
-    name = "DHCP6 Identity Association for Non-temporary Addresses Option"
+    name = "DHCP6 Option - Identity Association for Non-temporary Addresses"
     fields_desc = [ ShortEnumField("optcode", 3, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="ianaopts",
                                   fmt="!H", adjust = lambda pkt,x: x+12),
@@ -353,7 +354,7 @@ class _IATAOptField(_IANAOptField):
     pass
 
 class DHCP6OptIA_TA(_DHCP6OptGuessPayload):         # RFC sect 22.5
-    name = "DHCP6 Identity Association for Temporary Addresses Option"
+    name = "DHCP6 Option - Identity Association for Temporary Addresses"
     fields_desc = [ ShortEnumField("optcode", 4, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="iataopts",
                                   fmt="!H", adjust = lambda pkt,x: x+4),
@@ -402,7 +403,7 @@ class _OptReqListField(StrLenField):
 # A client may include an ORO in a solicit, Request, Renew, Rebind,
 # Confirm or Information-request
 class DHCP6OptOptReq(_DHCP6OptGuessPayload):       # RFC sect 22.7
-    name = "DHCP6 Option Request Option"
+    name = "DHCP6 Option - Option Request"
     fields_desc = [ ShortEnumField("optcode", 6, dhcp6opts),
                     FieldLenField("optlen", None, length_of="reqopts", fmt="!H"),
                     _OptReqListField("reqopts", [23, 24],
@@ -414,7 +415,7 @@ class DHCP6OptOptReq(_DHCP6OptGuessPayload):       # RFC sect 22.7
 # emise par un serveur pour affecter le choix fait par le client. Dans
 # les messages Advertise, a priori
 class DHCP6OptPref(_DHCP6OptGuessPayload):       # RFC sect 22.8
-    name = "DHCP6 Preference Option"
+    name = "DHCP6 Option - Preference"
     fields_desc = [ ShortEnumField("optcode", 7, dhcp6opts), 
                     ShortField("optlen", 1 ),
                     ByteField("prefval",255) ]
@@ -429,7 +430,7 @@ class _ElapsedTimeField(ShortField):
         return "%.2f sec" % (self.i2h(pkt, x)/100.)
 
 class DHCP6OptElapsedTime(_DHCP6OptGuessPayload):# RFC sect 22.9
-    name = "DHCP6 Elapsed Time Option"
+    name = "DHCP6 Option - Elapsed Time"
     fields_desc = [ ShortEnumField("optcode", 8, dhcp6opts), 
                     ShortField("optlen", 2),
                     _ElapsedTimeField("elapsedtime", 0) ]
@@ -439,7 +440,7 @@ class DHCP6OptElapsedTime(_DHCP6OptGuessPayload):# RFC sect 22.9
 
 # Relayed message is seen as a payload.
 class DHCP6OptRelayMsg(_DHCP6OptGuessPayload):# RFC sect 22.10
-    name = "DHCP6 Relay Message Option"
+    name = "DHCP6 Option - Relay Message"
     fields_desc = [ ShortEnumField("optcode", 9, dhcp6opts), 
                     ShortField("optlen", None ) ]
     def post_build(self, p, pay):
@@ -509,7 +510,7 @@ class _SrvAddrField(IP6Field):
         return inet_pton(socket.AF_INET6, self.i2h(pkt,x))
 
 class DHCP6OptServerUnicast(_DHCP6OptGuessPayload):# RFC sect 22.12
-    name = "DHCP6 Server Unicast Option"
+    name = "DHCP6 Option - Server Unicast"
     fields_desc = [ ShortEnumField("optcode", 12, dhcp6opts), 
                     ShortField("optlen", 16 ),
                     _SrvAddrField("srvaddr",None) ]
@@ -532,7 +533,7 @@ dhcp6statuscodes = { 0:"Success",          # sect 24.4
                     11:"QueryTerminated"}  # RFC5460
 
 class DHCP6OptStatusCode(_DHCP6OptGuessPayload):# RFC sect 22.13
-    name = "DHCP6 Status Code Option"
+    name = "DHCP6 Option - Status Code"
     fields_desc = [ ShortEnumField("optcode", 13, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="statusmsg",
                                   fmt="!H", adjust = lambda pkt,x:x+2),
@@ -544,7 +545,7 @@ class DHCP6OptStatusCode(_DHCP6OptGuessPayload):# RFC sect 22.13
 #### DHCPv6 Rapid Commit Option #####################################
 
 class DHCP6OptRapidCommit(_DHCP6OptGuessPayload):   # RFC sect 22.14
-    name = "DHCP6 Rapid Commit Option"
+    name = "DHCP6 Option - Rapid Commit"
     fields_desc = [ ShortEnumField("optcode", 14, dhcp6opts),
                     ShortField("optlen", 0)]
 
@@ -582,7 +583,7 @@ class USER_CLASS_DATA(Packet):
         return Padding
 
 class DHCP6OptUserClass(_DHCP6OptGuessPayload):# RFC sect 22.15
-    name = "DHCP6 User Class Option"
+    name = "DHCP6 Option - User Class"
     fields_desc = [ ShortEnumField("optcode", 15, dhcp6opts), 
                     FieldLenField("optlen", None, fmt="!H",
                                   length_of="userclassdata"),
@@ -599,7 +600,7 @@ class VENDOR_CLASS_DATA(USER_CLASS_DATA):
     name = "vendor class data"
 
 class DHCP6OptVendorClass(_DHCP6OptGuessPayload):# RFC sect 22.16
-    name = "DHCP6 Vendor Class Option"
+    name = "DHCP6 Option - Vendor Class"
     fields_desc = [ ShortEnumField("optcode", 16, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="vcdata", fmt="!H",
                                   adjust = lambda pkt,x: x+4),
@@ -620,7 +621,7 @@ class VENDOR_SPECIFIC_OPTION(_DHCP6OptGuessPayload):
 
 # The third one that will be used for nothing interesting
 class DHCP6OptVendorSpecificInfo(_DHCP6OptGuessPayload):# RFC sect 22.17
-    name = "DHCP6 Vendor-specific Information Option"
+    name = "DHCP6 Option - Vendor-specific Information"
     fields_desc = [ ShortEnumField("optcode", 17, dhcp6opts), 
                     FieldLenField("optlen", None, length_of="vso", fmt="!H",
                                   adjust = lambda pkt,x: x+4),
@@ -633,7 +634,7 @@ class DHCP6OptVendorSpecificInfo(_DHCP6OptGuessPayload):# RFC sect 22.17
 # Repasser sur cette option a la fin. Elle a pas l'air d'etre des
 # masses critique.
 class DHCP6OptIfaceId(_DHCP6OptGuessPayload):# RFC sect 22.18
-    name = "DHCP6 Interface-Id Option"
+    name = "DHCP6 Option - Interface-Id"
     fields_desc = [ ShortEnumField("optcode", 18, dhcp6opts),
                     FieldLenField("optlen", None, fmt="!H",
                                   length_of="ifaceid"),
@@ -647,7 +648,7 @@ class DHCP6OptIfaceId(_DHCP6OptGuessPayload):# RFC sect 22.18
 # message to indicate to the client whether the client responds with a
 # renew message or an Informatiion-request message.
 class DHCP6OptReconfMsg(_DHCP6OptGuessPayload):       # RFC sect 22.19
-    name = "DHCP6 Reconfigure Message Option"
+    name = "DHCP6 Option - Reconfigure Message"
     fields_desc = [ ShortEnumField("optcode", 19, dhcp6opts), 
                     ShortField("optlen", 1 ),
                     ByteEnumField("msgtype", 11, {  5:"Renew Message", 
@@ -664,7 +665,7 @@ class DHCP6OptReconfMsg(_DHCP6OptGuessPayload):       # RFC sect 22.19
 # messages, or instruction not to accept Reconfigure messages, for the
 # client and server messages, respectively.
 class DHCP6OptReconfAccept(_DHCP6OptGuessPayload):   # RFC sect 22.20
-    name = "DHCP6 Reconfigure Accept Option"
+    name = "DHCP6 Option - Reconfigure Accept"
     fields_desc = [ ShortEnumField("optcode", 20, dhcp6opts),
                     ShortField("optlen", 0)]
 
@@ -811,7 +812,7 @@ class DHCP6OptNISPDomain(_DHCP6OptGuessPayload):            #RFC3898
                                     length_from= lambda pkt: pkt.optlen) ]
 
 class DHCP6OptSNTPServers(_DHCP6OptGuessPayload):                #RFC4075
-    name = "DHCP6 option - SNTP Servers"
+    name = "DHCP6 Option - SNTP Servers"
     fields_desc = [ ShortEnumField("optcode", 31, dhcp6opts),
                     FieldLenField("optlen", None, length_of="sntpservers"),
                     IP6ListField("sntpservers", [],
@@ -841,7 +842,7 @@ class DHCP6OptBCMCSServers(_DHCP6OptGuessPayload):              #RFC4280
 
 # TODO : Does Nothing at the moment
 class DHCP6OptGeoConf(_DHCP6OptGuessPayload):               #RFC-ietf-geopriv-dhcp-civil-09.txt
-    name = ""
+    name = "DHCP6 Option - GeoConf Civic Location"
     fields_desc = [ ShortEnumField("optcode", 36, dhcp6opts),
                     FieldLenField("optlen", None, length_of="optdata"),
                     StrLenField("optdata", "",
@@ -926,7 +927,7 @@ class _DHCP6GuessPayload(Packet):
 # a chaque emission et doivent matcher dans les reponses faites par
 # les clients
 class DHCP6(_DHCP6OptGuessPayload):
-    name = "DHCPv6 Generic Message)"
+    name = "DHCPv6 Generic Message"
     fields_desc = [ ByteEnumField("msgtype",None,dhcp6types),
                     X3BytesField("trid",0x000000) ]
     overload_fields = { UDP: {"sport": 546, "dport": 547} }
