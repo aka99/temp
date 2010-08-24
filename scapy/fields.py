@@ -968,9 +968,8 @@ class MultiEnumField(EnumField):
 
 class BitMultiEnumField(BitField,MultiEnumField):
     def __init__(self, name, default, size, enum, depends_on):
-        MultiEnumField.__init__(self, name, default, enum)
-        self.rev = size < 0
-        self.size = abs(size)
+        MultiEnumField.__init__(self, name, default, enum, depends_on)
+        BitField.__init__(self, name, default, size)
     def any2i(self, pkt, x):
         return MultiEnumField.any2i(self, pkt, x)
     def i2repr(self, pkt, x):
