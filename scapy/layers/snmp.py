@@ -112,6 +112,7 @@ class ASN1F_SNMP_PDU_TRAPv2(ASN1F_SEQUENCE):
 
 ######[ SNMP Packet ]######
 
+# RFC3416
 SNMP_error = { 0: "no_error",
                1: "too_big",
                2: "no_such_name",
@@ -133,6 +134,7 @@ SNMP_error = { 0: "no_error",
               18: "inconsistent_name",
                }
 
+# RFC1157
 SNMP_trap_types = { 0: "cold_start",
                     1: "warm_start",
                     2: "link_down",

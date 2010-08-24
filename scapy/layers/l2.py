@@ -358,13 +358,40 @@ hardware_types = {   0:"NET/ROM pseudo", # Not referenced by IANA
                     37:"HFI",
                    256:"HW_EXP2" }
 
+# http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+arp_opcodes = { 1:"who-has",
+                2:"is-at",
+                3:"RARP-req",
+                4:"RARP-rep",
+                5:"Dyn-RARP-req",
+                6:"Dyn-RAR-rep",
+                7:"Dyn-RARP-err",
+                8:"InARP-req",
+                9:"InARP-rep",
+                10:"ARP-NAK",
+                11:"MARS-Req",
+                12:"MARS-Multi",
+                13:"MARS-MServ",
+                14:"MARS-Join",
+                15:"MARS-Leave",
+                16:"MARS-NAK",
+                17:"MARS-Unserv",
+                18:"MARS-SJoin",
+                19:"MARS-SLeave",
+                20:"MARS-Grouplist-Req",
+                21:"MARS-Grouplist-Rep",
+                22:"MARS-Redirect-Map",
+                23:"MAPOS-UNARP",
+                24:"OP_EXP1",
+                25:"OP_EXP2" }
+
 class ARP(Packet):
     name = "ARP"
     fields_desc = [ ShortEnumField("hwtype", 1, hardware_types),
                     XShortEnumField("ptype", 0x0800, ETHER_TYPES),
                     ByteField("hwlen", 6),
                     ByteField("plen", 4),
-                    ShortEnumField("op", 1, {"who-has":1, "is-at":2, "RARP-req":3, "RARP-rep":4, "Dyn-RARP-req":5, "Dyn-RAR-rep":6, "Dyn-RARP-err":7, "InARP-req":8, "InARP-rep":9}),
+                    ShortEnumField("op", 1, arp_opcodes),
                     ARPSourceMACField("hwsrc"),
                     SourceIPField("psrc","pdst"),
                     MACField("hwdst", ETHER_ANY),

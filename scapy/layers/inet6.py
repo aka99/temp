@@ -258,14 +258,15 @@ ipv6nh = { 0:"Hop-by-Hop Option Header",
 ipv6nhcls = {  0: "IPv6ExtHdrHopByHop",
                4: "IP",
                6: "TCP",
-               17: "UDP",
-               43: "IPv6ExtHdrRouting",
-               44: "IPv6ExtHdrFragment",
-              #50: "IPv6ExtHrESP",
-              #51: "IPv6ExtHdrAH",
-               58: "ICMPv6Unknown", 
-               59: "Raw",
-               60: "IPv6ExtHdrDestOpt" }
+              17: "UDP",
+              41: "IPv6",
+              43: "IPv6ExtHdrRouting",
+              44: "IPv6ExtHdrFragment",
+             #50: "IPv6ExtHrESP",
+             #51: "IPv6ExtHdrAH",
+              58: "ICMPv6Unknown", 
+              59: "Raw",
+              60: "IPv6ExtHdrDestOpt" }
 
 class IP6ListField(StrField):
     islist = 1
@@ -628,11 +629,14 @@ class _IPv6ExtHdr(_IPv6GuessPayload, Packet):
 
 #################### IPv6 options for Extension Headers #####################
 
+# http://www.iana.org/assignments/ipv6-parameters
 _hbhopts = { 0x00: "Pad1",
              0x01: "PadN",
              0x04: "Tunnel Encapsulation Limit",
              0x05: "Router Alert",
              0x06: "Quick-Start",
+             0x07: "CALIPSO",
+             0x8a: "Endpoint Identification",
              0xc2: "Jumbo Payload",
              0xc9: "Home Address Option" }
 
@@ -1106,14 +1110,16 @@ icmp6typescls = {    1: "ICMPv6DestUnreach",
                    151: "ICMPv6MRD_Advertisement",
                    152: "ICMPv6MRD_Solicitation",
                    153: "ICMPv6MRD_Termination",
+                  #154: Do Me - RFC 5568
                    }
 
+# http://www.iana.org/assignments/icmpv6-parameters
 icmp6types = { 1 : "Destination unreachable",  
                2 : "Packet too big", 
                3 : "Time exceeded",
                4 : "Parameter problem",
-             100 : "Private Experimentation",
-             101 : "Private Experimentation",
+             100 : "Private Experimentation (100)",
+             101 : "Private Experimentation (101)",
              128 : "Echo Request",
              129 : "Echo Reply",
              130 : "MLD Query",
@@ -1139,8 +1145,9 @@ icmp6types = { 1 : "Destination unreachable",
              151 : "Multicast Router Advertisement",
              152 : "Multicast Router Solicitation",
              153 : "Multicast Router Termination",
-             200 : "Private Experimentation",
-             201 : "Private Experimentation" }
+             154 : "FMIPv6 Messages",
+             200 : "Private Experimentation (200)",
+             201 : "Private Experimentation (201)" }
 
 
 class _ICMPv6(Packet):
@@ -1348,33 +1355,38 @@ class ICMPv6MRD_Termination(_ICMPv6):
 
 ################### ICMPv6 Neighbor Discovery (RFC 2461) ####################
 
+# http://www.iana.org/assignments/icmpv6-parameters
 icmp6ndopts = { 1: "Source Link-Layer Address",
                 2: "Target Link-Layer Address",
                 3: "Prefix Information",
                 4: "Redirected Header",
                 5: "MTU",
-                6: "NBMA Shortcut Limit Option", # RFC2491
-                7: "Advertisement Interval Option",
-                8: "Home Agent Information Option",
-                9: "Source Address List",
-               10: "Target Address List",
-               11: "CGA Option",            # RFC 3971
-               12: "RSA Signature Option",  # RFC 3971
-               13: "Timestamp Option",      # RFC 3971
-               14: "Nonce option",          # RFC 3971
-               15: "Trust Anchor Option",   # RFC 3971
-               16: "Certificate Option",    # RFC 3971
-               17: "IP Address Option",                             # RFC 4068
-               18: "New Router Prefix Information Option",          # RFC 4068
-               19: "Link-layer Address Option",                     # RFC 4068
-               20: "Neighbor Advertisement Acknowledgement Option", 
-               21: "CARD Request Option", # RFC 4065/4066/4067
-               22: "CARD Reply Option",   # RFC 4065/4066/4067
-               23: "MAP Option",          # RFC 4140
-               24: "Route Information Option",  # RFC 4191
-               25: "Recusive DNS Server Option",
-               26: "IPv6 Router Advertisement Flags Option"
-                }
+                6: "NBMA Shortcut Limit Option",                    # RFC2491
+                7: "Advertisement Interval Option",                 # RFC3775
+                8: "Home Agent Information Option",                 # RFC3775
+                9: "Source Address List",                           # RFC3122
+               10: "Target Address List",                           # RFC3122
+               11: "CGA Option",                                    # RFC3971
+               12: "RSA Signature Option",                          # RFC3971
+               13: "Timestamp Option",                              # RFC3971
+               14: "Nonce option",                                  # RFC3971
+               15: "Trust Anchor Option",                           # RFC3971
+               16: "Certificate Option",                            # RFC3971
+               17: "IP Address Option",                             # RFC5568
+               18: "New Router Prefix Information Option",          # RFC4068
+               19: "Link-layer Address Option",                     # RFC5568
+               20: "Neighbor Advertisement Acknowledgement Option", # RFC5568
+               23: "MAP Option",                                    # RFC4140
+               24: "Route Information Option",                      # RFC4191
+               25: "Recusive DNS Server Option",                    # RFC5006
+               26: "RA Flags Extension Option",                     # RFC5175
+               27: "Handover Key Request Option",                   # RFC5269
+               28: "Handover Key Reply Option",                     # RFC5269
+               29: "Handover Assist Information Option",            # RFC5271
+               30: "Mobile Node Identifier Option",                 # RFC5271
+              138: "CARD Request Option",                           # RFC4065/4066
+              139: "CARD Reply Option",                             # RFC4065/4066
+               }
                   
 icmp6ndoptscls = { 1: "ICMPv6NDOptSrcLLAddr",
                    2: "ICMPv6NDOptDstLLAddr",
@@ -1398,12 +1410,16 @@ icmp6ndoptscls = { 1: "ICMPv6NDOptSrcLLAddr",
                   #18: Do Me,
                   #19: Do Me,
                   #20: Do Me,
-                  #21: Do Me,
-                  #22: Do Me,
                   23: "ICMPv6NDOptMAP",
                   24: "ICMPv6NDOptRouteInfo",
                   25: "ICMPv6NDOptRDNSS",
                   26: "ICMPv6NDOptEFA"
+                  #27: Do Me,
+                  #28: Do Me,
+                  #29: Do Me,
+                  #30: Do Me,
+                 #138: Do Me,
+                 #139: Do Me,
                   }
 
 class _ICMPv6NDGuessPayload:
@@ -2282,21 +2298,46 @@ class ICMPv6MPAdv(_ICMPv6NDGuessPayload, _ICMPv6):
 # Mobile IPv6 Options classes
 
 
+# http://www.iana.org/assignments/mobility-parameters/mobility-parameters.xhtml
 _mobopttypes = { 2: "Binding Refresh Advice",
                  3: "Alternate Care-of Address",
                  4: "Nonce Indices",
                  5: "Binding Authorization Data",
-                 6: "Mobile Network Prefix (RFC3963)",
-                 7: "Link-Layer Address (RFC4068)",
-                 8: "Mobile Node Identifier (RFC4283)", 
-                 9: "Mobility Message Authentication (RFC4285)",
-                 10: "Replay Protection (RFC4285)",
-                 11: "CGA Parameters Request (RFC4866)",
-                 12: "CGA Parameters (RFC4866)",
-                 13: "Signature (RFC4866)",
-                 14: "Home Keygen Token (RFC4866)",
-                 15: "Care-of Test Init (RFC4866)",
-                 16: "Care-of Test (RFC4866)" }
+                 6: "Mobile Network Prefix",                    # RFC3963
+                 7: "Link-Layer Address",                       # RFC4068
+                 8: "Mobile Node Identifier",                   # RFC4283
+                 9: "Mobility Message Authentication",          # RFC4285
+                 10: "Replay Protection",                       # RFC4285
+                 11: "CGA Parameters Request",                  # RFC4866
+                 12: "CGA Parameters",                          # RFC4866
+                 13: "Signature",                               # RFC4866
+                 14: "Home Keygen Token",                       # RFC4866
+                 15: "Care-of Test Init",                       # RFC4866
+                 16: "Care-of Test",                            # RFC4866
+                 17: "DNS Update",                              # RFC5026
+                 18: "Experimental",                            # RFC5096
+                 19: "Vendor Specific",                         # RFC5094
+                 20: "Service Selection",                       # RFC5149
+                 21: "Binding Authorization Data for FMIPv6",   # RFC5568
+                 22: "Home Network Prefix",                     # RFC5213
+                 23: "Handoff Indicator",                       # RFC5213
+                 24: "Access Technology Type",                  # RFC5213
+                 25: "Mobile Node Link-layer Identifier",       # RFC5213
+                 26: "Link-local Address",                      # RFC5213
+                 27: "Timestamp",                               # RFC5213
+                 28: "Restart Counter",                         # RFC5847
+                 29: "IPv4 Home Address",                       # RFC5555
+                 30: "IPv4 Address Acknowledgement",            # RFC5555
+                 31: "NAT Detection",                           # RFC5555
+                 32: "IPv4 Care-of Address",                    # RFC5555
+                 33: "GRE Key Option",                          # RFC5845
+                 34: "Mobility Header IPv6 Address/Prefix",     # RFC5568
+                 35: "Binding Identifier",                      # RFC5648
+                 36: "IPv4 Home Address Request",               # RFC5844
+                 37: "IPv4 Home Address Reply",                 # RFC5844
+                 38: "IPv4 Default-Router Address",             # RFC5844
+                 39: "IPv4 DHCP Support Mode",                  # RFC5844
+                 }
 
 
 class _MIP6OptAlign: 
@@ -2489,6 +2530,7 @@ moboptcls = {  0: Pad1,
 
 # Main Mobile IPv6 Classes
 
+# http://www.iana.org/assignments/mobility-parameters 
 mhtypes = {  0: 'BRR',
              1: 'HoTI',
              2: 'CoTI',
@@ -2497,13 +2539,23 @@ mhtypes = {  0: 'BRR',
              5: 'BU',
              6: 'BA',
              7: 'BE',
-             8: 'Fast BU',
-             9: 'Fast BA',
-            10: 'Fast NA' }
+             8: 'FBU',
+             9: 'FBA',
+            10: 'FNA',
+            11: 'EMH',
+            12: 'HAS',
+            13: 'HB',
+            14: 'HI',
+            15: 'HA',
+            16: 'BR' }
 
 # From http://www.iana.org/assignments/mobility-parameters 
 bastatus = {   0: 'Binding Update accepted',
                1: 'Accepted but prefix discovery necessary',
+               2: 'GRE_KEY_OPTION_NOT_REQUIRED',
+               3: 'GRE_TUNNELING_BUT_TLV_HEADER_NOT_SUPPORTED',
+               4: 'MCOA NOTCOMPLETE',
+               5: 'MCOA RETURNHOME WO/NDP',
              128: 'Reason unspecified',
              129: 'Administratively prohibited',
              130: 'Insufficient resources',
@@ -2526,7 +2578,31 @@ bastatus = {   0: 'Binding Update accepted',
              147: 'Permanent home keygen token unavailable',
              148: 'CGA and signature verification failed',
              149: 'Permanent home keygen token exists',
-             150: 'Non-null home nonce index expected' }
+             150: 'Non-null home nonce index expected',
+             151: 'SERVICE_AUTHORIZATION_FAILED ',
+             152: 'PROXY_REG_NOT_ENABLED',
+             153: 'NOT_LMA_FOR_THIS_MOBILE_NODE',
+             154: 'MAG_NOT_AUTHORIZED_FOR_PROXY_REG',
+             155: 'NOT_AUTHORIZED_FOR_HOME_NETWORK_PREFIX',
+             156: 'TIMESTAMP_MISMATCH',
+             157: 'TIMESTAMP_LOWER_THAN_PREV_ACCEPTED',
+             158: 'MISSING_HOME_NETWORK_PREFIX_OPTION',
+             159: 'BCE_PBU_PREFIX_SET_DO_NOT_MATCH',
+             160: 'MISSING_MN_IDENTIFIER_OPTION',
+             161: 'MISSING_HANDOFF_INDICATOR_OPTION',
+             162: 'MISSING_ACCESS_TECH_TYPE_OPTION',
+             163: 'GRE_KEY_OPTION_REQUIRED',
+             164: 'MCOA MALFORMED',
+             165: 'MCOA NON-MCOA BINDING EXISTS',
+             166: 'MCOA PROHIBITED',
+             167: 'MCOA UNKNOWN COA',
+             168: 'MCOA BULK REGISTRATION PROHIBITED',
+             169: 'MCOA SIMULTANEOUS HOME AND FOREIGN PROHIBITED',
+             170: 'NOT_AUTHORIZED_FOR_IPV4_MOBILITY_SERVICE',
+             171: 'NOT_AUTHORIZED_FOR_IPV4_HOME_ADDRESS',
+             172: 'NOT_AUTHORIZED_FOR_IPV6_MOBILITY_SERVICE',
+             173: 'MULTIPLE_IPV4_HOME_ADDRESS_ASSIGNMENT_NOT_SUPPORTED',
+             }
 
 
 class _MobilityHeader(Packet):

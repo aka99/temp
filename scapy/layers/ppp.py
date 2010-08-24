@@ -39,6 +39,7 @@ class PPPoED(PPPoE):
                     ShortField("len", None) ]
 
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_proto = { 0x0001: "Padding Protocol",
                0x0003: "ROHC small-CID [RFC3095]",
                0x0005: "ROHC large-CID [RFC3095]",
@@ -204,6 +205,7 @@ class PPP(Packet):
             cls = HDLC
         return cls
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_conftypes = { 1:"Configure-Request",
                    2:"Configure-Ack",
                    3:"Configure-Nak",
@@ -222,7 +224,7 @@ _PPP_conftypes = { 1:"Configure-Request",
 
 ### PPP IPCP stuff (RFC 1332)
 
-# All IPCP options are defined below (names and associated classes) 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_ipcpopttypes = {     1:"IP-Addresses (Deprecated)",
                           2:"IP-Compression-Protocol",
                           3:"IP-Address",
@@ -303,8 +305,11 @@ class PPP_IPCP(Packet):
 
 ### ECP
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_ecpopttypes = { 0:"OUI",
-                     1:"DESE", }
+                     1:"DESE",
+                     2:"3DESE",
+                     3:"DESE-bis" }
 
 class PPP_ECP_Option(Packet):
     name = "PPP ECP Option"

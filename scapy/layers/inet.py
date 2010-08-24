@@ -39,6 +39,7 @@ class IPTools:
         return self.ottl()-self.ttl-1 
 
 
+# http://www.iana.org/assignments/ip-parameters
 _ip_options_names = { 0: "end_of_list",
                       1: "nop",
                       2: "security",
@@ -107,13 +108,32 @@ class IPOption_NOP(IPOption):
     option=1
     fields_desc = [ _IPOption_HDR ]
 
+
+# RFC791
+ipoption_security_levels = { 0x0000:"Unclassified",
+                             0xf135:"Confidential",
+                             0x789a:"EFTO",
+                             0xbc4d:"MMMM",
+                             0x5e26:"PROG",
+                             0xaf13:"Restricted",
+                             0xd788:"Secret",
+                             0x6bc5:"Top Secret",
+                             0x35e2:"reserved0",
+                             0x9af1:"reserved1",
+                             0x4d78:"reserved2",
+                             0x24bd:"reserved3",
+                             0x135e:"reserved4",
+                             0x89af:"reserved5",
+                             0xc4d6:"reserved6",
+                             0xe26b:"reserved7" }
+
 class IPOption_Security(IPOption):
     name = "IP Option Security"
     copy_flag = 1
     option = 2
     fields_desc = [ _IPOption_HDR,
                     ByteField("length", 11),
-                    ShortField("security",0),
+                    XShortEnumField("security",0,ipoption_security_levels),
                     ShortField("compartment",0),
                     ShortField("handling_restrictions",0),
                     StrFixedLenField("transmission_control_code","xxx",3),
@@ -201,6 +221,7 @@ class IPOption_SDBM(IPOption):
     
 
 
+# http://www.iana.org/assignments/tcp-parameters/tcp-parameters.xhtml
 TCPOptions = (
               { 0 : ("EOL",None),
                 1 : ("NOP",None),
@@ -542,10 +563,12 @@ class UDP(Packet):
         else:
             return self.sprintf("UDP %UDP.sport% > %UDP.dport%")    
 
+# http://www.iana.org/assignments/icmp-parameters
 icmptypes = { 0 : "echo-reply",
               3 : "dest-unreach",
               4 : "source-quench",
               5 : "redirect",
+              6 : "alt-host-addr",
               8 : "echo-request",
               9 : "router-advertisement",
               10 : "router-solicitation",
@@ -556,8 +579,20 @@ icmptypes = { 0 : "echo-reply",
               15 : "information-request",
               16 : "information-response",
               17 : "address-mask-request",
-              18 : "address-mask-reply" }
+              18 : "address-mask-reply",
+              30 : "traceroute",
+              31 : "datagram-convert-error",
+              32 : "mobile-host-redirect",
+              33 : "ipv6-where-are-you",
+              34 : "ipv6-i-am-here",
+              35 : "mobile-regist-request",
+              36 : "mobile-regist-reply",
+              37 : "domain-name-request",
+              38 : "domain-name-reply",
+              39 : "skip",
+              40 : "photuris" }
 
+# http://www.iana.org/assignments/icmp-parameters
 icmpcodes = { 3 : { 0  : "network-unreachable",
                     1  : "host-unreachable",
                     2  : "protocol-unreachable",
@@ -577,10 +612,19 @@ icmpcodes = { 3 : { 0  : "network-unreachable",
                     1  : "host-redirect",
                     2  : "TOS-network-redirect",
                     3  : "TOS-host-redirect", },
+              9 : { 0  : "normal",
+                    16 : "no-route-common-traffic", },
               11 : { 0 : "ttl-zero-during-transit",
                      1 : "ttl-zero-during-reassembly", },
               12 : { 0 : "ip-header-bad",
-                     1 : "required-option-missing", }, }
+                     1 : "required-option-missing",
+                     2 : "bad-length", },
+              40 : { 0 : "bad-spi",
+                     1 : "authentication-failed",
+                     2 : "decompress-failed",
+                     3 : "decrypt-failed",
+                     4 : "need-authentication",
+                     5 : "need-authorization", }, }
                          
                    
 

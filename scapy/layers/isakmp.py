@@ -155,10 +155,17 @@ class ISAKMPTransformSetField(StrLenField):
 
 
 ISAKMP_payload_type = ["None","SA","Proposal","Transform","KE","ID","CERT","CR","Hash",
-                       "SIG","Nonce","Notification","Delete","VendorID"]
+                       "SIG","Nonce","Notification","Delete","VendorID",
+                       "reserved","SAK","SAT","KD","SEQ","POP","NAT_D","NAT_OA"]
 
-ISAKMP_exchange_type = ["None","base","identity prot.",
-                        "auth only", "aggressive", "info"]
+ISAKMP_exchange_type = {  0:"None",
+                          1:"base",
+                          2:"identity prot.",
+                          3:"auth only",
+                          4:"aggressive",
+                          5:"info",
+                         32:"quick mode",
+                         33:"new group mode" }
 
 
 class ISAKMP_class(Packet):
@@ -204,6 +211,32 @@ class ISAKMP(ISAKMP_class): # rfc2408
         return p
        
 
+# http://www.iana.org/assignments/isakmp-registry
+ISAKMP_proto_ID = { 1: "PROTO_ISAKMP",
+                    2: "PROTO_IPSEC_AH",
+                    3: "PROTO_IPSEC_ESP",
+                    4: "PROTO_IPCOMP",
+                    5: "PROTO_GIGABEAM_RADIO" }
+
+# http://www.iana.org/assignments/isakmp-registry
+ISAKMP_ID_type = {  1: "IPV4_ADDR",
+                    2: "FQDN",
+                    3: "USER_FQDN",
+                    4: "IPV4_ADDR_SUBNET",
+                    5: "IPV6_ADDR",
+                    6: "IPV6_ADDR_SUBNET",
+                    7: "IPV4_ADDR_RANGE",
+                    8: "IPV6_ADDR_RANGE",
+                    9: "DER_ASN1_DN",
+                   10: "DER_ASN1_GN",
+                   11: "KEY_ID",
+                   12: "LIST" }
+
+# http://www.iana.org/assignments/isakmp-registry
+ISAKMP_DOI = { 0: "ISAKMP",
+               1: "IPSEC",
+               2: "GDOI" }
+
 
 
 class ISAKMP_payload_Transform(ISAKMP_class):
@@ -243,7 +276,7 @@ class ISAKMP_payload_Proposal(ISAKMP_class):
         ByteField("res",0),
         FieldLenField("length",None,"trans","H", adjust=lambda pkt,x:x+8),
         ByteField("proposal",1),
-        ByteEnumField("proto",1,{1:"ISAKMP"}),
+        ByteEnumField("proto",1,ISAKMP_proto_ID),
         FieldLenField("SPIsize",None,"SPI","B"),
         ByteField("trans_nb",None),
         StrLenField("SPI","",length_from=lambda x:x.SPIsize),
@@ -310,7 +343,7 @@ class ISAKMP_payload_ID(ISAKMP_class):
         ByteEnumField("next_payload",None,ISAKMP_payload_type),
         ByteField("res",0),
         FieldLenField("length",None,"load","H",adjust=lambda pkt,x:x+8),
-        ByteEnumField("IDtype",1,{1:"IPv4_addr", 11:"Key"}),
+        ByteEnumField("IDtype",1,ISAKMP_ID_type),
         ByteEnumField("ProtoID",0,{0:"Unused"}),
         ShortEnumField("Port",0,{0:"Unused"}),
 #        IPField("IdentData","127.0.0.1"),

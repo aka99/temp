@@ -15,6 +15,7 @@ from scapy.layers.inet import UDP
 
 
 
+# RFC1350, RFC2347
 TFTP_operations = { 1:"RRQ",2:"WRQ",3:"DATA",4:"ACK",5:"ERROR",6:"OACK" }
 
 
@@ -75,6 +76,7 @@ class TFTP_ACK(Packet):
     def mysummary(self):
         return self.sprintf("ACK %block%"),[UDP]
 
+# RFC1350, RFC2347
 TFTP_Error_Codes = {  0: "Not defined",
                       1: "File not found",
                       2: "Access violation",

@@ -141,10 +141,47 @@ class Dot11SCField(LEShortField):
         else:
             return s,None
 
+dot11subtypes = { 0:{  0: "association-req",
+                       1: "association-res",
+                       2: "reassociation-req",
+                       3: "reassociation-res",
+                       4: "probe-req",
+                       5: "probe-res",
+                       8: "beacon",
+                       9: "ATIM",
+                      10: "disassociation",
+                      11: "authentication",
+                      12: "deauthentication",
+                      13: "action" },
+                  1:{  8: "block-ack-req",
+                       9: "block-ack",
+                      10: "PS-poll",
+                      11: "RTS",
+                      12: "CTS",
+                      13: "ack",
+                      14: "CF-end",
+                      15: "CF-end+CF-ack" },
+                  2:{  0: "data",
+                       1: "data+CF-ack",
+                       2: "data+CF-poll",
+                       3: "data+CF-ack+CF-poll",
+                       4: "null",
+                       5: "CF-ack",
+                       6: "CF-poll",
+                       7: "CF-ack+CF-poll",
+                       8: "QoS+data",
+                       9: "QoS+data+CF-ack",
+                      10: "QoS+data+CF-poll",
+                      11: "QoS+data+CF-ack+CF-poll",
+                      12: "QoS",
+                      13: "QoS+CF-ack",
+                      14: "QoS+CF-poll",
+                      15: "QoS+CF-ack+CF-poll" } }
+
 class Dot11(Packet):
     name = "802.11"
     fields_desc = [
-                    BitField("subtype", 0, 4),
+                    BitMultiEnumField("subtype", 0, 4, dot11subtypes, depends_on=lambda pkt:pkt.type),
                     BitEnumField("type", 0, 2, ["Management", "Control", "Data", "Reserved"]),
                     BitField("proto", 0, 2),
                     FlagsField("FCfield", 0, 8, ["to-DS", "from-DS", "MF", "retry", "pw-mgt", "MD", "wep", "order"]),

@@ -125,9 +125,17 @@ sctpchunktypescls = {
     9 : "SCTPChunkError",
     10 : "SCTPChunkCookieEcho",
     11 : "SCTPChunkCookieAck",
+   #12 : "SCTPChunkECNE",
+   #13 : "SCTPChunkCWR",
     14 : "SCTPChunkShutdownComplete",
+   #15 : "SCTPChunkAuth",
+   #128 : "SCTPChunkASConfAck",
+   #132 : "SCTPChunkPad",
+   #192 : "SCTPChunkFwdTSN",
+   #193 : "SCTPChunkASConf",
     }
 
+# http://www.iana.org/assignments/sctp-parameters
 sctpchunktypes = {
     0 : "data",
     1 : "init",
@@ -141,7 +149,14 @@ sctpchunktypes = {
     9 : "error",
     10 : "cookie-echo",
     11 : "cookie-ack",
+    12 : "ecne",
+    13 : "cwr",
     14 : "shutdown-complete",
+    15 : "auth",
+    128 : "asconf-ack",
+    132 : "pad",
+    192 : "forward-tsn",
+    193 : "asconf",
     }
 
 sctpchunkparamtypescls = {
@@ -154,10 +169,21 @@ sctpchunkparamtypescls = {
     11 : "SCTPChunkParamHostname",
     12 : "SCTPChunkParamSupportedAddrTypes",
     32768 : "SCTPChunkParamECNCapable",
+   #32770 : "SCTPChunkParamRandom",
+   #32771 : "SCTPChunkParamChunkList",
+   #32772 : "SCTPChunkParamReqHMACAlgorithm",
+   #32773 : "SCTPChunkParamPadding",
+   #32776 : "SCTPChunkParamSupportedExt",
     49152 : "SCTPChunkParamFwdTSN",
+   #49153 : "SCTPChunkParamAddIPAddr",
+   #49154 : "SCTPChunkParamDeleteIPAddr",
+   #49155 : "SCTPChunkParamErrorCause",
+   #49156 : "SCTPChunkParamSetPrimaryAddr",
+   #49157 : "SCTPChunkParamSuccess",
     49158 : "SCTPChunkParamAdaptationLayer",
     }
 
+# http://www.iana.org/assignments/sctp-parameters
 sctpchunkparamtypes = {
     1 : "heartbeat-info",
     5 : "IPv4",
@@ -168,7 +194,17 @@ sctpchunkparamtypes = {
     11 : "hostname",
     12 : "addrtypes",
     32768 : "ecn-capable",
+    32770 : "random",
+    32771 : "chunk-list",
+    32772 : "req-hmac-algorithm",
+    32773 : "padding",
+    32776 : "supported-ext",
     49152 : "fwd-tsn-supported",
+    49153 : "add-ip-addr",
+    49154 : "delete-ip-addr",
+    49155 : "error-cause",
+    49156 : "set-primary-addr",
+    49157 : "success",
     49158 : "adaptation-layer",
     }
 
@@ -306,6 +342,38 @@ class SCTPChunkParamAdaptationLayer(_SCTPChunkParam, Packet):
 
 ############## SCTP Chunks
 
+# http://www.iana.org/assignments/sctp-parameters
+sctp_proto_ids = {
+    0 : "none",
+    1 : "IUA",
+    2 : "M2UA",
+    3 : "M3UA",
+    4 : "SUA",
+    5 : "M2PA",
+    6 : "V5UA",
+    7 : "H.248",
+    8 : "BICC/Q.2150.3",
+    9 : "TALI",
+    10 : "DUA",
+    11 : "ASAP",
+    12 : "ENRP",
+    13 : "H.323",
+    14 : "Q.IPC/Q.2150.3",
+    15 : "SIMCO",
+    16 : "DDP Segment Chunk",
+    17 : "DDP Stream Session Control",
+    18 : "S1AP",
+    19 : "RUA",
+    20 : "HNBAP",
+    21 : "ForCES-HP",
+    22 : "ForCES-MP",
+    23 : "ForCES-LP",
+    24 : "SBc-AP",
+    25 : "NBAP",
+    27 : "X2AP",
+    28 : "IRCP",
+    }
+
 class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
     name = "SCTP Chunk: Payload Data"
     fields_desc = [ ByteEnumField("type", 0, sctpchunktypes),
@@ -318,7 +386,7 @@ class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
                     XIntField("tsn", None),
                     XShortField("stream_id", None),
                     XShortField("stream_seq", None),
-                    XIntField("proto_id", None),
+                    IntEnumField("proto_id", 0, sctp_proto_ids),
                     PadField(StrLenField("data", None, length_from=lambda pkt: pkt.len-16),
                              4, padwith="\x00"),
                     ]

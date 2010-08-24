@@ -73,6 +73,21 @@ class DNSRRCountField(ShortField):
             x = self._countRR(pkt)
         return x
     
+# http://www.iana.org/assignments/dns-parameters
+dnsclasses =  { 1:"IN",2:"CS",3:"CH",4:"HS",254:"NONE",255:"ANY" }
+
+# http://www.iana.org/assignments/dns-parameters
+dnstypes = { 1:"A",2:"NS",3:"MD",4:"MF",5:"CNAME",6:"SOA",7:"MB",
+             8:"MG",9:"MR",10:"NULL",11:"WKS",12:"PTR",13:"HINFO",14:"MINFO",15:"MX",
+             16:"TXT",17:"RP",18:"AFSDB",19:"X25",20:"ISDN",21:"RT",22:"NSAP",23:"NSAP-PTR",
+             24:"SIG",25:"KEY",26:"PX",27:"GPOS",28:"AAAA",29:"LOC",30:"NXT",31:"EID",
+             32:"NIMLOC",33:"SRV",34:"ATMA",35:"NAPTR",36:"KX",37:"CERT",38:"A6",39:"DNAME",
+             40:"SINK",41:"OPT",42:"APL",43:"DS",44:"SSHFP",45:"IPSECKEY",46:"RRSIG",47:"NSEC",
+             48:"DNSKEY",49:"DHCID",50:"NSEC3",51:"NSEC3PARAM",55:"HIP",
+             56:"NINFO",57:"RKEY",58:"TALINK",
+             99:"SPF",100:"UINFO",101:"UID",102:"GID",103:"UNSPEC",
+             249:"TKEY",250:"TSIG",251:"IXFR",252:"AXFR",253:"MAILB",254:"MAILA",255:"ANY",
+             32768:"TA",32769:"DLV" }
 
 def DNSgetstr(s,p):
     name = ""
@@ -204,17 +219,37 @@ class RDLenField(Field):
         return x
     
 
+# http://www.iana.org/assignments/dns-parameters
+dns_rcodes = { 0:"NoError",
+               1:"FormErr",
+               2:"ServFail",
+               3:"NXDomain",
+               4:"NotImp",
+               5:"Refused",
+               6:"YXDomain",
+               7:"YXRRSet",
+               8:"NXRRSet",
+               9:"NotAuth",
+               10:"NotZone",
+               16:"BADVERS/BADSIG",
+               17:"BADKEY",
+               18:"BADTIME",
+               19:"BADMODE",
+               20:"BADNAME",
+               21:"BADALG",
+               22:"BADTRUNC" }
+
 class DNS(Packet):
     name = "DNS"
     fields_desc = [ ShortField("id",0),
                     BitField("qr",0, 1),
-                    BitEnumField("opcode", 0, 4, {0:"QUERY",1:"IQUERY",2:"STATUS"}),
+                    BitEnumField("opcode", 0, 4, {0:"QUERY",1:"IQUERY",2:"STATUS",4:"NOTIFY",5:"UPDATE"}),
                     BitField("aa", 0, 1),
                     BitField("tc", 0, 1),
                     BitField("rd", 0, 1),
                     BitField("ra", 0 ,1),
                     BitField("z", 0, 3),
-                    BitEnumField("rcode", 0, 4, {0:"ok", 1:"format-error", 2:"server-failure", 3:"name-error", 4:"not-implemented", 5:"refused"}),
+                    BitEnumField("rcode", 0, 4, dns_rcodes),
                     DNSRRCountField("qdcount", None, "qd"),
                     DNSRRCountField("ancount", None, "an"),
                     DNSRRCountField("nscount", None, "ns"),
@@ -242,21 +277,12 @@ class DNS(Packet):
                 name = ' "%s"' % self.qd.qname
         return 'DNS %s%s ' % (type, name)
 
-dnstypes = { 0:"ANY", 255:"ALL",
-             1:"A", 2:"NS", 3:"MD", 4:"MD", 5:"CNAME", 6:"SOA", 7: "MB", 8:"MG",
-             9:"MR",10:"NULL",11:"WKS",12:"PTR",13:"HINFO",14:"MINFO",15:"MX",16:"TXT",
-             17:"RP",18:"AFSDB",28:"AAAA", 33:"SRV",38:"A6",39:"DNAME"}
-
-dnsqtypes = {251:"IXFR",252:"AXFR",253:"MAILB",254:"MAILA",255:"ALL"}
-dnsqtypes.update(dnstypes)
-dnsclasses =  {1: 'IN',  2: 'CS',  3: 'CH',  4: 'HS',  255: 'ANY'}
-
 
 class DNSQR(Packet):
     name = "DNS Question Record"
     show_indent=0
     fields_desc = [ DNSStrField("qname",""),
-                    ShortEnumField("qtype", 1, dnsqtypes),
+                    ShortEnumField("qtype", 1, dnstypes),
                     ShortEnumField("qclass", 1, dnsclasses) ]
                     
                     

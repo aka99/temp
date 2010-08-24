@@ -35,6 +35,7 @@ def get_cls(name, fallback_cls):
 All_DHCP_Relay_Agents_and_Servers = "ff02::1:2" 
 All_DHCP_Servers = "ff05::1:3"  # Site-Local scope : deprecated by 3879
 
+# http://www.iana.org/assignments/dhcpv6-parameters/dhcpv6-parameters.xhtml
 dhcp6opts = { 1: "CLIENTID",  
               2: "SERVERID",
               3: "IA_NA",
@@ -44,6 +45,7 @@ dhcp6opts = { 1: "CLIENTID",
               7: "PREFERENCE",
               8: "ELAPSED_TIME",
               9: "RELAY_MSG",
+            #10: (unassigned)
              11: "AUTH",
              12: "UNICAST",
              13: "STATUS_CODE",
@@ -58,21 +60,47 @@ dhcp6opts = { 1: "CLIENTID",
              22: "SIP Servers IPv6 Address List",    #RFC3319
              23: "DNS Recursive Name Server Option", #RFC3646
              24: "Domain Search List option",        #RFC3646
-             25: "OPTION_IA_PD",                     #RFC3633
-             26: "OPTION_IAPREFIX",                  #RFC3633
-             27: "OPTION_NIS_SERVERS",               #RFC3898
-             28: "OPTION_NISP_SERVERS",              #RFC3898
-             29: "OPTION_NIS_DOMAIN_NAME",           #RFC3898
-             30: "OPTION_NISP_DOMAIN_NAME",          #RFC3898
-             31: "OPTION_SNTP_SERVERS",              #RFC4075
-             32: "OPTION_INFORMATION_REFRESH_TIME",  #RFC4242
-             33: "OPTION_BCMCS_SERVER_D",            #RFC4280         
-             34: "OPTION_BCMCS_SERVER_A",            #RFC4280
-             36: "OPTION_GEOCONF_CIVIC",             #RFC-ietf-geopriv-dhcp-civil-09.txt
-             37: "OPTION_REMOTE_ID",                 #RFC4649
-             38: "OPTION_SUBSCRIBER_ID",             #RFC4580
-             39: "OPTION_CLIENT_FQDN" }              #RFC4704
+             25: "IA_PD",                            #RFC3633
+             26: "IAPREFIX",                         #RFC3633
+             27: "NIS_SERVERS",                      #RFC3898
+             28: "NISP_SERVERS",                     #RFC3898
+             29: "NIS_DOMAIN_NAME",                  #RFC3898
+             30: "NISP_DOMAIN_NAME",                 #RFC3898
+             31: "SNTP_SERVERS",                     #RFC4075
+             32: "INFORMATION_REFRESH_TIME",         #RFC4242
+             33: "BCMCS_SERVER_D",                   #RFC4280         
+             34: "BCMCS_SERVER_A",                   #RFC4280
+            #35: (unassigned)
+             36: "GEOCONF_CIVIC",                    #RFC4776
+             37: "REMOTE_ID",                        #RFC4649
+             38: "SUBSCRIBER_ID",                    #RFC4580
+             39: "CLIENT_FQDN",                      #RFC4704
+             40: "PANA_AGENT",                       #RFC5192
+             41: "NEW_POSIX_TIMEZONE",               #RFC4833
+             42: "NEW_TZDB_TIMEZONE",                #RFC4833
+             43: "ERO",                              #RFC4994
+             44: "LQ_QUERY",                         #RFC5007
+             45: "CLIENT_DATA",                      #RFC5007
+             46: "CLT_TIME",                         #RFC5007
+             47: "LQ_RELAY_DATA",                    #RFC5007
+             48: "LQ_CLIENT_LINK",                   #RFC5007
+             49: "MIP6_HNINF",                       #RFC-ietf-mip6-hiopt-17
+             50: "MIP6_RELAY",                       #RFC-ietf-mip6-hiopt-17
+             51: "V6_LOST",                          #RFC5223
+             52: "CAPWAP_AC_V6",                     #RFC5417
+             53: "RELAY_ID",                         #RFC5460
+             54: "IPv6_Address-MoS",                 #RFC5678
+             55: "IPv6_FQDN-MoS",                    #RFC5678
+             56: "NTP_SERVER",                       #RFC5908
+             57: "V6_ACCESS_DOMAIN",                 #RFC-ietf-geopriv-lis-discovery-15
+             58: "SIP_UA_CS_LIST",                   #RFC-lawrence-sipforum-user-agent-config-03
+             59: "BOOTFILE_URL",                     #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+             60: "BOOTFILE_PARAM",                   #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+             61: "CLIENT_ARCH_TYPE",                 #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+             62: "NII",                              #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+}
 
+# http://www.iana.org/assignments/dhcpv6-parameters/dhcpv6-parameters.xhtml
 dhcp6opts_by_code = {  1: "DHCP6OptClientId", 
                        2: "DHCP6OptServerId",
                        3: "DHCP6OptIA_NA",
@@ -82,6 +110,7 @@ dhcp6opts_by_code = {  1: "DHCP6OptClientId",
                        7: "DHCP6OptPref",
                        8: "DHCP6OptElapsedTime",
                        9: "DHCP6OptRelayMsg",
+                      #10: (unassigned)
                        11: "DHCP6OptAuth",
                        12: "DHCP6OptServerUnicast",
                        13: "DHCP6OptStatusCode",
@@ -106,11 +135,12 @@ dhcp6opts_by_code = {  1: "DHCP6OptClientId",
                        32: "DHCP6OptInfoRefreshTime",     #RFC4242
                        33: "DHCP6OptBCMCSDomains",        #RFC4280         
                        34: "DHCP6OptBCMCSServers",        #RFC4280
-                       #36: "DHCP6OptGeoConf",            #RFC-ietf-geopriv-dhcp-civil-09.txt
+                      #35: (unassigned)
+                       #36: "DHCP6OptGeoConf",            #RFC4776
                        37: "DHCP6OptRemoteID",            #RFC4649
                        38: "DHCP6OptSubscriberID",        #RFC4580
                        39: "DHCP6OptClientFQDN",          #RFC4704
-                       #40: "DHCP6OptPANAAgent",          #RFC-ietf-dhc-paa-option-05.txt
+                       #40: "DHCP6OptPANAAgent",          #RFC5192
                        #41: "DHCP6OptNewPOSIXTimeZone,    #RFC4833
                        #42: "DHCP6OptNewTZDBTimeZone,     #RFC4833
                        43: "DHCP6OptRelayAgentERO"        #RFC4994
@@ -119,10 +149,24 @@ dhcp6opts_by_code = {  1: "DHCP6OptClientId",
                        #46: "DHCP6OptLQClientTime",       #RFC5007
                        #47: "DHCP6OptLQRelayData",        #RFC5007
                        #48: "DHCP6OptLQClientLink",       #RFC5007
+                       #49: "DHCP6OptMIP6HNInf",          #RFC-ietf-mip6-hiopt-17
+                       #50: "DHCP6OptMIP6Relay",          #RFC-ietf-mip6-hiopt-17
+                       #51: "DHCP6OptLoST",               #RFC5223
+                       #52: "DHCP6OptCAPWAPAC",           #RFC5417
+                       #53: "DHCP6OptRelayID",            #RFC5460
+                       #54: "DHCP6OptIPv6Address-MoS",    #RFC5678
+                       #55: "DHCP6OptIPv6FQDN-MoS",       #RFC5678
+                       #56: "DHCP6OptNTPServer",          #RFC5908
+                       #57: "DHCP6OptAccessDomain",       #RFC-ietf-geopriv-lis-discovery-15
+                       #58: "DHCP6OptSIPUACSList",        #RFC-lawrence-sipforum-user-agent-config-03
+                       #59: "DHCP6OptBootFileURL",        #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+                       #60: "DHCP6OptBootFileParam",      #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+                       #61: "DHCP6OptClientArchType",     #RFC-ietf-dhc-dhcpv6-opt-netboot-10
+                       #62: "DHCP6OptNII",                #RFC-ietf-dhc-dhcpv6-opt-netboot-10
 }
 
 
-# sect 5.3 RFC 3315 : DHCP6 Messages types
+# http://www.iana.org/assignments/dhcpv6-parameters/dhcpv6-parameters.xhtml
 dhcp6types = {   1:"SOLICIT",
                  2:"ADVERTISE",
                  3:"REQUEST",
@@ -135,7 +179,12 @@ dhcp6types = {   1:"SOLICIT",
                 10:"RECONFIGURE",
                 11:"INFORMATION-REQUEST",
                 12:"RELAY-FORW",
-                13:"RELAY-REPL" }
+                13:"RELAY-REPL",
+                14:"LEASEQUERY",       #RFC5007
+                15:"LEASEQUERY-REPLY", #RFC5007
+                16:"LEASEQUERY-DONE",  #RFC5460
+                17:"LEASEQUERY-DATA",  #RFC5460
+}
 
 
 #####################################################################
@@ -468,13 +517,19 @@ class DHCP6OptServerUnicast(_DHCP6OptGuessPayload):# RFC sect 22.12
 
 #### DHCPv6 Status Code Option ######################################
 
-dhcp6statuscodes = { 0:"Success",      # sect 24.4
+# http://www.iana.org/assignments/dhcpv6-parameters/dhcpv6-parameters.xhtml
+dhcp6statuscodes = { 0:"Success",          # sect 24.4
                      1:"UnspecFail",
                      2:"NoAddrsAvail",
                      3:"NoBinding",
                      4:"NotOnLink",
                      5:"UseMulticast",
-                     6:"NoPrefixAvail"} # From RFC3633
+                     6:"NoPrefixAvail",    # RFC3633
+                     7:"UnknownQueryType", # RFC5007
+                     8:"MalformedQuery",   # RFC5007
+                     9:"NotConfigured",    # RFC5007
+                    10:"NotAllowed",       # RFC5007
+                    11:"QueryTerminated"}  # RFC5460
 
 class DHCP6OptStatusCode(_DHCP6OptGuessPayload):# RFC sect 22.13
     name = "DHCP6 Status Code Option"
