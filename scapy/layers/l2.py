@@ -315,10 +315,53 @@ class EAP(Packet):
         return p+pay
              
 
+# Hardware types - RFC 826 - Extracted from 
+# http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
+# We should add the length of every kind of address.
+hardware_types = {   0:"NET/ROM pseudo", # Not referenced by IANA
+                     1:"Ethernet",
+                     2:"Experimental Ethernet",
+                     3:"AX.25",
+                     4:"ProNET",
+                     5:"Chaos",
+                     6:"IEEE 802",
+                     7:"ARCNET",
+                     8:"Hyperchannel",
+                     9:"Lanstar",
+                    10:"Autonet",
+                    11:"LocalTalk",
+                    12:"LocalNet",
+                    13:"Ultra link",
+                    14:"SMDS",
+                    15:"Frame Relay",
+                    16:"ATM (Burnett)",
+                    17:"HDLC",
+                    18:"Fibre Channel",
+                    19:"ATM (Forum)",
+                    20:"Serial Line",
+                    21:"ATM (Burrows)",
+                    22:"MIL-STD-188-220",
+                    23:"Metricom",
+                    24:"IEEE 1394.1995",
+                    25:"MAPOS",
+                    26:"Twinaxial",
+                    27:"EUI-64",
+                    28:"HIPARP",
+                    29:"ISO 7816-3",
+                    30:"ARPSec",
+                    31:"IPsec",
+                    32:"InfiniBand",
+                    33:"P25 CAI",
+                    34:"Wiegand",
+                    35:"Pure IP",
+                    36:"HW_EXP1",
+                    37:"HFI",
+                   256:"HW_EXP2" }
+
 class ARP(Packet):
     name = "ARP"
-    fields_desc = [ XShortField("hwtype", 0x0001),
-                    XShortEnumField("ptype",  0x0800, ETHER_TYPES),
+    fields_desc = [ ShortEnumField("hwtype", 1, hardware_types),
+                    XShortEnumField("ptype", 0x0800, ETHER_TYPES),
                     ByteField("hwlen", 6),
                     ByteField("plen", 4),
                     ShortEnumField("op", 1, {"who-has":1, "is-at":2, "RARP-req":3, "RARP-rep":4, "Dyn-RARP-req":5, "Dyn-RAR-rep":6, "Dyn-RARP-err":7, "InARP-req":8, "InARP-rep":9}),

@@ -13,7 +13,7 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import UDP,IP
-from scapy.layers.l2 import Ether
+from scapy.layers.l2 import Ether,hardware_types
 from scapy.base_classes import Net
 from scapy.volatile import RandField
 
@@ -26,7 +26,7 @@ dhcpmagic="c\x82Sc"
 class BOOTP(Packet):
     name = "BOOTP"
     fields_desc = [ ByteEnumField("op",1, {1:"BOOTREQUEST", 2:"BOOTREPLY"}),
-                    ByteField("htype",1),
+                    ByteEnumField("htype",1, hardware_types),
                     ByteField("hlen",6),
                     ByteField("hops",0),
                     IntField("xid",0),

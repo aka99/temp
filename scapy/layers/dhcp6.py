@@ -14,6 +14,7 @@ import socket
 from scapy.packet import *
 from scapy.fields import *
 from scapy.utils6 import *
+from scapy.layers.l2 import hardware_types
 from scapy.layers.inet6 import *
 from scapy.ansmachine import AnsweringMachine
 
@@ -145,44 +146,6 @@ duidtypes = { 1: "Link-layer address plus time",
               2: "Vendor-assigned unique ID based on Enterprise Number",
               3: "Link-layer Address" }
 
-# DUID hardware types - RFC 826 - Extracted from 
-# http://www.iana.org/assignments/arp-parameters on 31/10/06
-# We should add the length of every kind of address.
-duidhwtypes = {  0: "NET/ROM pseudo", # Not referenced by IANA
-                 1: "Ethernet (10Mb)",
-                 2: "Experimental Ethernet (3Mb)",
-                 3: "Amateur Radio AX.25",
-                 4: "Proteon ProNET Token Ring",
-                 5: "Chaos",
-                 6: "IEEE 802 Networks",
-                 7: "ARCNET",
-                 8: "Hyperchannel",
-                 9: "Lanstar",
-                10: "Autonet Short Address",
-                11: "LocalTalk",
-                12: "LocalNet (IBM PCNet or SYTEK LocalNET)",
-                13: "Ultra link",
-                14: "SMDS",
-                15: "Frame Relay",
-                16: "Asynchronous Transmission Mode (ATM)",
-                17: "HDLC",
-                18: "Fibre Channel",
-                19: "Asynchronous Transmission Mode (ATM)",
-                20: "Serial Line",
-                21: "Asynchronous Transmission Mode (ATM)",
-                22: "MIL-STD-188-220",
-                23: "Metricom",
-                24: "IEEE 1394.1995",
-                25: "MAPOS",
-                26: "Twinaxial",
-                27: "EUI-64",
-                28: "HIPARP",
-                29: "IP and ARP over ISO 7816-3",
-                30: "ARPSec",
-                31: "IPsec tunnel",
-                32: "InfiniBand (TM)",
-                33: "TIA-102 Project 25 Common Air Interface (CAI)" }
-
 class UTCTimeField(IntField):
     epoch = (2000, 1, 1, 0, 0, 0, 5, 1, 0) # required Epoch
     def i2repr(self, pkt, x):
@@ -201,7 +164,7 @@ class _LLAddrField(MACField):
 class DUID_LLT(Packet):  # sect 9.2 RFC 3315
     name = "DUID - Link-layer address plus time"
     fields_desc = [ ShortEnumField("type", 1, duidtypes),
-                    XShortEnumField("hwtype", 1, duidhwtypes), 
+                    XShortEnumField("hwtype", 1, hardware_types),
                     UTCTimeField("timeval", 0), # i.e. 01 Jan 2000
                     _LLAddrField("lladdr", ETHER_ANY) ]
 
@@ -229,7 +192,7 @@ class DUID_EN(Packet):  # sect 9.3 RFC 3315
 class DUID_LL(Packet):  # sect 9.4 RFC 3315
     name = "DUID - Based on Link-layer Address"
     fields_desc = [ ShortEnumField("type", 3, duidtypes),
-                    XShortEnumField("hwtype", 1, duidhwtypes), 
+                    XShortEnumField("hwtype", 1, hardware_types), 
                     _LLAddrField("lladdr", ETHER_ANY) ]
 
 duid_cls = { 1: "DUID_LLT",
