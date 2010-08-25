@@ -413,10 +413,14 @@ class PacketField(StrField):
     def getfield(self, pkt, s):
         i = self.m2i(pkt, s)
         remain = ""
+        pay = None
         if 'Padding' in i:
-            r = i['Padding']
-            del(r.underlayer.payload)
-            remain = r.load
+            pay = i['Padding']
+        elif 'Raw' in i:
+            pay = i['Raw']
+        if pay and pay.underlayer:
+            remain = str(pay)
+            del(pay.underlayer.payload)
         return remain,i
     def randval(self):
         return packet.fuzz(self.cls())
@@ -428,6 +432,8 @@ class PacketLenField(PacketField):
         self.length_from = length_from
     def getfield(self, pkt, s):
         l = self.length_from(pkt)
+        if l <= 0:
+            return s,conf.raw_layer()
         try:
             i = self.m2i(pkt, s[:l])
         except Exception:
@@ -502,10 +508,13 @@ class PacketListField(PacketField):
 
 
     def any2i(self, pkt, x):
-        if type(x) is not list:
+        if isinstance(x, BasePacket):
             return [x]
+        elif type(x) in (list,tuple):
+            return [(p if isinstance(p, BasePacket) else conf.raw_layer(str(p)))
+                    for p in x]
         else:
-            return x
+            return [conf.raw_layer(str(x))]
     def i2count(self, pkt, val):
         if type(val) is list:
             return len(val)
@@ -525,6 +534,8 @@ class PacketListField(PacketField):
         ret = ""
         remain = s
         if l is not None:
+            if l <= 0:
+                return s,[]
             remain,ret = s[:l],s[l:]
         while remain:
             if c is not None:
@@ -539,10 +550,14 @@ class PacketListField(PacketField):
                 p = conf.raw_layer(load=remain)
                 remain = ""
             else:
+                pay = None
                 if 'Padding' in p:
-                    pad = p['Padding']
-                    remain = pad.load
-                    del(pad.underlayer.payload)
+                    pay = p['Padding']
+                elif 'Raw' in p:
+                    pay = p['Raw']
+                if pay and pay.underlayer:
+                    remain = str(pay)
+                    pay.underlayer.remove_payload()
                 else:
                     remain = ""
             lst.append(p)
