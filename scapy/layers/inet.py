@@ -753,10 +753,10 @@ class ICMPerror(ICMP):
     def mysummary(self):
         return Packet.mysummary(self)
 
-bind_layers( Ether,         IP,            type=2048)
-bind_layers( CookedLinux,   IP,            proto=2048)
-bind_layers( GRE,           IP,            proto=2048)
-bind_layers( SNAP,          IP,            code=2048)
+bind_layers( Ether,         IP,            type=0x0800)
+bind_layers( CookedLinux,   IP,            proto=0x0800)
+bind_layers( GRE,           IP,            proto=0x0800)
+bind_layers( SNAP,          IP,            code=0x0800)
 bind_layers( IPerror,       IPerror,       frag=0, proto=4)
 bind_layers( IPerror,       ICMPerror,     frag=0, proto=1)
 bind_layers( IPerror,       TCPerror,      frag=0, proto=6)

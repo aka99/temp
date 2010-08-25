@@ -375,6 +375,8 @@ del(name)
 ISAKMP_class.overload_fields = ISAKMP_payload_type_overload.copy()
 
 
+bind_layers( UDP,           ISAKMP,        sport=500)
+bind_layers( UDP,           ISAKMP,        dport=500)
 bind_layers( UDP,           ISAKMP,        dport=500, sport=500)
 def ikescan(ip):
     return sr(IP(dst=ip)/UDP()/ISAKMP(init_cookie=RandString(8),

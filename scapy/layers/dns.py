@@ -303,8 +303,10 @@ class DNSRR(Packet):
                     RDLenField("rdlen"),
                     RDataField("rdata", "", length_from=lambda pkt:pkt.rdlen) ]
 
-bind_layers( UDP,           DNS,           dport=53)
 bind_layers( UDP,           DNS,           sport=53)
+bind_layers( UDP,           DNS,           dport=53)
+bind_layers( DNSQR,         DNSQR,         )
+bind_layers( DNSRR,         DNSRR,         )
 
 
 @conf.commands.register

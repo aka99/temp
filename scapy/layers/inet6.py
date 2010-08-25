@@ -30,6 +30,8 @@ if not socket.has_ipv6:
 if not hasattr(socket, "IPPROTO_IPV6"):
     # Workaround for http://bugs.python.org/issue6926
     socket.IPPROTO_IPV6 = 41
+if not hasattr(socket, "IPPROTO_IPV4"):
+    socket.IPPROTO_IPV4 = 4
 
 from scapy.config import conf
 from scapy.layers.l2 import *
@@ -3027,10 +3029,14 @@ conf.l2types.register(31, IPv6)
 
 bind_layers(Ether,     IPv6,     type = 0x86dd )
 bind_layers(CookedLinux, IPv6,   proto = 0x86dd )
+bind_layers(IPerror6,  IPerror6, nh = socket.IPPROTO_IPV6 )
+bind_layers(IPerror6,  IPerror,  nh = socket.IPPROTO_IPV4 )
 bind_layers(IPerror6,  TCPerror, nh = socket.IPPROTO_TCP )
 bind_layers(IPerror6,  UDPerror, nh = socket.IPPROTO_UDP )
+bind_layers(IPerror,   IPerror6, proto = socket.IPPROTO_IPV6 )
 bind_layers(IPv6,      TCP,      nh = socket.IPPROTO_TCP )
 bind_layers(IPv6,      UDP,      nh = socket.IPPROTO_UDP )
+bind_layers(IPv6,      IP,       nh = socket.IPPROTO_IPV4 )
 bind_layers(IP,        IPv6,     proto = socket.IPPROTO_IPV6 )
 bind_layers(IPv6,      IPv6,     nh = socket.IPPROTO_IPV6 )
 
