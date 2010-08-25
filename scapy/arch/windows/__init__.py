@@ -12,11 +12,10 @@ from glob import glob
 from scapy.config import conf,ConfClass
 from scapy.error import Scapy_Exception,log_loading,log_runtime
 from scapy.utils import atol, inet_aton, inet_ntoa, PcapReader
-from scapy.base_classes import Gen, Net, SetGen
+from scapy.base_classes import Gen, SetGen
 import scapy.plist as plist
 from scapy.sendrecv import debug, srp1
-from scapy.layers.l2 import Ether, ARP
-from scapy.data import MTU, ETHER_BROADCAST, ETH_P_ARP
+from scapy.data import MTU
 
 conf.use_pcap = 1
 conf.use_dnet = 1
@@ -278,41 +277,6 @@ def read_routes():
 def read_routes6():
     return []
 
-def getmacbyip(ip, chainCC=0):
-    """Return MAC address corresponding to a given IP address"""
-    if isinstance(ip,Net):
-        ip = iter(ip).next()
-    tmp = map(ord, inet_aton(ip))
-    if (tmp[0] & 0xf0) == 0xe0: # mcast @
-        return "01:00:5e:%.2x:%.2x:%.2x" % (tmp[1]&0x7f,tmp[2],tmp[3])
-    iff,a,gw = conf.route.route(ip)
-    if ( (iff == LOOPBACK_NAME) or (ip == conf.route.get_if_bcast(iff)) ):
-        return "ff:ff:ff:ff:ff:ff"
-    # Windows uses local IP instead of 0.0.0.0 to represent locally reachable addresses
-    ifip = str(pcapdnet.dnet.intf().get(iff)['addr'])
-    if gw != ifip.split('/')[0]:
-        ip = gw
-
-    mac = conf.netcache.arp_cache.get(ip)
-    if mac:
-        return mac
-
-    res = srp1(Ether(dst=ETHER_BROADCAST)/ARP(op="who-has", pdst=ip),
-               type=ETH_P_ARP,
-               iface = iff,
-               timeout=2,
-               verbose=0,
-               chainCC=chainCC,
-               nofilter=1)
-    if res is not None:
-        mac = res.payload.hwsrc
-        conf.netcache.arp_cache[ip] = mac
-        return mac
-    return None
-
-import scapy.layers.l2
-scapy.layers.l2.getmacbyip = getmacbyip
-
 try:
     import readline
     console = readline.GetOutputFile()
@@ -322,10 +286,6 @@ else:
     conf.readfunc = readline.rl.readline
     orig_stdout = sys.stdout
     sys.stdout = console
-
-
-
-
 
 def sndrcv(pks, pkt, timeout = 2, inter = 0, verbose=None, chainCC=0, retry=0, multi=0):
     if not isinstance(pkt, Gen):
