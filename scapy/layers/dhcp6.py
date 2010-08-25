@@ -1215,8 +1215,12 @@ dhcp6_cls_by_type = {  1: "DHCP6_Solicit",
 def _dhcp6_dispatcher(x, *args, **kargs):
     cls = Raw
     if len(x) >= 2:
-        cls = get_cls(dhcp6_cls_by_type.get(ord(x[0]), "Raw"), Raw)
-    return cls(x, *args, **kargs)
+        cls = get_cls(dhcp6_cls_by_type.get(ord(x[0]), "DHCP6"), Raw)
+    try:
+        pkt = cls(x, *args, **kargs)
+    except:
+        pkt = Raw(x)
+    return pkt
 
 bind_bottom_up(UDP, _dhcp6_dispatcher, { "dport": 547 } )
 bind_bottom_up(UDP, _dhcp6_dispatcher, { "dport": 546 } )
