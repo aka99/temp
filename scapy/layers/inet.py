@@ -670,7 +670,7 @@ class ICMP(Packet):
         if self.type in [3,4,5,11,12]:
             return IPerror
         else:
-            return None
+            return Packet.guess_payload_class(self, payload)
     def mysummary(self):
         if isinstance(self.underlayer, IP):
             return self.underlayer.sprintf("ICMP %IP.src% > %IP.dst% %ICMP.type% %ICMP.code%")

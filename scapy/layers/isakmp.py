@@ -172,7 +172,7 @@ class ISAKMP_class(Packet):
     name = "ISAKMP dummy class"
     def guess_payload_class(self, payload):
         np = self.next_payload
-        if np == 0:
+        if not np:
             return Raw
         elif np < len(ISAKMP_payload_type):
             pt = ISAKMP_payload_type[np]

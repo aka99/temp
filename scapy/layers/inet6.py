@@ -333,16 +333,19 @@ class IP6ListField(StrField):
         
 class _IPv6GuessPayload:        
     name = "Dummy class that implements guess_payload_class() for IPv6"
-    def default_payload_class(self,p):
-        if self.nh == 58 and len(p) > 2:
+    def guess_payload_class(self,p):
+        cls = Packet.guess_payload_class(self,p)
+        if cls != Raw:
+            return cls
+        elif self.nh == 58 and len(p) > 2:
             t = ord(p[0])
             if t == 139 or t == 140: # Node Info Query 
                 return _niquery_guesser(p)
-            return get_cls(icmp6typescls.get(t,"Raw"), "Raw")
+            return get_cls(icmp6typescls.get(t,"ICMPv6Unknown"), Raw)
         elif self.nh == 135 and len(p) > 3:
             return _mip6_mhtype2cls.get(ord(p[2]), MIP6MH_Generic)
         else:
-            return get_cls(ipv6nhcls.get(self.nh,"Raw"), "Raw")
+            return get_cls(ipv6nhcls.get(self.nh,"Raw"), Raw)
 
 class IPv6(_IPv6GuessPayload, Packet, IPTools):
     name = "IPv6"
@@ -1431,7 +1434,9 @@ class _ICMPv6NDGuessPayload:
     name = "Dummy ND class that implements guess_payload_class()"
     def guess_payload_class(self,p):
         if len(p) > 1:
-            return get_cls(icmp6ndoptscls.get(ord(p[0]),"Raw"), "Raw") # s/Raw/ICMPv6NDOptUnknown/g ?
+            return get_cls(icmp6ndoptscls.get(ord(p[0]),"ICMPv6NDOptUnknown"), Raw)
+        else:
+            return Packet.guess_payload_class(self,p)
 
 
 # Beginning of ICMPv6 Neighbor Discovery Options.

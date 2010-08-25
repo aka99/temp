@@ -919,9 +919,9 @@ DHCP6PrefVal="" # la valeur de preference a utiliser dans
 # - relay  : RELAY-FORW (toward server)
 
 class _DHCP6GuessPayload(Packet):
+    name = "DHCPv6 dummy class"
     def guess_payload_class(self, payload):
         if len(payload) > 1 :
-            print ord(payload[0])
             return get_cls(dhcp6opts.get(ord(payload[0]),"DHCP6OptUnknown"), Raw)
         return Raw
 

@@ -212,7 +212,7 @@ sctpchunkparamtypes = {
 
 # Dummy class to guess payload type (variable parameters)
 class _SCTPChunkGuessPayload:
-    def default_payload_class(self,p):
+    def guess_payload_class(self,p):
         if len(p) < 4:
             return Padding
         else:
