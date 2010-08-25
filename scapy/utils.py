@@ -66,8 +66,10 @@ def lhex(x, aligned = True):
         return "(%s)" % ", ".join(map(lhex, x))
     elif type(x) is list:
         return "[%s]" % ", ".join(map(lhex, x))
-    else:
-        return x
+    try:
+        return hex(int(x))
+    except:
+        return repr(x)
 
 @conf.commands.register
 def hexdump(x):

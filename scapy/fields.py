@@ -256,6 +256,12 @@ class ByteField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "B")
         
+class SignedByteField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "b")
+    def randval(self):
+        return RandSByte()
+
 class XByteField(ByteField):
     def i2repr(self, pkt, x):
         return lhex(self.i2h(pkt, x))
@@ -277,17 +283,29 @@ class ShortField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "H")
 
+class SignedShortField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "h")
+    def randval(self):
+        return RandSShort()
+
 class LEShortField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "<H")
+
+class LESignedShortField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "<h")
+    def randval(self):
+        return RandSShort()
 
 class XShortField(ShortField):
     def i2repr(self, pkt, x):
         return lhex(self.i2h(pkt, x))
 
-class LEXShortField(LEShortField):
+class LEXShortField(LEShortField,XShortField):
     def i2repr(self, pkt, x):
-        return lhex(self.i2h(pkt, x))
+        return XShortField.i2repr(self, pkt, x)
 
 
 class IntField(Field):
@@ -318,6 +336,12 @@ class XIntField(IntField):
 class LongField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "Q")
+
+class SignedLongField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "q")
+    def randval(self):
+        return RandSLong()
 
 class XLongField(LongField):
     def i2repr(self, pkt, x):
@@ -835,6 +859,22 @@ class BitField(Field):
     def randval(self):
         return RandNum(0,2**self.size-1)
 
+class LEBitField(BitField):
+    """
+    BitField variation for byte-aligned fields in LE packets (thanks, MS).
+    Do not use this on partial-byte fields, multiples of 8 bits only!
+    """
+    def i2m(self, pkt, x):
+        return self._swap_endian(x, self.size)
+    def m2i(self, pkt, x):
+        return self._swap_endian(x, self.size)
+    @staticmethod
+    def _swap_endian(x, size):
+        if size % 8 != 0 or size/8 < 2:
+            return x
+        bytes = [(x >> n*8) & 0xFF for n in range(size/8)[::-1]]
+        return sum([b << i*8 for i,b in enumerate(bytes)])
+
 
 class BitFieldLenField(BitField):
     def __init__(self, name, default, size, length_of=None, count_of=None, adjust=lambda pkt,x:x):
@@ -885,6 +925,12 @@ class EnumField(Field):
         else:
             return self.i2repr_one(pkt,x)
 
+class XEnumField(Field):
+    def i2repr_one(self, pkt, x):
+        if self not in conf.noenum and not isinstance(x,VolatileValue) and x in self.i2s:
+            return self.i2s[x]
+        return lhex(x)
+
 class CharEnumField(EnumField):
     def __init__(self, name, default, enum, fmt = "1s"):
         EnumField.__init__(self, name, default, enum, fmt)
@@ -906,6 +952,14 @@ class BitEnumField(BitField,EnumField):
     def i2repr(self, pkt, x):
         return EnumField.i2repr(self, pkt, x)
 
+class ByteEnumField(EnumField):
+    def __init__(self, name, default, enum):
+        EnumField.__init__(self, name, default, enum, "B")
+
+class XByteEnumField(ByteEnumField,XEnumField):
+    def i2repr_one(self, pkt, x):
+        return XEnumField.i2repr_one(self, pkt, x)
+
 class ShortEnumField(EnumField):
     def __init__(self, name, default, enum):
         EnumField.__init__(self, name, default, enum, "H")
@@ -914,15 +968,13 @@ class LEShortEnumField(EnumField):
     def __init__(self, name, default, enum):
         EnumField.__init__(self, name, default, enum, "<H")
 
-class LEXShortEnumField(LEShortEnumField):
+class XShortEnumField(ShortEnumField,XEnumField):
     def i2repr_one(self, pkt, x):
-        if self not in conf.noenum and not isinstance(x,VolatileValue) and x in self.i2s:
-            return self.i2s[x]
-        return lhex(x)
+        return XEnumField.i2repr_one(self, pkt, x)
 
-class ByteEnumField(EnumField):
-    def __init__(self, name, default, enum):
-        EnumField.__init__(self, name, default, enum, "B")
+class LEXShortEnumField(LEShortEnumField,XEnumField):
+    def i2repr_one(self, pkt, x):
+        return XEnumField.i2repr_one(self, pkt, x)
 
 class IntEnumField(EnumField):
     def __init__(self, name, default, enum):
@@ -938,11 +990,10 @@ class LEIntEnumField(EnumField):
     def __init__(self, name, default, enum):
         EnumField.__init__(self, name, default, enum, "<I")
 
-class XShortEnumField(ShortEnumField):
+class XIntEnumField(IntEnumField,XEnumField):
     def i2repr_one(self, pkt, x):
-        if self not in conf.noenum and not isinstance(x,VolatileValue) and x in self.i2s:
-            return self.i2s[x]
-        return lhex(x)
+        return XEnumField.i2repr_one(self, pkt, x)
+
 
 class MultiEnumField(EnumField):
     def __init__(self, name, default, enum, depends_on, fmt = "H"):
@@ -987,6 +1038,12 @@ class LELongField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "<Q")
 
+class LESignedLongField(Field):
+    def __init__(self, name, default):
+        Field.__init__(self, name, default, "<q")
+    def randval(self):
+        return RandSLong()
+
 # Little endian fixed length field
 class LEFieldLenField(FieldLenField):
     def __init__(self, name, default,  length_of=None, fmt = "<H", count_of=None, adjust=lambda pkt,x:x, fld=None):
@@ -1027,7 +1084,11 @@ class FlagsField(BitField):
             r = "+".join(r)
         return r
 
-            
+class LEFlagsField(FlagsField,LEBitField):
+    def i2m(self, pkt, x):
+        return LEBitField.i2m(self, pkt, x)
+    def m2i(self, pkt, x):
+        return LEBitField.m2i(self, pkt, x)
 
 
 class FixedPointField(BitField):
