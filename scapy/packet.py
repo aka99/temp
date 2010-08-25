@@ -227,6 +227,14 @@ class Packet(BasePacket):
         else:
             raise AttributeError(attr)
             
+    def getfieldlen(self, attr):
+        fld,fval = self.getfield_and_val(attr)
+        return fld.i2len(self, fval)
+
+    def getfieldcount(self, attr):
+        fld,fval = self.getfield_and_val(attr)
+        return fld.i2count(self, fval)
+
     def __repr__(self):
         s = ""
         ct = conf.color_theme

@@ -133,6 +133,11 @@ class ConditionalField:
         self.cond = cond
     def _evalcond(self,pkt):
         return self.cond(pkt)
+    def i2len(self, pkt, val):
+        if self._evalcond(pkt):
+            return self.fld.i2len(pkt,val)
+        else:
+            return 0
         
     def getfield(self, pkt, s):
         if self._evalcond(pkt):
@@ -157,6 +162,9 @@ class PadField:
         self._fld = fld
         self._align = align
         self._padwith = padwith or ""
+
+    def i2len(self, pkt, val):
+        return len(self.addfield(pkt, "", val))
 
     def getfield(self, pkt, s):
         x = self._fld.getfield(pkt,s)
@@ -551,6 +559,11 @@ class StrFixedLenField(StrField):
         self.length_from  = length_from
         if length is not None:
             self.length_from = lambda pkt,length=length: length
+    def i2len(self, pkt, i):
+        l = self.length_from(pkt)
+        if l <= 0:
+            return 0
+        return l
     def i2repr(self, pkt, v):
         if type(v) is str:
             v = v.rstrip("\0")
@@ -674,20 +687,20 @@ class FieldLenField(Field):
         self.count_of=count_of
         self.adjust=adjust
         if fld is not None:
-            FIELD_LENGTH_MANAGEMENT_DEPRECATION(self.__class__.__name__)
+#            FIELD_LENGTH_MANAGEMENT_DEPRECATION(self.__class__.__name__)
             self.length_of = fld
     def i2m(self, pkt, x):
         if x is None:
             if self.length_of is not None:
-                fld,fval = pkt.getfield_and_val(self.length_of)
-                f = fld.i2len(pkt, fval)
+                f = pkt.getfieldlen(self.length_of)
             else:
-                fld,fval = pkt.getfield_and_val(self.count_of)
-                f = fld.i2count(pkt, fval)
+                f = pkt.getfieldcount(self.count_of)
             x = self.adjust(pkt,f)
         return x
 
 class StrNullField(StrField):
+    def i2len(self, pkt, i):
+        return len(self.i2m(pkt, i)+"\x00")
     def addfield(self, pkt, s, val):
         return s+self.i2m(pkt, val)+"\x00"
     def getfield(self, pkt, s):
