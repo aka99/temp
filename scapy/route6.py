@@ -218,7 +218,7 @@ class Route6:
                 
         if not pathes:
             warning("No route found for IPv6 destination %s (no default route?)" % dst)
-            return (LOOPBACK_NAME, "::", "::") # XXX Linux specific
+            return (LOOPBACK_NAME, "::1", "::")
 
         # Sort with longest prefix first
         pathes.sort(reverse=True)
