@@ -63,7 +63,7 @@ _ == 6
 ~ basic sprintf Ether IP UDP NTP
 a=Ether()/IP()/IP(ttl=4)/UDP()/NTP()
 a.sprintf("%type% %IP.ttl% %#05xr,UDP.sport% %IP:2.ttl%")
-_ in [ '0x800 64 0x07b 4', 'IPv4 64 0x07b 4']
+_ in [ '0x0800 64 0x07b 4', 'IPv4 64 0x07b 4']
 
 
 = sprintf() function 
@@ -639,7 +639,10 @@ assert( c.signature == '\x00e\xba\xc1\xcc\x00\x1a\x95\x91\xca\xe9l:\xbf:\x1e\x14
 
 = Sending and receiving an ICMP
 ~ netaccess IP ICMP
-x=sr1(IP(dst="www.google.com")/ICMP(),timeout=3)
+* A possible cause of failure could be that your local gateway is not
+* configured to respond to pings.
+conf.route.route("0.0.0.0")[2]
+x=sr1(IP(dst=_)/ICMP(),timeout=3)
 x
 x is not None and ICMP in x and x[ICMP].type == 0
 
@@ -1798,7 +1801,7 @@ a.type == 0 and a.len == 2
 
 = ICMPv6NDOptUnknown - Dissection with specific values 
 a=ICMPv6NDOptUnknown('\x00\x04somestring')
-a.type == 0 and a.len==4 and a.data == "so" and isinstance(a.payload, Raw) and a.payload.load == "mestring"
+a.type == 0 and a.len == 4 and a.data == "so" and a.payload.type == 109 and a.payload.len == 101
 
 ########### ICMPv6NDOptSrcLLAddr Class ##############################
 + ICMPv6NDOptSrcLLAddr Class Test
