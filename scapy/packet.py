@@ -129,12 +129,12 @@ class Packet(BasePacket):
             else:
                 raise TypeError("payload must be either 'Packet' or 'str', not [%s]" % repr(payload))
     def remove_payload(self):
-        self.payload.remove_underlayer(self)
+        self.payload.remove_underlayer()
         self.__dict__["payload"] = NoPayload()
         self.overloaded_fields = {}
     def add_underlayer(self, underlayer):
         self.underlayer = underlayer
-    def remove_underlayer(self,other):
+    def remove_underlayer(self):
         self.underlayer = None
     def copy(self):
         """Returns a deep copy of the instance."""
