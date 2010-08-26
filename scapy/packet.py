@@ -373,7 +373,10 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         if filename is None:
             fname = get_temp_file(autoext=".eps")
             canvas.writeEPSfile(fname)
-            subprocess.Popen([conf.prog.psreader, fname+".eps"])
+            if WINDOWS:
+                subprocess.Popen('"'+conf.prog.psreader+'" "'+fname+'.eps"')
+            else:
+                subprocess.Popen([conf.prog.psreader, fname+".eps"])
         else:
             canvas.writeEPSfile(filename)
 
@@ -384,7 +387,10 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         if filename is None:
             fname = get_temp_file(autoext=".pdf")
             canvas.writePDFfile(fname)
-            subprocess.Popen([conf.prog.pdfreader, fname+".pdf"])
+            if WINDOWS:
+                subprocess.Popen('"'+conf.prog.pdfreader+'" "'+fname+'.pdf"')
+            else:
+                subprocess.Popen([conf.prog.pdfreader, fname+".pdf"])
         else:
             canvas.writePDFfile(filename)
 
