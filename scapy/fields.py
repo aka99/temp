@@ -446,42 +446,12 @@ class PacketLenField(PacketField):
 class PacketListField(PacketField):
     '''Holds a list of other packets
     
-    You want to define extract_padding as well, otherwise your 
-    PacketList will only be 1 packet long, because it eats up the rest 
-    of its input as Raw packet:
-    
     >>> import scapy
     >>> class Inner(scapy.packet.Packet):
     ...     fields_desc = [
     ...         scapy.fields.IntField('value1', 23),
     ...         scapy.fields.IntField('value2', 42),
     ...     ]
-    ...
-    >>> class Outer(scapy.packet.Packet):
-    ...     fields_desc = [
-    ...         scapy.fields.LenField('len', None),
-    ...         scapy.fields.IntField('value', 42),
-    ...         scapy.fields.PacketListField('inners', None, Inner, 
-    ...                      length_from = lambda pkt: pkt.len - 2 - 4),
-    ...     ]
-    ...
-    >>> outer = Outer(str(Outer('babaar')) + 'AAAABBBB' + 'CCCCDDDD')
-    >>> outer.haslayer(scapy.packet.Raw) == True
-    True
-    >>> len(outer.inners)
-    1
-    
-    We would have expected two inners and no raw! So define 
-    extract_padding:
-    >>> class Inner(scapy.packet.Packet):
-    ...     fields_desc = [
-    ...         scapy.fields.IntField('value1', 23),
-    ...         scapy.fields.IntField('value2', 42),
-    ...     ]
-    ...     
-    ...     def extract_padding(self, pay):
-    ...         return "", pay
-    ...
     ...
     >>> class Outer(scapy.packet.Packet):
     ...     fields_desc = [
