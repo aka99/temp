@@ -748,8 +748,6 @@ _hbhoptcls = { 0x00: Pad1,
 ######################## Hop-by-Hop Extension Header ########################
 
 class _HopByHopOptionsField(PacketListField):
-    islist = 1
-    holds_packet = 1
     def __init__(self, name, default, cls, curpos, count_from=None, length_from=None):
         self.curpos = curpos
         PacketListField.__init__(self, name, default, cls, count_from=count_from, length_from=length_from)
@@ -841,6 +839,9 @@ class _PhantomAutoPadField(ByteField):
 
     def getfield(self, pkt, s):
         return s, 1
+
+    def i2len(self, pkt, x):
+        return 0
 
     def i2repr(self, pkt, x):
         if x:
@@ -2647,8 +2648,6 @@ class MIP6MH_Generic(_MobilityHeader): # Mainly for decoding of unknown msg
     
 # TODO: make a generic _OptionsField
 class _MobilityOptionsField(PacketListField):
-    islist = 1
-    holds_packet = 1
 
     def __init__(self, name, default, cls, curpos, count_from=None, length_from=None):
         self.curpos = curpos

@@ -366,6 +366,8 @@ class DHCPOptionsField(StrField):
             else:
                 warning("Malformed option %s" % o)
         return s
+    def randval(self):
+        return RandDHCPOptions()
 
 
 class DHCP(Packet):

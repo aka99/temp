@@ -281,6 +281,7 @@ class OByteField(ByteField):
 class X3BytesField(XByteField):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "!I")
+        self.sz = 3
     def addfield(self, pkt, s, val):
         return s+struct.pack(self.fmt, self.i2m(pkt,val))[1:4]
     def getfield(self, pkt, s):
@@ -426,7 +427,6 @@ class PacketField(StrField):
         return packet.fuzz(self.cls())
     
 class PacketLenField(PacketField):
-    holds_packets=1
     def __init__(self, name, default, cls, length_from=None):
         PacketField.__init__(self, name, default, cls)
         self.length_from = length_from
@@ -498,7 +498,6 @@ class PacketListField(PacketField):
     2
     '''
     islist = 1
-    holds_packets=1
     def __init__(self, name, default, cls, count_from=None, length_from=None):
         if default is None:
             default = []  # Create a new list for each instance
@@ -632,6 +631,8 @@ class StrLenField(StrField):
     def getfield(self, pkt, s):
         l = self.length_from(pkt)
         return s[l:], self.m2i(pkt,s[:l])
+    def randval(self):
+        return RandBin(RandNum(0,255))
 
 class FieldListField(Field):
     islist=1
@@ -973,8 +974,7 @@ class CharEnumField(EnumField):
 class BitEnumField(BitField,EnumField):
     def __init__(self, name, default, size, enum):
         EnumField.__init__(self, name, default, enum)
-        self.rev = size < 0
-        self.size = abs(size)
+        BitField.__init__(self, name, default, size)
     def any2i(self, pkt, x):
         return EnumField.any2i(self, pkt, x)
     def i2repr(self, pkt, x):
