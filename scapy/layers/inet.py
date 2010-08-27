@@ -643,7 +643,7 @@ class ICMP(Packet):
                     ConditionalField(ByteField("ptr",0),   lambda pkt:pkt.type==12),
                     ConditionalField(X3BytesField("reserved",0), lambda pkt:pkt.type==12),
                     ConditionalField(IPField("addr_mask","0.0.0.0"), lambda pkt:pkt.type in [17,18]),
-                    ConditionalField(IntField("unused",0), lambda pkt:pkt.type not in [0,5,8,12,13,14,15,16,17,18]),
+                    ConditionalField(IntField("unused",0), lambda pkt:pkt.type in [3,4,11]),
                     
                     ]
     def post_build(self, p, pay):
