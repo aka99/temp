@@ -47,9 +47,14 @@ class SetGen(Gen):
         return "<SetGen %s>" % self.set.__repr__()
 
 class Net(Gen):
-    """Generate a list of IPs from a network address or a name"""
+    """
+    Generate a list of IPs from a network address or a name.
+    Address octets can be ranges (24-135) or wildcards (*).
+    To include only valid numbers in the first octet (class A,B,C),
+        add "v" to the start of the address string.
+    """
     name = "ip"
-    ipaddress = re.compile(r"^(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)(/[0-3]?[0-9])?$")
+    ipaddress = re.compile(r"^v?(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)\.(\*|[0-2]?[0-9]?[0-9](-[0-2]?[0-9]?[0-9])?)(/[0-3]?[0-9])?$")
 
     @staticmethod
     def _parse_digit(a,netmask):
@@ -58,12 +63,16 @@ class Net(Gen):
             a = (0,256)
         elif a.find("-") >= 0:
             x,y = map(int,a.split("-"))
+            if x > 255 or y > 255:
+                raise error.Scapy_Exception("Net digit %r is invalid" % a)
             if x > y:
                 y = x
             a = (x &  (0xffL<<netmask) , max(y, (x | (0xffL>>(8-netmask))))+1)
         else:
+            if int(a) > 255:
+                raise error.Scapy_Exception("Net digit %r is invalid" % a)
             a = (int(a) & (0xffL<<netmask),(int(a) | (0xffL>>(8-netmask)))+1)
-        return a
+        return range(*a)
 
     @classmethod
     def _parse_net(cls, net):
@@ -73,24 +82,41 @@ class Net(Gen):
         netmask = int(tmp[1])
         return map(lambda x,y: cls._parse_digit(x,y), tmp[0].split("."), map(lambda x,nm=netmask: x-nm, (8,16,24,32))),netmask
 
-    def __init__(self, net):
+    def __init__(self, net, iterhigh=False):
         self.repr=net
+        self.iterhigh=iterhigh
+        self.valid=False
+        if net[0] == "v":
+            self.valid=True
+            net = net[1:]
         self.parsed,self.netmask = self._parse_net(net)
+        if self.valid:
+            for i in [0,127]+range(224,256):
+                if i in self.parsed[0]:
+                    self.parsed[0].remove(i)
+            if not self.parsed[0]:
+                raise error.Scapy_Exception("Net(%r) has no valid addresses" % self.repr)
 
-
-                                                                                               
     def __iter__(self):
-        for d in xrange(*self.parsed[3]):
-            for c in xrange(*self.parsed[2]):
-                for b in xrange(*self.parsed[1]):
-                    for a in xrange(*self.parsed[0]):
-                        yield "%i.%i.%i.%i" % (a,b,c,d)
+        if self.iterhigh:
+            for d in self.parsed[3]:
+                for c in self.parsed[2]:
+                    for b in self.parsed[1]:
+                        for a in self.parsed[0]:
+                            yield "%i.%i.%i.%i" % (a,b,c,d)
+        else:
+            for a in self.parsed[0]:
+                for b in self.parsed[1]:
+                    for c in self.parsed[2]:
+                        for d in self.parsed[3]:
+                            yield "%i.%i.%i.%i" % (a,b,c,d)
     def choice(self):
         ip = []
         for v in self.parsed:
-            ip.append(str(random.randint(v[0],v[1]-1)))
-        return ".".join(ip) 
-                          
+            ip.append(str(random.choice(v)))
+        return ".".join(ip)
+    def __len__(self):
+        return reduce(lambda x,y:x*y,map(len,self.parsed),1)
     def __repr__(self):
         return "Net(%r)" % self.repr
     def __eq__(self, other):
@@ -104,8 +130,8 @@ class Net(Gen):
             p2 = other.parsed
         else:
             p2,nm2 = self._parse_net(other)
-        for (a1,b1),(a2,b2) in zip(self.parsed,p2):
-            if a1 > a2 or b1 < b2:
+        for a,b in zip(self.parsed,p2):
+            if not set(b).issubset(a):
                 return False
         return True
     def __rcontains__(self, other):        
