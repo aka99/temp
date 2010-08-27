@@ -2875,6 +2875,59 @@ _mip6_mhtype2cls = { 0: MIP6MH_BRR,
                      6: MIP6MH_BA,
                      7: MIP6MH_BE }
 
+#############################################################################
+#############################################################################
+###               Teredo IPv6 over UDP Tunneling (RFC 4380)               ###
+#############################################################################
+#############################################################################
+
+class TeredoPortField(ShortEnumField):
+    def m2i(self, pkt, x):
+        return ShortEnumField.m2i(self, pkt, x) ^ 0xFFFF
+    def i2m(self, pkt, x):
+        return ShortEnumField.i2m(self, pkt, x ^ 0xFFFF)
+
+class TeredoIPField(IPField):
+    def i2m(self, pkt, x):
+        return self._teredo_cipher(IPField.i2m(self, pkt, x))
+    def m2i(self, pkt, x):
+        return IPField.m2i(self, pkt, self._teredo_cipher(x))
+    @staticmethod
+    def _teredo_cipher(x):
+        return struct.pack("I", struct.unpack("I", x)[0] ^ 0xFFFFFFFF)
+
+class TeredoOrigin(Packet):
+    name = "Teredo - Origin Indication"
+    fields_desc = [ ShortField("type", 0),
+                    TeredoPortField("port", 0, UDP_SERVICES),
+                    TeredoIPField("addr", "127.0.0.1") ]
+    overload_fields = { UDP: {"sport": 3544, "dport": 3544} }
+
+class TeredoAuth(Packet):
+    name = "Teredo - Authentication"
+    fields_desc = [ ShortField("type", 1),
+                    FieldLenField("id_len", None, length_of="id", fmt="B"),
+                    FieldLenField("au_len", None, length_of="auth", fmt="B"),
+                    StrLenField("id", "", length_from = lambda pkt: pkt.id_len),
+                    StrLenField("auth", "", length_from = lambda pkt: pkt.au_len),
+                    StrFixedLenField("nonce", "\x00"*8, 8),
+                    ByteField("confirm", 0) ]
+    overload_fields = { UDP: {"sport": 3544, "dport": 3544} }
+
+def _teredo_dispatcher(x, *args, **kargs):
+    cls = Raw
+    if len(x) >= 1 and ord(x[0]) & 0x60:
+        cls = IPv6
+    elif len(x) >= 2 and ord(x[0]) == 0:
+        if ord(x[1]) == 0:
+            cls = TeredoOrigin
+        elif ord(x[1]) == 1:
+            cls = TeredoAuth
+    try:
+        pkt = cls(x, *args, **kargs)
+    except:
+        pkt = Raw(x)
+    return pkt
 
 #############################################################################
 #############################################################################
@@ -3044,3 +3097,7 @@ bind_layers(IPv6,      IP,       nh = socket.IPPROTO_IPV4 )
 bind_layers(IP,        IPv6,     proto = socket.IPPROTO_IPV6 )
 bind_layers(IPv6,      IPv6,     nh = socket.IPPROTO_IPV6 )
 
+bind_bottom_up(UDP,          _teredo_dispatcher, { "sport": 3544 })
+bind_bottom_up(UDP,          _teredo_dispatcher, { "dport": 3544 })
+bind_bottom_up(TeredoOrigin, _teredo_dispatcher)
+bind_bottom_up(TeredoAuth,   _teredo_dispatcher)
