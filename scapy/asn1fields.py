@@ -11,6 +11,7 @@ from asn1.asn1 import *
 from asn1.ber import *
 from volatile import *
 from base_classes import BasePacket
+from packet import fuzz
 
 
 #####################

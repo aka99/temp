@@ -10,17 +10,21 @@ IPv4 (Internet Protocol v4).
 import os,time,struct,re,socket,new
 from select import select
 from collections import defaultdict
-from scapy.utils import checksum
-from scapy.layers.l2 import *
 from scapy.config import conf
+from scapy.utils import checksum
+from scapy.plist import PacketList,SndRcvList
+from scapy.layers.l2 import *
 from scapy.fields import *
 from scapy.packet import *
 from scapy.volatile import *
-from scapy.sendrecv import sr,sr1,srp1
-from scapy.plist import PacketList,SndRcvList
+from scapy.sendrecv import sr,sr1
 from scapy.automaton import Automaton,ATMT
 
 import scapy.as_resolvers
+
+from scapy.arch import GNUPLOT
+if scapy.arch.GNUPLOT:
+    Gnuplot=scapy.arch.Gnuplot
 
 
 ####################

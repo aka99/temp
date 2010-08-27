@@ -10,7 +10,7 @@ ASN.1 (Abstract Syntax Notation One)
 import random
 from scapy.config import conf
 from scapy.error import Scapy_Exception,warning
-from scapy.volatile import RandField
+from scapy.volatile import RandField,RandIP
 from scapy.utils import Enum_metaclass, EnumElement
 
 class RandASN1Object(RandField):

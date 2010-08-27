@@ -12,7 +12,8 @@ import socket,struct
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
-from scapy.layers.inet import UDP
+from scapy.layers.inet import IP,UDP
+from scapy.sendrecv import sr1
 
 class DNSStrField(StrField):
 

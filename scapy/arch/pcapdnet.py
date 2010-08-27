@@ -12,9 +12,8 @@ if not sys.platform.startswith("win"):
     from fcntl import ioctl
 from scapy.data import *
 from scapy.config import conf
-from scapy.utils import warning
 from scapy.supersocket import SuperSocket
-from scapy.error import Scapy_Exception
+from scapy.error import Scapy_Exception,warning
 import scapy.arch
 
 

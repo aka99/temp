@@ -34,12 +34,12 @@ if not hasattr(socket, "IPPROTO_IPV4"):
     socket.IPPROTO_IPV4 = 4
 
 from scapy.config import conf
+from scapy.sendrecv import sr,sr1,srp1
 from scapy.layers.l2 import *
 from scapy.layers.inet import *
 from scapy.fields import *
 from scapy.packet import *
 from scapy.volatile import *
-from scapy.sendrecv import sr,sr1,srp1
 from scapy.as_resolvers import AS_resolver_riswhois
 from scapy.supersocket import SuperSocket,L3RawSocket
 from scapy.arch import *

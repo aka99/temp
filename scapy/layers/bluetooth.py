@@ -10,10 +10,11 @@ Bluetooth layers, sockets and send/receive functions.
 import socket,struct
 
 from scapy.config import conf
+from scapy.data import MTU
 from scapy.packet import *
 from scapy.fields import *
 from scapy.supersocket import SuperSocket
-from scapy.data import MTU
+from scapy.sendrecv import sndrcv
 
 
 class HCI_Hdr(Packet):

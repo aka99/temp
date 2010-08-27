@@ -8,10 +8,12 @@ Main module for interactive startup.
 """
 
 from __future__ import generators
-import os,sys
+import os,sys,types,gzip,cPickle
 import __builtin__
 from error import *
 import utils
+from packet import Packet
+from base_classes import Packet_metaclass
     
 
 def _probe_config_file(cf):
