@@ -158,22 +158,32 @@ class Packet(BasePacket):
         return clone
 
     def getfieldval(self, attr):
-        if attr in self.fields:
-            return self.fields[attr]
-        if attr in self.overloaded_fields:
-            return self.overloaded_fields[attr]
-        if attr in self.default_fields:
-            return self.default_fields[attr]
-        return self.payload.getfieldval(attr)
+        if   attr in self.fields:
+            retval = self.fields[attr]
+        elif attr in self.overloaded_fields:
+            retval = self.overloaded_fields[attr]
+        elif attr in self.default_fields:
+            retval = self.default_fields[attr]
+            if isinstance(retval, (list, tuple)):
+                retval = copy.deepcopy(retval)
+        else:
+            retval = self.payload.getfieldval(attr)
+        return retval
     
     def getfield_and_val(self, attr):
         if attr in self.fields:
-            return self.get_field(attr),self.fields[attr]
-        if attr in self.overloaded_fields:
-            return self.get_field(attr),self.overloaded_fields[attr]
-        if attr in self.default_fields:
-            return self.get_field(attr),self.default_fields[attr]
-        return self.payload.getfield_and_val(attr)
+            field, val =  self.get_field(attr),self.fields[attr]
+        elif attr in self.overloaded_fields:
+            field, val =  self.get_field(attr),self.overloaded_fields[attr]
+        elif attr in self.default_fields:
+            field, val =  self.get_field(attr),self.default_fields[attr]
+            if isinstance(val, (list, tuple)):
+                val = copy.deepcopy(val)
+                self.fields[attr] = val
+        else:
+            field, val = self.payload.getfield_and_val(attr)
+            
+        return field, val
     
     def __getattr__(self, attr):
         if self.initialized:
@@ -1260,6 +1270,3 @@ def fuzz(p, _inplace=0):
                     q.default_fields[f.name] = rnd
         q = q.payload
     return p
-
-
-

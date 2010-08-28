@@ -451,7 +451,43 @@ hexdiff(a,b)
 assert( str(a) == str(b) )
 
 
+= Default Fields
+~ field lengthfield
+class Inner(Packet):
+    fields_desc = [
+        IntField("int", 23),
+    ]
 
+class Outer(Packet):
+    fields_desc = [
+        FieldLenField("length", None, length_of='inners'),
+        PacketListField("inners", None, Inner,
+                        length_from = lambda pkt: pkt.length),
+    ]
+
+pkt = Outer()
+pkt
+pkt.fields
+pkt.default_fields
+pkt.inners
+pkt.inners.append(Inner(int=42))
+pkt
+pkt.fields
+pkt.default_fields
+pkt.show()
+pkt.show2()
+str(pkt)[:4]
+assert(str(pkt).startswith('\x00\x04\x00\x00')) 
+pkt2 = Outer(str(pkt))
+pkt2
+pkt2.show()
+assert(pkt2.length == 4)
+
+pkt = Outer(inners=[Inner()])
+pkt.inners.append(Inner(int=42))
+pkt.show()
+pkt2 = Outer(str(pkt))
+assert(pkt2.length == 8)
 
 ############
 ############
