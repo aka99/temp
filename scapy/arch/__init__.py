@@ -11,6 +11,7 @@ Operating system specific functionality.
 import sys,os,socket
 from scapy.error import *
 import scapy.config
+from scapy.utils import inet_pton
 
 try:
     import Gnuplot

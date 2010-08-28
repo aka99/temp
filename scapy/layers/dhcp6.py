@@ -16,7 +16,7 @@ from scapy.fields import *
 from scapy.utils6 import *
 from scapy.layers.l2 import hardware_types
 from scapy.layers.inet6 import *
-from scapy.ansmachine import AnsweringMachine
+from scapy.themes import Color
 
 #############################################################################
 # Helpers                                                                  ##

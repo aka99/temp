@@ -14,7 +14,7 @@ from scapy.packet import *
 from scapy.ansmachine import *
 from scapy.plist import SndRcvList
 from scapy.fields import *
-from scapy.sendrecv import srp,srp1
+from scapy.sendrecv import srp,srp1,srpflood
 from scapy.arch import LOOPBACK_NAME,get_if_hwaddr,pcapdnet
 
 
@@ -325,6 +325,38 @@ class EAP(Packet):
         return p+pay
              
 
+class EAPOLKey(Packet):
+    name = "EAPOL - Key Descriptor Header"
+    fields_desc = [ ByteEnumField("desc_type", 2, {1:"RC4",2:"802.11",254:"WPA"}), ]
+
+
+class EAPOLKeyRC4(Packet):
+    name = "EAPOL - Key Descriptor - RC4"
+    fields_desc = [ FieldLenField("keylen", None, length_of="key", fmt="H"),
+                    LongField("replay", 0),
+                    StrFixedLenField("iv", "\x00"*16, 16),
+                    BitField("unicast", 0, 1),
+                    BitField("index", 0, 7),
+                    StrFixedLenField("digest", "\x00"*16, 16),
+                    StrLenField("key", "", length_from=lambda x:x.keylen) ]
+
+
+class EAPOLKeyDot11(Packet):
+    name = "EAPOL - Key Descriptor - 802.11"
+    fields_desc = [ FlagsField("flags", 0, 13, ["KeyType","res4","res5","Install","ACK",
+                                                "MIC","Secure","Error","Request","Encrypted","SMK","res14","res15"]),
+                    BitEnumField("version", 1, 3, {1:"MD5/RC4",2:"SHA1/AES"}),
+                    ShortField("keylen", 0),
+                    LongField("replay", 0),
+                    StrFixedLenField("nonce", "\x00"*32, 32),
+                    StrFixedLenField("iv", "\x00"*16, 16),
+                    StrFixedLenField("rsc", "\x00"*8, 8),
+                    LongField("res", 0),
+                    StrFixedLenField("mic", "\x00"*16, 16),
+                    FieldLenField("keydatalen", None, length_of="keydata", fmt="H"),
+                    StrLenField("keydata", "", length_from=lambda x:x.keydatalen) ]
+
+
 # Hardware types - RFC 826 - Extracted from 
 # http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
 # We should add the length of every kind of address.
@@ -486,6 +518,10 @@ bind_layers( GRE,           GRErouting,    { "routing_present" : 1 } )
 bind_layers( GRErouting,    Raw,           { "address_family" : 0, "SRE_len" : 0 })
 bind_layers( GRErouting,    GRErouting,    { } )
 bind_layers( EAPOL,         EAP,           type=0)
+bind_layers( EAPOL,         EAPOLKey,      type=3)
+bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
+bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard is this defined?
+bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
 bind_layers( LLC,           STP,           dsap=66, ssap=66, ctrl=3)
 bind_layers( LLC,           SNAP,          dsap=170, ssap=170, ctrl=3)
 bind_layers( SNAP,          Dot1Q,         code=0x8100)

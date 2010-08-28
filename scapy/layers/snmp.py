@@ -9,7 +9,8 @@ SNMP (Simple Network Management Protocol).
 
 from scapy.asn1packet import *
 from scapy.asn1fields import *
-from scapy.layers.inet import UDP
+from scapy.layers.inet import IP,UDP,ICMP
+from scapy.sendrecv import sr1
 
 ##########
 ## SNMP ##

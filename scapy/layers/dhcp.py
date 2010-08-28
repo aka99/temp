@@ -9,13 +9,13 @@ DHCP (Dynamic Host Configuration Protocol) d BOOTP
 
 import struct
 
+from scapy.base_classes import Net
+from scapy.volatile import RandField
 from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import UDP,IP
 from scapy.layers.l2 import Ether,hardware_types
-from scapy.base_classes import Net
-from scapy.volatile import RandField
 
 from scapy.arch import get_if_raw_hwaddr
 from scapy.sendrecv import srp1

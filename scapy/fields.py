@@ -9,10 +9,10 @@ Fields: basic data structures that make up parts of packets.
 
 import struct,copy,socket
 from config import conf
+from base_classes import BasePacket,Gen,Net
 from volatile import *
 from data import *
 from utils import *
-from base_classes import BasePacket,Gen,Net
 
 
 ############
@@ -168,7 +168,7 @@ class PadField:
 
     def getfield(self, pkt, s):
         x = self._fld.getfield(pkt,s)
-        padlen = ((self._align - (len(x[1]) % self._align)) % self._align)
+        padlen = ((self._align - ((len(s) - len(x[0])) % self._align)) % self._align)
         return x[0][padlen:], x[1]
 
     def addfield(self, pkt, s, val):

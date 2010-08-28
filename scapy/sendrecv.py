@@ -10,11 +10,9 @@ Functions to send and receive packets.
 import cPickle,os,sys,time,subprocess
 from select import select
 from data import *
-import arch
 from config import conf
-from packet import Gen
-from utils import warning,get_temp_file,PcapReader
-import plist
+from packet import Gen,Raw
+from utils import warning,get_temp_file,PcapReader,wrpcap
 from error import log_runtime,log_interactive
 from base_classes import SetGen
 
@@ -27,6 +25,9 @@ class debug:
     sent=[]
     match=[]
 
+
+import arch
+import plist
 
 ####################
 ## Send / Receive ##

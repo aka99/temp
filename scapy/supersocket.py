@@ -10,7 +10,8 @@ SuperSocket.
 import socket,time
 from config import conf
 from data import *
-from scapy.error import warning
+from scapy.error import warning,log_runtime
+from packet import NoPayload,Padding
 
 class _SuperSocket_metaclass(type):
     def __repr__(self):

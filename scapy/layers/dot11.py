@@ -13,6 +13,7 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.plist import PacketList
 from scapy.layers.l2 import *
+from scapy.layers.inet import IP,TCP
 
 
 try:
