@@ -4346,3 +4346,19 @@ p = IPv6(s)
 p[MIP6MH_BE].cksum=0xba10 and p[MIP6MH_BE].len == 1 and len(p[MIP6MH_BE].options) == 1
 
 
++ Test OSPF
+
+= OSPF_Hdr - length calculation
+* Test if OSPF_Hdr can calculate its own header length
+str(OSPF_Hdr())[2:4] == "\x00\x18"
+
+= OSPF_Hdr - length calculation with LLS 
+* The length of the link-local signaling header is not included in the OSPF packet length
+str(OSPF_Hdr()/OSPF_Hello(options="L")/OSPF_LLS_Hdr())[2:4] == "\x00\x2c"
+
+= OSPFv3_Hdr - length calculation
+* Test if OSPFv3_Hdr can calculate its own header length
+str(OSPFv3_Hdr())[2:4] == "\x00\x10"
+
+= OSPF LSA checksum calculation
+str(OSPF_Router_LSA())[16:18] == "\x51\x0c"
