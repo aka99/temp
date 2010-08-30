@@ -2289,7 +2289,7 @@ class ICMPv6MPSol(_ICMPv6):
                     XShortField("cksum", None),
                     XShortField("id", None),
                     XShortField("res", 0) ]
-    def _hashret(self):
+    def hashret(self):
         return struct.pack("!H",self.id)
 
 class ICMPv6MPAdv(_ICMPv6NDGuessPayload, _ICMPv6):
@@ -2773,7 +2773,7 @@ class MIP6MH_HoT(_MobilityHeader):
     overload_fields = { IPv6: { "nh": 135 } }
     def hashret(self):
         return self.cookie
-    def answers(self):
+    def answers(self, other):
         if (isinstance(other, MIP6MH_HoTI) and
             self.cookie == other.cookie):
             return 1
@@ -2785,7 +2785,7 @@ class MIP6MH_CoT(MIP6MH_HoT):
     def hashret(self):
         return self.cookie
 
-    def answers(self):
+    def answers(self, other):
         if (isinstance(other, MIP6MH_CoTI) and
             self.cookie == other.cookie):
             return 1
