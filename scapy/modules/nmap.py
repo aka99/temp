@@ -38,6 +38,7 @@ class NmapKnowledgeBase(KnowledgeBase):
 
         self.base = []
         name = None
+        sig = {}
         try:
             for l in f:
                 l = l.strip()

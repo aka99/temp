@@ -39,6 +39,7 @@ class QuesoKnowledgeBase(KnowledgeBase):
             return
         self.base = {}
         p = None
+        name = ""
         try:
             for l in f:
                 l = l.strip()
