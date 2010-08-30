@@ -136,7 +136,7 @@ dhcp6opts_by_code = {  1: "DHCP6OptClientId",
                        33: "DHCP6OptBCMCSDomains",        #RFC4280         
                        34: "DHCP6OptBCMCSServers",        #RFC4280
                       #35: (unassigned)
-                       #36: "DHCP6OptGeoConf",            #RFC4776
+                       36: "DHCP6OptGeoConf",             #RFC4776
                        37: "DHCP6OptRemoteID",            #RFC4649
                        38: "DHCP6OptSubscriberID",        #RFC4580
                        39: "DHCP6OptClientFQDN",          #RFC4704
@@ -844,13 +844,15 @@ class DHCP6OptBCMCSServers(_DHCP6OptGuessPayload):              #RFC4280
                     IP6ListField("bcmcsservers", [],
                                  length_from= lambda pkt: pkt.optlen) ]
 
-# TODO : Does Nothing at the moment
-class DHCP6OptGeoConf(_DHCP6OptGuessPayload):               #RFC-ietf-geopriv-dhcp-civil-09.txt
+class DHCP6OptGeoConf(_DHCP6OptGuessPayload):                   #RFC4776
     name = "DHCP6 Option - GeoConf Civic Location"
     fields_desc = [ ShortEnumField("optcode", 36, dhcp6opts),
-                    FieldLenField("optlen", None, length_of="optdata"),
-                    StrLenField("optdata", "",
-                                length_from = lambda pkt: pkt.optlen) ]
+                    FieldLenField("optlen", None, length_of="civicaddresses",
+                                  adjust = lambda pkt,x: x+3),
+                    ByteEnumField("what", 2, {0:"server",1:"closest",2:"client"}),
+                    StrFixedLenField("country", "", 2),
+                    StrLenField("civicaddresses", "",
+                                length_from = lambda pkt: pkt.optlen-3) ]
 
 # TODO: see if we encounter opaque values from vendor devices
 class DHCP6OptRemoteID(_DHCP6OptGuessPayload):                   #RFC4649
