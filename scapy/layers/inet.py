@@ -1123,7 +1123,7 @@ class TracerouteResult(SndRcvList):
                 
                 
     def world_trace(self):
-        from modules.geo import locate_ip
+        from scapy.modules.geoip import locate_ip
         ips = {}
         rt = {}
         ports_done = {}
@@ -1188,7 +1188,7 @@ class TracerouteResult(SndRcvList):
                 trace_id = (s.src,s.dst,s.proto,0)
             trace = rt.get(trace_id,{})
             ttl = conf.ipv6_enabled and scapy.layers.inet6.IPv6 in s and s.hlim or s.ttl
-            if not (ICMP in r and r[ICMP].type == 11) and not (conf.ipv6_enabled and scapy.layers.inet6.IPv6 in r and ICMPv6TimeExceeded in r):
+            if not (ICMP in r and r[ICMP].type == 11) and not (conf.ipv6_enabled and scapy.layers.inet6.IPv6 in r and scapy.layers.inet6.ICMPv6TimeExceeded in r):
                 if trace_id in ports_done:
                     continue
                 ports_done[trace_id] = None
