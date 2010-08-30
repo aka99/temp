@@ -160,11 +160,11 @@ sctpchunktypes = {
     }
 
 sctpchunkparamtypescls = {
-    1 : "SCTPChunkParamHearbeatInfo",
+    1 : "SCTPChunkParamHeartbeatInfo",
     5 : "SCTPChunkParamIPv4Addr",
     6 : "SCTPChunkParamIPv6Addr",
     7 : "SCTPChunkParamStateCookie",
-    8 : "SCTPChunkParamUnrocognizedParam",
+    8 : "SCTPChunkParamUnrecognizedParam",
     9 : "SCTPChunkParamCookiePreservative",
     11 : "SCTPChunkParamHostname",
     12 : "SCTPChunkParamSupportedAddrTypes",
@@ -258,7 +258,7 @@ class _SCTPChunkParam:
     def extract_padding(self, s):
         return "",s[:]
 
-class SCTPChunkParamHearbeatInfo(_SCTPChunkParam, Packet):
+class SCTPChunkParamHeartbeatInfo(_SCTPChunkParam, Packet):
     name = "SCTP Chunk Parameter: Heartbeat Info"
     fields_desc = [ ShortEnumField("type", 1, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="data",
@@ -288,7 +288,7 @@ class SCTPChunkParamStateCookie(_SCTPChunkParam, Packet):
                                          length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"),]
 
-class SCTPChunkParamUnrocognizedParam(_SCTPChunkParam, Packet):
+class SCTPChunkParamUnrecognizedParam(_SCTPChunkParam, Packet):
     name = "SCTP Chunk Parameter: Unrecognized Parameter"
     fields_desc = [ ShortEnumField("type", 8, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="param",
