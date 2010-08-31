@@ -667,3 +667,11 @@ class CorruptedBits(CorruptedBytes):
     def _fix(self):
         return corrupt_bits(self.s, self.p, self.n)
 
+
+class RandFloat(RandField):
+    def __init__(self, min=0, max=1):
+        self.min = min
+        self.max = max
+    def _fix(self):
+        return random.random()*(self.max-self.min)+self.min
+

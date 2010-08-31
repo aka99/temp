@@ -1108,7 +1108,7 @@ class FixedPointField(BitField):
         self.frac_bits = frac_bits
         BitField.__init__(self, name, default, size)
 
-    def any2i(self, pkt, val):
+    def i2m(self, pkt, val):
         if val is None:
             return val
         val = float(val)
@@ -1116,13 +1116,13 @@ class FixedPointField(BitField):
         fract = int( (val-ival) * 2**self.frac_bits )
         return (ival << self.frac_bits) | fract
 
-    def i2h(self, pkt, val):
+    def m2i(self, pkt, val):
         int_part = val >> self.frac_bits
         frac_part = val & (1L << self.frac_bits) - 1
         frac_part /= 2.0**self.frac_bits
         return int_part+frac_part
-    def i2repr(self, pkt, val):
-        return self.i2h(pkt, val)
+    def randval(self):
+        return RandFloat(max=2**(self.size-self.frac_bits)-1)
 
 import packet
 
