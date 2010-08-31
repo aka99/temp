@@ -168,20 +168,7 @@ ISAKMP_exchange_type = {  0:"None",
                          33:"new group mode" }
 
 
-class ISAKMP_class(Packet):
-    name = "ISAKMP dummy class"
-    def guess_payload_class(self, payload):
-        np = self.next_payload
-        if not np:
-            return Raw
-        elif np < len(ISAKMP_payload_type):
-            pt = ISAKMP_payload_type[np]
-            return globals().get("ISAKMP_payload_%s" % pt, ISAKMP_payload)
-        else:
-            return ISAKMP_payload
-
-
-class ISAKMP(ISAKMP_class): # rfc2408
+class ISAKMP(Packet): # rfc2408
     name = "ISAKMP"
     fields_desc = [
         StrFixedLenField("init_cookie","",8),
@@ -196,8 +183,11 @@ class ISAKMP(ISAKMP_class): # rfc2408
 
     def guess_payload_class(self, payload):
         if self.flags & 1:
-            return Raw
-        return ISAKMP_class.guess_payload_class(self, payload)
+            return Raw # encrypted payload
+        else:
+            return Packet.guess_payload_class(self, payload)
+    def default_payload_class(self, payload):
+        return ISAKMP_payload
 
     def answers(self, other):
         if isinstance(other, ISAKMP):
@@ -239,13 +229,35 @@ ISAKMP_DOI = { 0: "ISAKMP",
 
 
 
-class ISAKMP_payload_Transform(ISAKMP_class):
-    name = "IKE Transform"
+class _ISAKMP_payload_HDR(Packet):
+    name = "Abstract ISAKMP payload header"
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
+        ByteEnumField("next_payload",0,ISAKMP_payload_type),
         ByteField("res",0),
-#        ShortField("len",None),
         ShortField("length",None),
+        ]
+
+
+class ISAKMP_payload(Packet):
+    name = "ISAKMP unknown payload"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        StrLenField("load","",length_from=lambda x:x.length-4),
+        ]
+    def default_payload_class(self, payload):
+        return ISAKMP_payload
+    def post_build(self, p, pay):
+        if self.length is None:
+            l = len(p)
+            p = p[:2]+chr((l>>8)&0xff)+chr(l&0xff)+p[4:]
+        p += pay
+        return p
+
+
+class ISAKMP_payload_Transform(ISAKMP_payload):
+    name = "ISAKMP Transform"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
         ByteField("num",None),
         ByteEnumField("id",1,{1:"KEY_IKE"}),
         ShortField("res2",0),
@@ -258,23 +270,13 @@ class ISAKMP_payload_Transform(ISAKMP_class):
 #        XIntField("durationh",0x000c0004L),
 #        XIntField("durationl",0x00007080L),
         ]
-    def post_build(self, p, pay):
-        if self.length is None:
-            l = len(p)
-            p = p[:2]+chr((l>>8)&0xff)+chr(l&0xff)+p[4:]
-        p += pay
-        return p
-            
 
 
         
-class ISAKMP_payload_Proposal(ISAKMP_class):
-    name = "IKE proposal"
-#    ISAKMP_payload_type = 0
+class ISAKMP_payload_Proposal(ISAKMP_payload):
+    name = "ISAKMP Proposal"
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"trans","H", adjust=lambda pkt,x:x+8),
+        _ISAKMP_payload_HDR,
         ByteField("proposal",1),
         ByteEnumField("proto",1,ISAKMP_proto_ID),
         FieldLenField("SPIsize",None,"SPI","B"),
@@ -284,65 +286,40 @@ class ISAKMP_payload_Proposal(ISAKMP_class):
         ]
 
 
-class ISAKMP_payload(ISAKMP_class):
-    name = "ISAKMP payload"
-    fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"load","H", adjust=lambda pkt,x:x+4),
-        StrLenField("load","",length_from=lambda x:x.length-4),
-        ]
-
-
-class ISAKMP_payload_VendorID(ISAKMP_class):
+class ISAKMP_payload_VendorID(ISAKMP_payload):
     name = "ISAKMP Vendor ID"
-    overload_fields = { ISAKMP: { "next_payload":13 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"vendorID","H", adjust=lambda pkt,x:x+4),
+        _ISAKMP_payload_HDR,
         StrLenField("vendorID","",length_from=lambda x:x.length-4),
         ]
 
-class ISAKMP_payload_SA(ISAKMP_class):
+class ISAKMP_payload_SA(ISAKMP_payload):
     name = "ISAKMP SA"
-    overload_fields = { ISAKMP: { "next_payload":1 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"prop","H", adjust=lambda pkt,x:x+12),
+        _ISAKMP_payload_HDR,
         IntEnumField("DOI",1,{1:"IPSEC"}),
         IntEnumField("situation",1,{1:"identity"}),
         PacketLenField("prop",Raw(),ISAKMP_payload_Proposal,length_from=lambda x:x.length-12),
         ]
 
-class ISAKMP_payload_Nonce(ISAKMP_class):
+class ISAKMP_payload_Nonce(ISAKMP_payload):
     name = "ISAKMP Nonce"
-    overload_fields = { ISAKMP: { "next_payload":10 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"load","H", adjust=lambda pkt,x:x+4),
+        _ISAKMP_payload_HDR,
         StrLenField("load","",length_from=lambda x:x.length-4),
         ]
 
-class ISAKMP_payload_KE(ISAKMP_class):
+class ISAKMP_payload_KE(ISAKMP_payload):
     name = "ISAKMP Key Exchange"
-    overload_fields = { ISAKMP: { "next_payload":4 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"load","H", adjust=lambda pkt,x:x+4),
+        _ISAKMP_payload_HDR,
         StrLenField("load","",length_from=lambda x:x.length-4),
         ]
 
-class ISAKMP_payload_ID(ISAKMP_class):
+class ISAKMP_payload_ID(ISAKMP_payload):
     name = "ISAKMP Identification"
-    overload_fields = { ISAKMP: { "next_payload":5 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"load","H",adjust=lambda pkt,x:x+8),
+        _ISAKMP_payload_HDR,
         ByteEnumField("IDtype",1,ISAKMP_ID_type),
         ByteEnumField("ProtoID",0,{0:"Unused"}),
         ShortEnumField("Port",0,{0:"Unused"}),
@@ -352,32 +329,32 @@ class ISAKMP_payload_ID(ISAKMP_class):
 
 
 
-class ISAKMP_payload_Hash(ISAKMP_class):
+class ISAKMP_payload_Hash(ISAKMP_payload):
     name = "ISAKMP Hash"
-    overload_fields = { ISAKMP: { "next_payload":8 }}
     fields_desc = [
-        ByteEnumField("next_payload",None,ISAKMP_payload_type),
-        ByteField("res",0),
-        FieldLenField("length",None,"load","H",adjust=lambda pkt,x:x+4),
+        _ISAKMP_payload_HDR,
         StrLenField("load","",length_from=lambda x:x.length-4),
         ]
 
 
-
-ISAKMP_payload_type_overload = {}
+_ISAKMP_payload_layers = {}
 for i in range(len(ISAKMP_payload_type)):
-    name = "ISAKMP_payload_%s" % ISAKMP_payload_type[i]
-    if name in globals():
-        ISAKMP_payload_type_overload[globals()[name]] = {"next_payload":i}
+    n = "ISAKMP_payload_%s" % ISAKMP_payload_type[i]
+    if n in globals():
+        _ISAKMP_payload_layers[i] = globals()[n]
+_ISAKMP_layers = [ISAKMP,ISAKMP_payload] + _ISAKMP_payload_layers.values()
 
-del(i)
-del(name)
-ISAKMP_class.overload_fields = ISAKMP_payload_type_overload.copy()
-
+for i in _ISAKMP_layers:
+    for k,v in _ISAKMP_payload_layers.iteritems():
+        bind_layers(i, v, next_payload=k)
+    bind_layers(i, ISAKMP_payload)
+del(i,n,k,v)
 
 bind_layers( UDP,           ISAKMP,        sport=500)
 bind_layers( UDP,           ISAKMP,        dport=500)
 bind_layers( UDP,           ISAKMP,        dport=500, sport=500)
+
+
 def ikescan(ip):
     return sr(IP(dst=ip)/UDP()/ISAKMP(init_cookie=RandString(8),
                                       exch_type=2)/ISAKMP_payload_SA(prop=ISAKMP_payload_Proposal()))
