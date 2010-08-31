@@ -687,6 +687,8 @@ class ICMP(Packet):
 
 class IPerror(IP):
     name = "IP in ICMP"
+    aliastypes = [ IP ]
+    overload_fields = {ICMP: {}}
     def answers(self, other):
         if not isinstance(other, IP):
             return 0
@@ -704,6 +706,7 @@ class IPerror(IP):
 
 class TCPerror(TCP):
     name = "TCP in ICMP"
+    aliastypes = [ TCP ]
     def answers(self, other):
         if not isinstance(other, TCP):
             return 0
@@ -725,6 +728,7 @@ class TCPerror(TCP):
 
 class UDPerror(UDP):
     name = "UDP in ICMP"
+    aliastypes = [ UDP ]
     def answers(self, other):
         if not isinstance(other, UDP):
             return 0
@@ -740,6 +744,7 @@ class UDPerror(UDP):
 
 class ICMPerror(ICMP):
     name = "ICMP in ICMP"
+    aliastypes = [ ICMP ]
     def answers(self, other):
         if not isinstance(other,ICMP):
             return 0

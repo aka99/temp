@@ -480,6 +480,8 @@ conf.neighbor.register_l3(Ether, IPv6, lambda l2,l3: getmacbyip6(l3.dst))
 
 class IPerror6(IPv6):
     name = "IPv6 in ICMPv6"
+    aliastypes = [ IPv6 ]
+    overload_fields = {}
     def answers(self, other):
         if not isinstance(other, IPv6):
             return False
