@@ -1059,7 +1059,7 @@ class NoPayload(Packet):
         pass
     def add_underlayer(self,underlayer):
         pass
-    def remove_underlayer(self,other):
+    def remove_underlayer(self):
         pass
     def copy(self):
         return self
