@@ -223,11 +223,62 @@ ISAKMP_ID_type = {  1: "IPV4_ADDR",
                    11: "KEY_ID",
                    12: "LIST" }
 
+# RFC2408, http://www.iana.org/assignments/ikev2-parameters
+ISAKMP_cert_encoding = {  0: "NONE",
+                          1: "PKCS #7 wrapped X.509 certificate",
+                          2: "PGP Certificate",
+                          3: "DNS Signed Key",
+                          4: "X.509 Certificate - Signature",
+                          5: "X.509 Certificate - Key Exchange",
+                          6: "Kerberos Token",
+                          7: "Certificate Revocation List (CRL)",
+                          8: "Authority Revocation List (ARL)",
+                          9: "SPKI Certificate",
+                         10: "X.509 Certificate - Attribute",
+                         11: "Raw RSA Key",
+                         12: "Hash and URL of X.509 certificate",
+                         13: "Hash and URL of X.509 bundle",
+                         14: "OCSP Content" }
+
 # http://www.iana.org/assignments/isakmp-registry
 ISAKMP_DOI = { 0: "ISAKMP",
                1: "IPSEC",
                2: "GDOI" }
 
+# RFC2408, http://www.iana.org/assignments/isakmp-registry
+ISAKMP_notify_message = {     1: "INVALID-PAYLOAD-TYPE",
+                              2: "DOI-NOT-SUPPORTED",
+                              3: "SITUATION-NOT-SUPPORTED",
+                              4: "INVALID-COOKIE",
+                              5: "INVALID-MAJOR-VERSION",
+                              6: "INVALID-MINOR-VERSION",
+                              7: "INVALID-EXCHANGE-TYPE",
+                              8: "INVALID-FLAGS",
+                              9: "INVALID-MESSAGE-ID",
+                             10: "INVALID-PROTOCOL-ID",
+                             11: "INVALID-SPI",
+                             12: "INVALID-TRANSFORM-ID",
+                             13: "ATTRIBUTES-NOT-SUPPORTED",
+                             14: "NO-PROPOSAL-CHOSEN",
+                             15: "BAD-PROPOSAL-SYNTAX",
+                             16: "PAYLOAD-MALFORMED",
+                             17: "INVALID-KEY-INFORMATION",
+                             18: "INVALID-ID-INFORMATION",
+                             19: "INVALID-CERT-ENCODING",
+                             20: "INVALID-CERTIFICATE",
+                             21: "CERT-TYPE-UNSUPPORTED",
+                             22: "INVALID-CERT-AUTHORITY",
+                             23: "INVALID-HASH-INFORMATION",
+                             24: "AUTHENTICATION-FAILED",
+                             25: "INVALID-SIGNATURE",
+                             26: "ADDRESS-NOTIFICATION",
+                             27: "NOTIFY-SA-LIFETIME",
+                             28: "CERTIFICATE-UNAVAILABLE",
+                             29: "UNSUPPORTED-EXCHANGE-TYPE",
+                             30: "UNEQUAL-PAYLOAD-LENGTHS",
+                          24576: "RESPONDER-LIFETIME",
+                          24577: "REPLAY-STATUS",
+                          24578: "INITIAL-CONTACT" }
 
 
 class _ISAKMP_payload_HDR(Packet):
@@ -357,6 +408,138 @@ class ISAKMP_payload_Hash(ISAKMP_payload):
     fields_desc = [
         _ISAKMP_payload_HDR,
         StrLenField("hash","",length_from=lambda x:x.length-4),
+        ]
+
+class ISAKMP_payload_CERT(ISAKMP_payload):
+    name = "ISAKMP Certificate"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteEnumField("encoding",0,ISAKMP_cert_encoding),
+        StrLenField("cert","",length_from=lambda x:x.length-5),
+        ]
+
+class ISAKMP_payload_CR(ISAKMP_payload_CERT):
+    name = "ISAKMP Certificate Request"
+
+class ISAKMP_payload_SIG(ISAKMP_payload):
+    name = "ISAKMP Signature"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        StrLenField("sig","",length_from=lambda x:x.length-4),
+        ]
+
+class ISAKMP_payload_Notification(ISAKMP_payload):
+    name = "ISAKMP Notification"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        IntEnumField("DOI",0,ISAKMP_DOI),
+        ByteEnumField("proto",1,ISAKMP_proto_ID),
+        FieldLenField("SPIsize",None,"SPI","B"),
+        ShortEnumField("message",0,ISAKMP_notify_message),
+        StrLenField("SPI","",length_from=lambda x:x.SPIsize),
+        StrLenField("data","",length_from=lambda x:x.length-12),
+        ]
+
+class ISAKMP_payload_Delete(ISAKMP_payload):
+    name = "ISAKMP Delete"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        IntEnumField("DOI",0,ISAKMP_DOI),
+        ByteEnumField("proto",1,ISAKMP_proto_ID),
+        ByteField("SPIsize",16),
+        FieldLenField("SPI_nb",None,count_of="SPIs",fmt="H"),
+        FieldListField("SPIs", [], StrLenField("SPI","",length_from=lambda x:x.SPIsize),
+                       count_from=lambda x:x.SPI_nb)
+        ]
+
+class ISAKMP_payload_SAK(ISAKMP_payload):
+    name = "ISAKMP SA KEK"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteEnumField("proto",0,IP_PROTOS),
+        ByteEnumField("stype",1,ISAKMP_ID_type),
+        ShortEnumField("sport",80,TCP_SERVICES),
+        FieldLenField("slen",None,"sdata","B"),
+        StrLenField("sdata","",length_from=lambda x:x.slen),
+        ByteEnumField("dtype",1,ISAKMP_ID_type), #XXX: is there a "DST ID Prot" field?
+        ShortEnumField("dport",80,TCP_SERVICES),
+        FieldLenField("dlen",None,"ddata","B"),
+        StrLenField("ddata","",length_from=lambda x:x.dlen),
+        StrFixedLenField("SPI","\x00"*16,16),
+        ShortEnumField("pop_algo",0,{1:"RSA",2:"DSS",3:"ECDSS"}),
+        ShortField("pop_key_len",0), #XXX: FieldLenField?
+        StrLenField("kek","",length_from=lambda x:x.length-33),
+        ]
+
+class ISAKMP_payload_SAT(ISAKMP_payload):
+    name = "ISAKMP SA TEK"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteEnumField("id",1,{1:"IPSEC_ESP"}),
+        ByteEnumField("proto",0,IP_PROTOS),
+        ByteEnumField("stype",1,ISAKMP_ID_type),
+        ShortEnumField("sport",80,TCP_SERVICES),
+        FieldLenField("slen",None,"sdata","B"),
+        StrLenField("sdata","",length_from=lambda x:x.slen),
+        ByteEnumField("dtype",1,ISAKMP_ID_type), #XXX: is there a "DST ID Prot" field?
+        ShortEnumField("dport",80,TCP_SERVICES),
+        FieldLenField("dlen",None,"ddata","B"),
+        StrLenField("ddata","",length_from=lambda x:x.dlen),
+        ByteEnumField("trans_id",1,{1:"KEY_IKE"}),
+        StrFixedLenField("SPI","\x00"*4,4),
+        StrLenField("attrs","",length_from=lambda x:x.length-19),
+        ]
+
+class ISAKMP_key(Packet):
+    name = "ISAKMP Key Packet for KD"
+    fields_desc = [
+        ByteEnumField("type",0,{1:"TEK",2:"KEK",3:"LKH"}),
+        ByteField("res",0),
+        ShortField("length",None),
+        FieldLenField("SPIsize",None,"SPI","B"),
+        StrLenField("SPI","",length_from=lambda x:x.SPIsize),
+        StrLenField("attrs","",length_from=lambda x:x.length-8), #TODO: key attributes
+        ]
+    def post_build(self, p, pay):
+        if self.length is None:
+            l = len(p)
+            p = p[:2]+chr((l>>8)&0xff)+chr(l&0xff)+p[4:]
+        p += pay
+        return p
+
+class ISAKMP_payload_KD(ISAKMP_payload):
+    name = "ISAKMP Key Download"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        FieldLenField("num",None,count_of="keys",fmt="H"),
+        ShortField("res2",0),
+        PacketListField("keys",[],ISAKMP_key,length_from=lambda x:x.length-8),
+        ]
+
+class ISAKMP_payload_SEQ(ISAKMP_payload):
+    name = "ISAKMP Sequence Number"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        IntField("seq",0),
+        ]
+
+class ISAKMP_payload_POP(ISAKMP_payload_SIG):
+    name = "ISAKMP Proof of Possession"
+
+class ISAKMP_payload_NAT_D(ISAKMP_payload_Hash):
+    name = "ISAKMP NAT Discovery"
+
+class ISAKMP_payload_NAT_OA(ISAKMP_payload):
+    name = "ISAKMP NAT Original Address"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteEnumField("IDtype",1,ISAKMP_ID_type),
+        ByteField("res2",0),
+        ShortField("res3",0),
+        ConditionalField(IPField("addr4","127.0.0.1"),lambda pkt:pkt.IDtype==1),
+        ConditionalField(IP6Field("addr6","::1"),lambda pkt:pkt.IDtype==5),
+        ConditionalField(StrLenField("load","",length_from=lambda x:x.length-8),
+                         lambda pkt:pkt.IDtype not in [1,5]),
         ]
 
 
