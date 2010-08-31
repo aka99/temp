@@ -23,9 +23,9 @@ class TimeStampField(FixedPointField):
     def i2repr(self, pkt, val):
         if val is None:
             return "--"
-        val = self.i2h(pkt,val)
-        if val < _NTP_BASETIME:
-            return val
+        val = float(self.i2h(pkt,val))
+        if val < _NTP_BASETIME or val-_NTP_BASETIME >= 2**31:
+            return repr(val)
         return time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(val-_NTP_BASETIME))
 
     def any2i(self, pkt, val):

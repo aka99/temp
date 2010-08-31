@@ -271,17 +271,17 @@ class DNS(Packet):
                 and other.qr == 0)
         
     def mysummary(self):
-        type = ["Qry","Ans"][self.qr]
+        typ = ["Qry","Ans"][self.qr]
         name = ""
         if self.qr:
-            type = "Ans"
+            typ = "Ans"
             if self.ancount > 0 and isinstance(self.an, DNSRR):
-                name = ' "%s"' % self.an.rdata
+                name = " %s" % repr(self.an.rdata)
         else:
-            type = "Qry"
+            typ = "Qry"
             if self.qdcount > 0 and isinstance(self.qd, DNSQR):
-                name = ' "%s"' % self.qd.qname
-        return 'DNS %s%s ' % (type, name)
+                name = " %s" % repr(self.qd.qname)
+        return 'DNS %s%s ' % (typ, name)
 
 
 class DNSQR(Packet):

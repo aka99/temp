@@ -280,7 +280,7 @@ class _DUIDField(PacketField):
         cls = Raw 
         if len(x) > 4:
             o = struct.unpack("!H", x[:2])[0]
-            cls = get_cls(duid_cls.get(o, Raw), "Raw")
+            cls = get_cls(duid_cls.get(o, "Raw"), Raw)
         return cls(x)
 
     def getfield(self, pkt, s):
@@ -397,7 +397,7 @@ class _OptReqListField(StrLenField):
         return r
     
     def i2m(self, pkt, x):
-        return "".join(map(lambda y: struct.pack("!H", y), x))
+        return "".join(map(lambda y: struct.pack("!H", int(y)), x))
     
     def randval(self):
         return [RandNum(0,255)]
@@ -429,7 +429,7 @@ class _ElapsedTimeField(ShortField):
     def i2repr(self, pkt, x):
         if x == 0xffff:
             return "infinity (0xffff)"
-        return "%.2f sec" % (self.i2h(pkt, x)/100.)
+        return "%.2f sec" % (float(self.i2h(pkt, x))/100)
 
 class DHCP6OptElapsedTime(_DHCP6OptGuessPayload):# RFC sect 22.9
     name = "DHCP6 Option - Elapsed Time"
@@ -779,14 +779,16 @@ class DomainNameField(StrLenField):
         return len(self.i2m(pkt, x))
 
     def m2i(self, pkt, x):
+        if not x:
+            return ""
         save = x
         cur = []
         while x and x[0] != '\x00':
             l = ord(x[0])
             cur.append(x[1:1+l])
             x = x[l+1:]
-        if x[0] != '\x00':
-            print "Found weird domain: '%s'. Keeping %s" % (save, x)
+        if not x or x[0] != '\x00':
+            print "Found weird domain: %r. Keeping %r" % (save, x)
         return ".".join(cur)
 
     def i2m(self, pkt, x):
@@ -970,7 +972,6 @@ class DHCP6(_DHCP6OptGuessPayload):
 class DHCP6_Solicit(DHCP6):
     name = "DHCPv6 Solicit Message"
     msgtype = 1
-    overload_fields = { UDP: {"sport": 546, "dport": 547} }
 
 #####################################################################
 # Advertise Message
@@ -1166,6 +1167,7 @@ class DHCP6_RelayForward(_DHCP6GuessPayload,Packet):
                     ByteField("hopcount", None),
                     IP6Field("linkaddr", "::"),
                     IP6Field("peeraddr", "::") ]
+    overload_fields = { UDP: {"sport": 547, "dport": 547} }
     def hashret(self): # we filter on peer address field
         return inet_pton(socket.AF_INET6, self.peeraddr)
 

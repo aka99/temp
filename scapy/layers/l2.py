@@ -469,7 +469,7 @@ class GRErouting(Packet):
     fields_desc = [ ShortField("address_family",0),
                     ByteField("SRE_offset", 0),
                     FieldLenField("SRE_len", None, "routing_info", "B"),
-                    StrLenField("routing_info", "", "SRE_len"),
+                    StrLenField("routing_info", "", length_from=lambda x:x.SRE_len),
                     ]
 
 
@@ -480,7 +480,7 @@ class GRE(Packet):
                     BitField("key_present",0,1),
                     BitField("seqnum_present",0,1),
                     BitField("strict_route_source",0,1),
-                    BitField("recursion control",0,3),
+                    BitField("recursion_control",0,3),
                     BitField("flags",0,5),
                     BitField("version",0,3),
                     XShortEnumField("proto", 0x0000, ETHER_TYPES),
@@ -586,7 +586,7 @@ Set cache=True if you want arping to modify internal ARP-Cache"""
 
     if cache and ans is not None:
         for pair in ans:
-            arp_cache[pair[1].psrc] = (pair[1].hwsrc, time.time())
+            conf.netcache.arp_cache[pair[1].psrc] = (pair[1].hwsrc, time.time())
     if verbose:
         ans.show()
     return ans,unans

@@ -33,6 +33,7 @@ if not hasattr(socket, "IPPROTO_IPV6"):
 if not hasattr(socket, "IPPROTO_IPV4"):
     socket.IPPROTO_IPV4 = 4
 
+import time
 from scapy.config import conf
 from scapy.sendrecv import sr,sr1,srp1
 from scapy.layers.l2 import *
@@ -1275,7 +1276,7 @@ class _ICMPv6ML(_ICMPv6):
                     XShortField("cksum", None),
                     ShortField("mrd", 0),
                     ShortField("reserved", 0),
-                    IP6Field("mladdr",None)]
+                    IP6Field("mladdr","::")]
 
 # general queries are sent to the link-scope all-nodes multicast
 # address ff02::1, with a multicast address field of 0 and a MRD of
@@ -1302,7 +1303,7 @@ class ICMPv6MLQuery(_ICMPv6ML): # RFC 2710
 class ICMPv6MLReport(_ICMPv6ML): # RFC 2710
     name = "ICMPv6 Multicast Listener Report"
     type = 131
-    overload_fields = {IPv6: {"hlim": 1}}
+    overload_fields = {IPv6: { "nh": 58, "hlim": 1}}
     # implementer le hashret et le answers
     
 # When a node ceases to listen to a multicast address on an interface,
@@ -1314,7 +1315,7 @@ class ICMPv6MLReport(_ICMPv6ML): # RFC 2710
 class ICMPv6MLDone(_ICMPv6ML): # RFC 2710
     name = "ICMPv6 Multicast Listener Done"
     type = 132
-    overload_fields = {IPv6: { "dst": "ff02::2", "hlim": 1}}
+    overload_fields = {IPv6: { "nh": 58, "hlim": 1, "dst": "ff02::2"}}
 
 
 ########## ICMPv6 MRD - Multicast Router Discovery (RFC 4286) ###############
@@ -2444,6 +2445,7 @@ class MIP6OptMsgAuth(_MIP6OptAlign, Packet): # RFC 4285 (Sect. 5)
 class NTPTimestampField(LongField):
     epoch = (1900, 1, 1, 0, 0, 0, 5, 1, 0)
     def i2repr(self, pkt, x):
+        x = long(x)
         if x < ((50*31536000)<<32):
             return "Some date a few decades ago (%d)" % x
 
@@ -2453,7 +2455,6 @@ class NTPTimestampField(LongField):
         i = int(x >> 32)
         j = float(x & 0xffffffff) * 2.0**-32
         res = i + j + delta
-        from time import strftime
         t = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(res))
 
         return "%s (%d)" % (t, x)

@@ -277,11 +277,11 @@ def _prompt_changer(attr,val):
     prompt = conf.prompt
     try:
         ct = val
-        if isinstance(ct, AnsiColorTheme) and ct.prompt(""):
+        if isinstance(ct, themes.AnsiColorTheme) and ct.prompt(""):
             ## ^A and ^B delimit invisible caracters for readline to count right.
             ## And we need ct.prompt() to do change something or else ^A and ^B will be
             ## displayed
-             prompt = "\001%s\002" % ct.prompt("\002"+prompt+"\001")
+            prompt = "\001%s\002" % ct.prompt("\002"+prompt+"\001")
         else:
             prompt = ct.prompt(prompt)
     except:

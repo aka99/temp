@@ -243,7 +243,7 @@ class ASN1F_SEQUENCE_OF(ASN1F_SEQUENCE):
     def i2repr(self, pkt, i):
         if i is None:
             return []
-        return i
+        return repr(i)
     def get_fields_list(self):
         return [self]
     def set_val(self, pkt, val):

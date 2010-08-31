@@ -203,6 +203,8 @@ class MACField(Field):
 
 class IPField(Field):
     def __init__(self, name, default):
+        if default == "":
+            default = "0.0.0.0"
         Field.__init__(self, name, default, "4s")
     def h2i(self, pkt, x):
         if type(x) is str:
@@ -254,7 +256,11 @@ class SourceIPField(IPField):
                     warning("More than one possible route for %s"%repr(dst))
                 iff,x,gw = r[0]
             else:
-                iff,x,gw = conf.route.route(dst)
+                if type(dst) in (list,tuple):
+                    d = str(dst[0])
+                else:
+                    d = str(dst)
+                iff,x,gw = conf.route.route(d)
         return IPField.i2h(self, pkt, x)
 
     
@@ -554,9 +560,13 @@ class StrFixedLenField(StrField):
         return repr(v)
     def getfield(self, pkt, s):
         l = self.length_from(pkt)
+        if l <= 0:
+            return s,""
         return s[l:], self.m2i(pkt,s[:l])
     def addfield(self, pkt, s, val):
         l = self.length_from(pkt)
+        if l <= 0:
+            return s
         return s+struct.pack("%is"%l,self.i2m(pkt, val))
     def randval(self):
         try:
@@ -600,6 +610,8 @@ class StrLenField(StrField):
         self.length_from = length_from
     def getfield(self, pkt, s):
         l = self.length_from(pkt)
+        if l <= 0:
+            return s,""
         return s[l:], self.m2i(pkt,s[:l])
     def randval(self):
         return RandBin(RandNum(0,255))
@@ -620,7 +632,7 @@ class FieldListField(Field):
             vl = [self.field.i2repr(pkt, v) for v in val]
             l = ", ".join(vl)
             return "[%s]" % l
-        return val
+        return repr(val)
 
     def i2count(self, pkt, val):
         if type(val) is list:
@@ -653,6 +665,8 @@ class FieldListField(Field):
         val = []
         ret=""
         if l is not None:
+            if l <= 0:
+                return s,""
             s,ret = s[:l],s[l:]
             
         while s:
@@ -1097,6 +1111,7 @@ class FixedPointField(BitField):
     def any2i(self, pkt, val):
         if val is None:
             return val
+        val = float(val)
         ival = int(val)
         fract = int( (val-ival) * 2**self.frac_bits )
         return (ival << self.frac_bits) | fract

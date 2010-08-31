@@ -214,8 +214,10 @@ class RandBin(RandString):
 
 
 class RandTermString(RandString):
-    def __init__(self, size, term):
-        RandString.__init__(self, size, "".join(map(chr,range(1,256))))
+    def __init__(self, size=None, term="\x00"):
+        chars = map(chr,range(256))
+        chars.remove(term)
+        RandString.__init__(self, size, "".join(chars))
         self.term = term
     def _fix(self):
         return RandString._fix(self)+self.term
@@ -325,7 +327,7 @@ class RandOID(RandString):
             
 
 class RandRegExp(RandField):
-    def __init__(self, regexp, lambda_=0.3,):
+    def __init__(self, regexp, lambda_=0.3):
         self._regexp = regexp
         self._lambda = lambda_
 
@@ -626,7 +628,7 @@ class IntAutoTime(AutoTime):
 
 
 class ZuluTime(AutoTime):
-    def __init__(self, diff=None):
+    def __init__(self, diff=0):
         self.diff=diff
     def _fix(self):
         return time.strftime("%y%m%d%H%M%SZ",time.gmtime(time.time()+self.diff))

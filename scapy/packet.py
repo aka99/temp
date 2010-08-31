@@ -7,12 +7,7 @@
 Packet class. Binding mechanism. fuzz() method.
 """
 
-import copy
-import itertools
-import os
-import subprocess
-import time
-
+import time,itertools,os,copy,subprocess
 from fields import StrField,ConditionalField,Emph,PacketListField
 from config import conf
 from base_classes import BasePacket,Gen,SetGen,Packet_metaclass
@@ -56,13 +51,13 @@ class Packet(BasePacket):
         return cls(import_hexcap())
 
     @classmethod
-    def upper_bonds(self):
-        for fval,upper in self.payload_guess:
+    def upper_bonds(cls):
+        for fval,upper in cls.payload_guess:
             print "%-20s  %s" % (upper.__name__, ", ".join("%-12s" % ("%s=%r"%i) for i in fval.iteritems()))
 
     @classmethod
-    def lower_bonds(self):
-        for lower,fval in self.overload_fields.iteritems():
+    def lower_bonds(cls):
+        for lower,fval in cls.overload_fields.iteritems():
             print "%-20s  %s" % (lower.__name__, ", ".join("%-12s" % ("%s=%r"%i) for i in fval.iteritems()))
 
     def __init__(self, _pkt="", post_transform=None, _internal=0, _underlayer=None, **fields):
@@ -571,9 +566,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
 
     def do_dissect(self, s):
         flist = self.fields_desc[:]
-        flist.reverse()
         while s and flist:
-            f = flist.pop()
+            f = flist.pop(0)
             s,fval = f.getfield(self, s)
             self.fields[f.name] = fval
             
@@ -791,7 +785,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
             lname=cls
             ret = self.getlayer(cls)
         if ret is None:
-            if type(lname) is Packet_metaclass:
+            if isinstance(lname,Packet_metaclass):
                 lname = lname.__name__
             elif type(lname) is not str:
                 lname = repr(lname)

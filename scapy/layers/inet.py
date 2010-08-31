@@ -139,8 +139,8 @@ class IPOption_Security(IPOption):
                     ByteField("length", 11),
                     XShortEnumField("security",0,ipoption_security_levels),
                     ShortField("compartment",0),
-                    ShortField("handling_restrictions",0),
-                    StrFixedLenField("transmission_control_code","xxx",3),
+                    StrFixedLenField("handling_restrictions","",2),
+                    StrFixedLenField("transmission_control_code","",3),
                     ]
     
 class IPOption_LSRR(IPOption):
