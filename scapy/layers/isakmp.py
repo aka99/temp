@@ -13,6 +13,7 @@ from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import IP,UDP
 from scapy.sendrecv import sr
+from scapy.layers.inet6 import IP6Field
 
 
 # see http://www.iana.org/assignments/ipsec-registry for details
@@ -176,7 +177,7 @@ class ISAKMP(Packet): # rfc2408
         ByteEnumField("next_payload",0,ISAKMP_payload_type),
         XByteField("version",0x10),
         ByteEnumField("exch_type",0,ISAKMP_exchange_type),
-        FlagsField("flags",0, 8, ["encryption","commit","auth_only","res3","res4","res5","res6","res7"]), # XXX use a Flag field
+        FlagsField("flags",0, 8, ["encryption","commit","auth_only","res3","res4","res5","res6","res7"]),
         IntField("id",0),
         IntField("length",None)
         ]
@@ -262,13 +263,6 @@ class ISAKMP_payload_Transform(ISAKMP_payload):
         ByteEnumField("id",1,{1:"KEY_IKE"}),
         ShortField("res2",0),
         ISAKMPTransformSetField("transforms",None,length_from=lambda x:x.length-8)
-#        XIntField("enc",0x80010005L),
-#        XIntField("hash",0x80020002L),
-#        XIntField("auth",0x80030001L),
-#        XIntField("group",0x80040002L),
-#        XIntField("life_type",0x800b0001L),
-#        XIntField("durationh",0x000c0004L),
-#        XIntField("durationl",0x00007080L),
         ]
 
 
@@ -284,6 +278,19 @@ class ISAKMP_payload_Proposal(ISAKMP_payload):
         StrLenField("SPI","",length_from=lambda x:x.SPIsize),
         PacketLenField("trans",Raw(),ISAKMP_payload_Transform,length_from=lambda x:x.length-8),
         ]
+    def post_build(self, p, pay):
+        if self.length is None:
+            l = len(p)
+            p = p[:2]+chr((l>>8)&0xff)+chr(l&0xff)+p[4:]
+        if self.trans_nb is None:
+            num = 0
+            t = self.trans
+            while t:
+                num += 1
+                t = t.payload
+            p = p[:7]+chr(num&0xff)+p[8:]
+        p += pay
+        return p
 
 
 class ISAKMP_payload_VendorID(ISAKMP_payload):
@@ -297,8 +304,8 @@ class ISAKMP_payload_SA(ISAKMP_payload):
     name = "ISAKMP SA"
     fields_desc = [
         _ISAKMP_payload_HDR,
-        IntEnumField("DOI",1,{1:"IPSEC"}),
-        IntEnumField("situation",1,{1:"identity"}),
+        IntEnumField("DOI",1,ISAKMP_DOI),
+        FlagsField("situation",1,32,["SIT_IDENTITY_ONLY","SIT_SECRECY","SIT_INTEGRITY"]),
         PacketLenField("prop",Raw(),ISAKMP_payload_Proposal,length_from=lambda x:x.length-12),
         ]
 
@@ -306,14 +313,14 @@ class ISAKMP_payload_Nonce(ISAKMP_payload):
     name = "ISAKMP Nonce"
     fields_desc = [
         _ISAKMP_payload_HDR,
-        StrLenField("load","",length_from=lambda x:x.length-4),
+        StrLenField("nonce","",length_from=lambda x:x.length-4),
         ]
 
 class ISAKMP_payload_KE(ISAKMP_payload):
     name = "ISAKMP Key Exchange"
     fields_desc = [
         _ISAKMP_payload_HDR,
-        StrLenField("load","",length_from=lambda x:x.length-4),
+        StrLenField("keyexch","",length_from=lambda x:x.length-4),
         ]
 
 class ISAKMP_payload_ID(ISAKMP_payload):
@@ -321,19 +328,35 @@ class ISAKMP_payload_ID(ISAKMP_payload):
     fields_desc = [
         _ISAKMP_payload_HDR,
         ByteEnumField("IDtype",1,ISAKMP_ID_type),
-        ByteEnumField("ProtoID",0,{0:"Unused"}),
-        ShortEnumField("Port",0,{0:"Unused"}),
-#        IPField("IdentData","127.0.0.1"),
-        StrLenField("load","",length_from=lambda x:x.length-8),
+        ByteEnumField("proto",0,{0:"Unused"}),
+        ShortEnumField("port",0,{0:"Unused"}),
+        ConditionalField(IPField("addr4","127.0.0.1"),
+                         lambda pkt:pkt.IDtype in [1,4,7]),
+        ConditionalField(IPField("addr4sub","255.255.255.0"),
+                         lambda pkt:pkt.IDtype == 4),
+        ConditionalField(IPField("addr4end","127.0.0.1"),
+                         lambda pkt:pkt.IDtype == 7),
+        ConditionalField(IP6Field("addr6","::1"),
+                         lambda pkt:pkt.IDtype in [5,6,8]),
+        ConditionalField(IP6Field("addr6sub","ffff:ffff:ffff:ffff::"),
+                         lambda pkt:pkt.IDtype == 6),
+        ConditionalField(IP6Field("addr6end","::1"),
+                         lambda pkt:pkt.IDtype == 8),
+        ConditionalField(StrLenField("domain","",length_from=lambda x:x.length-8),
+                         lambda pkt:pkt.IDtype in [2,3]),
+        ConditionalField(StrLenField("load","",length_from=lambda x:x.length-8),
+                         lambda pkt:pkt.IDtype in [9,10,11] or pkt.IDtype > 12),
+        #ConditionalField(PacketListField("IDlist",... # self-reference, can't define here
         ]
-
-
+ISAKMP_payload_ID.fields_desc.append(
+    ConditionalField(PacketListField("IDlist",[],ISAKMP_payload_ID,length_from=lambda x:x.length-8),
+                     lambda pkt:pkt.IDtype == 12)) # class must be defined first
 
 class ISAKMP_payload_Hash(ISAKMP_payload):
     name = "ISAKMP Hash"
     fields_desc = [
         _ISAKMP_payload_HDR,
-        StrLenField("load","",length_from=lambda x:x.length-4),
+        StrLenField("hash","",length_from=lambda x:x.length-4),
         ]
 
 
