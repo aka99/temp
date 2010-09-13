@@ -250,13 +250,14 @@ DHCPRevOptions["request-list"] = (55, DHCPOptions[55])
 
 
 class RandDHCPOptions(RandField):
-    def __init__(self, size=None, rndstr=None):
+    def __init__(self, size=None, rndstr=None, end=True):
         if size is None:
             size = RandNumExpo(0.05)
         self.size = size
         if rndstr is None:
             rndstr = RandBin(RandNum(0,255))
         self.rndstr=rndstr
+        self.end=end
         self._opts = DHCPOptions.values()
         self._opts.remove("pad")
         self._opts.remove("end")
@@ -268,6 +269,8 @@ class RandDHCPOptions(RandField):
                 op.append((o,self.rndstr*1))
             else:
                 op.append((o.name, o.randval()._fix()))
+        if self.end:
+            op.append("end")
         return op
 
 
