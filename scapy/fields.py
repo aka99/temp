@@ -864,7 +864,7 @@ class BitField(Field):
         bn += self.size
         s = s[bn/8:]
         bn = bn%8
-        b = self.m2i(pkt, b)
+        b = int(self.m2i(pkt, b))
         if bn:
             return (s,bn),b
         else:
