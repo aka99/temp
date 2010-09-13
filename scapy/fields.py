@@ -143,7 +143,7 @@ class ConditionalField:
         if self._evalcond(pkt):
             return self.fld.getfield(pkt,s)
         else:
-            return s,None
+            return s,self.fld.default
         
     def addfield(self, pkt, s, val):
         if self._evalcond(pkt):
