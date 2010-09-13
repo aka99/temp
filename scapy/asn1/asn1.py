@@ -55,14 +55,18 @@ class ASN1_BadTag_Decoding_Error(ASN1_Decoding_Error):
 
 
 class ASN1Codec(EnumElement):
+    @classmethod
     def register_stem(cls, stem):
         cls._stem = stem
+    @classmethod
     def dec(cls, s, context=None):
         return cls._stem.dec(s, context=context)
+    @classmethod
     def safedec(cls, s, context=None):
         return cls._stem.safedec(s, context=context)
+    @classmethod
     def get_stem(cls):
-        return cls.stem
+        return cls._stem
     
 
 class ASN1_Codecs_metaclass(Enum_metaclass):
