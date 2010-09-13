@@ -41,5 +41,7 @@ class MGCP(Packet):
 #                    ByteField("is_duplicate",0),
 #                    ByteField("req_available",0) ]
 #
-bind_layers( UDP,           MGCP,          dport=2727)
-bind_layers( UDP,           MGCP,          sport=2727)
+bind_layers( UDP,           MGCP,          dport=2427) #gateway
+bind_layers( UDP,           MGCP,          sport=2427) #gateway
+bind_layers( UDP,           MGCP,          dport=2727) #call agent
+bind_layers( UDP,           MGCP,          sport=2727) #call agent
