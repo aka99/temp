@@ -146,7 +146,7 @@ class Ether(Packet):
     name = "Ethernet"
     fields_desc = [ DestMACField("dst"),
                     SourceMACField("src"),
-                    XShortEnumField("type", 0x0000, ETHER_TYPES) ]
+                    XShortEnumField("type", 0x0600, ETHER_TYPES) ]
     def hashret(self):
         return struct.pack("H",self.type)+self.payload.hashret()
     def answers(self, other):
