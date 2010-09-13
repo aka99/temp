@@ -713,16 +713,16 @@ class StrNullField(StrField):
         return RandTermString(RandNum(0,1200),"\x00")
 
 class StrStopField(StrField):
-    def __init__(self, name, default, stop, additionnal=0):
-        Field.__init__(self, name, default)
+    def __init__(self, name, default, stop, additional=0):
+        StrField.__init__(self, name, default)
         self.stop=stop
-        self.additionnal=additionnal
+        self.additional=additional
     def getfield(self, pkt, s):
         l = s.find(self.stop)
         if l < 0:
             return "",s
 #            raise Scapy_Exception,"StrStopField: stop value [%s] not found" %stop
-        l += len(self.stop)+self.additionnal
+        l += len(self.stop)+self.additional
         return s[l:],s[:l]
     def randval(self):
         return RandTermString(RandNum(0,1200),self.stop)
