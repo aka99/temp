@@ -120,10 +120,15 @@ class Net(Gen):
     def __repr__(self):
         return "Net(%r)" % self.repr
     def __eq__(self, other):
-        if hasattr(other, "parsed"):
+        if isinstance(other, Net):
             p2 = other.parsed
+        elif isinstance(other, str):
+            try:
+                p2,nm2 = self._parse_net(other) #XXX: is this really useful?
+            except:
+                return False
         else:
-            p2,nm2 = self._parse_net(other)
+            return False
         return self.parsed == p2
     def __contains__(self, other):
         if hasattr(other, "parsed"):
