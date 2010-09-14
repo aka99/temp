@@ -372,41 +372,63 @@ class IEEEDoubleField(Field):
 
 
 class StrField(Field):
-    def __init__(self, name, default, fmt="H", remain=0):
+    def __init__(self, name, default, fmt="H", remain=0, codec=None):
         Field.__init__(self,name,default,fmt)
-        self.remain = remain        
+        self.remain = remain
+        if codec is None:
+            codec = "ascii"
+        self.codec = codec
     def i2len(self, pkt, i):
-        return len(i)
+        return len(self.i2m(pkt, i))
     def i2m(self, pkt, x):
         if x is None:
             x = ""
-        elif type(x) is not str:
-            x=str(x)
+        if self.codec != "ascii" or isinstance(x, unicode):
+#            try:
+            x = unicode(x).encode(self.codec)
+#            except:
+#                warning("%s: error encoding to %s" % (self.name, self.codec))
+#                x = ("A"*len(str(x))).encode(self.codec)
+        else:
+            x = str(x)
+        return x
+    def m2i(self, pkt, x):
+        if self.codec != "ascii":
+            x = x.decode(self.codec)
         return x
     def addfield(self, pkt, s, val):
         return s+self.i2m(pkt, val)
     def getfield(self, pkt, s):
-        if self.remain == 0:
-            return "",self.m2i(pkt, s)
+        if self.remain:
+            r = -self.remain
         else:
-            return s[-self.remain:],self.m2i(pkt, s[:-self.remain])
+            r = len(s)
+        i = ""
+        while len(s[:r]):
+            try: # for decoding
+                i = self.m2i(pkt, s[:r])
+                break
+            except:
+                pass
+            r -= 1
+        return s[r:],i
     def randval(self):
-        return RandBin(RandNum(0,1200))
+        if self.codec == "ascii":
+            return RandBin(RandNum(0,1200))
+        else:
+            return RandString(RandNum(0,1200)) #XXX: need RandUnicode
 
-class CodecStrField(StrField):
-    codec = 'ascii'
-    def __init__(self, name, default, fmt="H", remain=0, codec=codec):
-        #FIXME: Why doesn't this work?
-        #         super(CodecStrField, self).__init__(name, default, fmt, remain)
-        StrField.__init__(self, name, default, fmt, remain) 
-        self.codec = self.codec or codec
-    def i2h(self, pkt, i):
-        # That doesn't work for a weird reason:
-        # return super(UTF16LEStrField, self).i2h(pkt, i.decode(self.codec, 'ignore'))
-        return StrField.i2h(self, pkt, i.decode(self.codec, 'ignore'))
+class UTF8StrField(StrField):
+    def __init__(self, name, default, remain=0):
+        StrField.__init__(self, name, default, remain=remain, codec="utf-8")
 
-class UTF16LEStrField(CodecStrField):
-    codec = 'utf_16_le'
+class UTF16BEStrField(StrField):
+    def __init__(self, name, default, remain=0):
+        StrField.__init__(self, name, default, remain=remain, codec="utf-16-be")
+
+class UTF16LEStrField(StrField):
+    def __init__(self, name, default, remain=0):
+        StrField.__init__(self, name, default, remain=remain, codec="utf-16-le")
 
 class PacketField(StrField):
     holds_packets=1
@@ -544,8 +566,8 @@ class PacketListField(PacketField):
 
 
 class StrFixedLenField(StrField):
-    def __init__(self, name, default, length=None, length_from=None):
-        StrField.__init__(self, name, default)
+    def __init__(self, name, default, length=None, length_from=None, codec=None):
+        StrField.__init__(self, name, default, codec=codec)
         self.length_from  = length_from
         if length is not None:
             self.length_from = lambda pkt,length=length: length
@@ -573,11 +595,14 @@ class StrFixedLenField(StrField):
             l = self.length_from(None)
         except:
             l = RandNum(0,200)
-        return RandBin(l)
+        if self.codec == "ascii":
+            return RandBin(l)
+        else:
+            return RandString(l) #XXX: need RandUnicode
 
 class StrFixedLenEnumField(StrFixedLenField):
-    def __init__(self, name, default, length=None, enum=None, length_from=None):
-        StrFixedLenField.__init__(self, name, default, length=length, length_from=length_from)
+    def __init__(self, name, default, length=None, enum=None, length_from=None, codec=None):
+        StrFixedLenField.__init__(self, name, default, length=length, length_from=length_from, codec=codec)
         self.enum = enum
     def i2repr(self, pkt, v):
         r = v.rstrip("\0")
@@ -605,8 +630,8 @@ class NetBIOSNameField(StrFixedLenField):
         return "".join(map(lambda x,y: chr((((ord(x)-1)&0xf)<<4)+((ord(y)-1)&0xf)), x[::2],x[1::2]))
 
 class StrLenField(StrField):
-    def __init__(self, name, default, fld=None, length_from=None):
-        StrField.__init__(self, name, default)
+    def __init__(self, name, default, codec=None, fld=None, length_from=None):
+        StrField.__init__(self, name, default, codec=codec)
         self.length_from = length_from
     def getfield(self, pkt, s):
         l = self.length_from(pkt)
@@ -614,7 +639,10 @@ class StrLenField(StrField):
             return s,""
         return s[l:], self.m2i(pkt,s[:l])
     def randval(self):
-        return RandBin(RandNum(0,255))
+        if self.codec == "ascii":
+            return RandBin(RandNum(0,255))
+        else:
+            return RandString(RandNum(0,255)) #XXX: need RandUnicode
 
 class FieldListField(Field):
     islist=1
@@ -700,17 +728,30 @@ class FieldLenField(Field):
 
 class StrNullField(StrField):
     def i2len(self, pkt, i):
-        return len(self.i2m(pkt, i)+"\x00")
+        return len(self.i2m(pkt, i)+self.i2m(pkt,"\x00"))
     def addfield(self, pkt, s, val):
-        return s+self.i2m(pkt, val)+"\x00"
+        return s+self.i2m(pkt, val)+self.i2m(pkt,"\x00")
     def getfield(self, pkt, s):
-        l = s.find("\x00")
-        if l < 0:
-            #XXX \x00 not found
+        s2 = s
+        i = ""
+        while s2:
+            try: # for decoding
+                i = self.m2i(pkt, s2)
+                break
+            except:
+                pass
+            s2 = s2[:-1]
+        l = i.find("\x00")
+        if l < 0: #XXX: \x00 not found
             return "",s
-        return s[l+1:],self.m2i(pkt, s[:l])
+        l = len(self.i2m(pkt, i[:l]))
+        n = len(self.i2m(pkt, "\x00"))
+        return s[l+n:],self.m2i(pkt, s[:l])
     def randval(self):
-        return RandTermString(RandNum(0,1200),"\x00")
+        if self.codec == "ascii":
+            return RandTermString(RandNum(0,1200),"\x00")
+        else:
+            return "" #XXX: RandTermUnicode possible?
 
 class StrStopField(StrField):
     def __init__(self, name, default, stop, additional=0):
