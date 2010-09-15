@@ -422,7 +422,7 @@ class SCTPChunk(_SCTPChunkGuessPayload, Packet):
     name = "SCTP Chunk"
     fields_desc = [ ByteEnumField("type", 255, sctpchunktypes),
                     XByteField("flags", None),
-                    FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+4),
+                    FieldLenField("len", None, length_of="data", adjust = lambda pkt,x:x+4),
                     PadField(StrLenField("data", "", length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"),
                    ]
