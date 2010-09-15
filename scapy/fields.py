@@ -1072,10 +1072,12 @@ class MultiEnumField(EnumField):
             return self.s2i_all[x]
         return x
     def i2repr_one(self, pkt, x):
+        if isinstance(x,VolatileValue):
+            return repr(x)
         v = self.depends_on(pkt)
-        if v in self.i2s_multi:
+        if not isinstance(v,VolatileValue) and v in self.i2s_multi:
             return self.i2s_multi[v].get(x,x)
-        return x
+        return repr(x)
 
 class BitMultiEnumField(BitField,MultiEnumField):
     def __init__(self, name, default, size, enum, depends_on):
