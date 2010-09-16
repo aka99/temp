@@ -112,7 +112,7 @@ class OSPF_Hello(Packet):
 class LLS_Generic_TLV(Packet):
     name = "LLS Generic"
     fields_desc = [ShortField("type", 1),
-                   FieldLenField("len", None, length_of=lambda x: x.val),
+                   FieldLenField("len", None, fmt="H", length_of="val"),
                    StrLenField("val", "", length_from=lambda x: x.len)]
 
     def guess_payload_class(self, p):
@@ -122,7 +122,10 @@ class LLS_Generic_TLV(Packet):
 class LLS_ExtendedOptionsField(FlagsField):
 
     def __init__(self, name="options", default=0, size=32,
-                 names=["LR", "RS"]):
+                 names=["LR","RS","I","F","res4","res5","res6","res7",
+                        "res8","res9","res10","res11","res12","res13","res14","res15",
+                        "res16","res17","res18","res19","res20","res21","res22","res23",
+                        "res24","res25","res26","res27","res28","res29","res30","res31"]):
         FlagsField.__init__(self, name, default, size, names)
 
 
@@ -136,20 +139,10 @@ class LLS_Extended_Options(LLS_Generic_TLV):
 class LLS_Crypto_Auth(LLS_Generic_TLV):
     name = "LLS Cryptographic Authentication"
     fields_desc = [ShortField("type", 2),
-                   FieldLenField("len", 20, fmt="B", length_of=lambda x: x.authdata),
-                   XIntField("sequence", "\x00\x00\x00\x00"),
-                   StrLenField("authdata", "\x00" * 16, length_from=lambda x: x.len)]
-
-    def post_build(self, p, pay):
-        p += pay
-        l = self.len
-
-        if l is None:
-            # length = len(sequence) + len(authdata) + len(payload)
-            l = len(p[3:])
-            p = p[:2] + struct.pack("!H", l) + p[3:]
-
-        return p
+                   FieldLenField("len", None, fmt="H", length_of="authdata",
+                                 adjust = lambda pkt,x: x+4),
+                   XIntField("sequence", 0),
+                   StrLenField("authdata", "\x00" * 16, length_from=lambda x: x.len-4)]
 
 
 _OSPF_LLSclasses = {1: "LLS_Extended_Options",
@@ -238,7 +231,7 @@ def ospf_lsa_checksum(lsa):
     return chr(x) + chr(y)
 
 
-class OSPF_LSA_Hdr(Packet):
+class OSPF_LSA_Hdr(_OSPF_BaseLSA):
     name = "OSPF LSA Header"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
@@ -246,11 +239,8 @@ class OSPF_LSA_Hdr(Packet):
                    IPField("id", "192.168.0.0"),
                    IPField("adrouter", "1.1.1.1"),
                    XIntField("seq", 0x80000001),
-                   XShortField("chksum", 0),
-                   ShortField("len", 36)]
-
-    def extract_padding(self, s):
-        return "", s
+                   XShortField("chksum", None),
+                   ShortField("len", None)]
 
 
 _OSPF_Router_LSA_types = {1: "p2p",
@@ -284,12 +274,11 @@ def _LSAGuessPayloadClass(p, **kargs):
     return cls(p, **kargs)
 
 
-class OSPF_BaseLSA(Packet):
+class _OSPF_BaseLSA(Packet):
     """An abstract base class for Link State Advertisements"""
 
     def post_build(self, p, pay):
-        length = self.len
-        if length is None:
+        if self.len is None:
             length = len(p)
             p = p[:18] + struct.pack("!H", length) + p[20:]
         if self.chksum is None:
@@ -298,11 +287,10 @@ class OSPF_BaseLSA(Packet):
         return p
 
     def extract_padding(self, s):
-        length = self.len
         return "", s
 
 
-class OSPF_Router_LSA(OSPF_BaseLSA):
+class OSPF_Router_LSA(_OSPF_BaseLSA):
     name = "OSPF Router LSA"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
@@ -312,7 +300,7 @@ class OSPF_Router_LSA(OSPF_BaseLSA):
                    XIntField("seq", 0x80000001),
                    XShortField("chksum", None),
                    ShortField("len", None),
-                   FlagsField("flags", 0, 8, ["B", "E", "V", "W", "Nt"]),
+                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
                    ByteField("reserved", 0),
                    FieldLenField("linkcount", None, count_of="linklist"),
                    PacketListField("linklist", [], OSPF_Link,
@@ -320,7 +308,7 @@ class OSPF_Router_LSA(OSPF_BaseLSA):
                                    length_from=lambda pkt: pkt.linkcount * 12)]
 
 
-class OSPF_Network_LSA(OSPF_BaseLSA):
+class OSPF_Network_LSA(_OSPF_BaseLSA):
     name = "OSPF Network LSA"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
@@ -335,7 +323,7 @@ class OSPF_Network_LSA(OSPF_BaseLSA):
                                   length_from=lambda pkt: pkt.len - 24)]
 
 
-class OSPF_SummaryIP_LSA(OSPF_BaseLSA):
+class OSPF_SummaryIP_LSA(_OSPF_BaseLSA):
     name = "OSPF Summary LSA (IP Network)"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
@@ -358,7 +346,7 @@ class OSPF_SummaryASBR_LSA(OSPF_SummaryIP_LSA):
     metric = 20
 
 
-class OSPF_External_LSA(OSPF_BaseLSA):
+class OSPF_External_LSA(_OSPF_BaseLSA):
     name = "OSPF External LSA (ASBR)"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
@@ -385,7 +373,7 @@ class OSPF_DBDesc(Packet):
     name = "OSPF Database Description"
     fields_desc = [ShortField("mtu", 1500),
                    OSPFOptionsField(),
-                   FlagsField("dbdescr", 0, 8, ["MS", "M", "I", "R", "4", "3", "2", "1"]),
+                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
                    IntField("ddseq", 1),
                    PacketListField("lsaheaders", None, OSPF_LSA_Hdr,
                                     count_from = lambda pkt: None,
@@ -535,7 +523,9 @@ class OSPFv3_Hdr(Packet):
 class OSPFv3OptionsField(FlagsField):
 
     def __init__(self, name="options", default=0, size=24,
-                 names=["V6", "E", "MC", "N", "R", "DC", "AF", "L", "I", "F"]):
+                 names=["V6","E","MC","N","R","DC","res6","res7",
+                        "AF","L","I","F","res12","res13","res14","res15",
+                        "res16","res17","res18","res19","res20","res21","res22","res23"]):
         FlagsField.__init__(self, name, default, size, names)
 
 
@@ -571,18 +561,15 @@ _OSPFv3_LSclasses = {0x2001: "OSPFv3_Router_LSA",
                      0x2009: "OSPFv3_Intra_Area_Prefix_LSA"}
 
 
-class OSPFv3_LSA_Hdr(Packet):
+class OSPFv3_LSA_Hdr(_OSPF_BaseLSA):
     name = "OSPFv3 LSA Header"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2001, _OSPFv3_LStypes),
                    IPField("id", "0.0.0.0"),
                    IPField("adrouter", "1.1.1.1"),
                    XIntField("seq", 0x80000001),
-                   XShortField("chksum", 0),
-                   ShortField("len", 36)]
-
-    def extract_padding(self, s):
-        return "", s
+                   XShortField("chksum", None),
+                   ShortField("len", None)]
 
 
 def _OSPFv3_LSAGuessPayloadClass(p, **kargs):
@@ -607,7 +594,7 @@ _OSPFv3_Router_LSA_types = {1: "p2p",
 class OSPFv3_Link(Packet):
     name = "OSPFv3 Link"
     fields_desc = [ByteEnumField("type", 1, _OSPFv3_Router_LSA_types),
-                   ByteField("reserved", 0),
+                   FlagsField("ldoptions", 0, 8, ["U","res1","res2","res3","res4","res5","res6","res7"]),
                    ShortField("metric", 10),
                    IntField("intid", 0),
                    IntField("neighintid", 0),
@@ -617,7 +604,7 @@ class OSPFv3_Link(Packet):
         return "", s
 
 
-class OSPFv3_Router_LSA(OSPF_BaseLSA):
+class OSPFv3_Router_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Router LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2001, _OSPFv3_LStypes),
@@ -626,13 +613,13 @@ class OSPFv3_Router_LSA(OSPF_BaseLSA):
                    XIntField("seq", 0x80000001),
                    XShortField("chksum", None),
                    ShortField("len", None),
-                   FlagsField("flags", 0, 8, ["B", "E", "V", "W"]),
+                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
                    OSPFv3OptionsField(),
                    PacketListField("linklist", [], OSPFv3_Link,
                                    length_from=lambda pkt:pkt.len - 24)]
 
 
-class OSPFv3_Network_LSA(OSPF_BaseLSA):
+class OSPFv3_Network_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Network LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2002, _OSPFv3_LStypes),
@@ -650,11 +637,11 @@ class OSPFv3_Network_LSA(OSPF_BaseLSA):
 class OSPFv3PrefixOptionsField(FlagsField):
 
     def __init__(self, name="prefixoptions", default=0, size=8,
-                 names=["NU", "LA", "MC", "P"]):
+                 names=["NU","LA","MC","P","DN","res5","res6","res7"]):
         FlagsField.__init__(self, name, default, size, names)
 
 
-class OSPFv3_Inter_Area_Prefix_LSA(OSPF_BaseLSA):
+class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Inter Area Prefix LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2003, _OSPFv3_LStypes),
@@ -672,7 +659,7 @@ class OSPFv3_Inter_Area_Prefix_LSA(OSPF_BaseLSA):
                                 length_from=lambda pkt: pkt.prefixlen)]
 
 
-class OSPFv3_Inter_Area_Router_LSA(OSPF_BaseLSA):
+class OSPFv3_Inter_Area_Router_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Inter Area Router LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2004, _OSPFv3_LStypes),
@@ -686,7 +673,7 @@ class OSPFv3_Inter_Area_Router_LSA(OSPF_BaseLSA):
                    IPField("router", "2.2.2.2")]
 
 
-class OSPFv3_AS_External_LSA(OSPF_BaseLSA):
+class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 AS External LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x4005, _OSPFv3_LStypes),
@@ -695,7 +682,7 @@ class OSPFv3_AS_External_LSA(OSPF_BaseLSA):
                    XIntField("seq", 0x80000001),
                    XShortField("chksum", None),
                    ShortField("len", None),
-                   FlagsField("flags", 0, 8, ["T", "F", "E"]),
+                   FlagsField("flags", 0, 8, ["T","F","E","res3","res4","res5","res6","res7"]),
                    X3BytesField("metric", 20),
                    ByteField("prefixlen", 64),
                    OSPFv3PrefixOptionsField(),
@@ -727,7 +714,7 @@ class OSPFv3_Prefix_Item(Packet):
         return "", s
 
 
-class OSPFv3_Link_LSA(OSPF_BaseLSA):
+class OSPFv3_Link_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Link LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x0008, _OSPFv3_LStypes),
@@ -744,7 +731,7 @@ class OSPFv3_Link_LSA(OSPF_BaseLSA):
                                   count_from = lambda pkt: pkt.prefixes)]
 
 
-class OSPFv3_Intra_Area_Prefix_LSA(OSPF_BaseLSA):
+class OSPFv3_Intra_Area_Prefix_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Intra Area Prefix LSA"
     fields_desc = [ShortField("age", 1),
                    ShortEnumField("type", 0x2009, _OSPFv3_LStypes),
@@ -767,7 +754,7 @@ class OSPFv3_DBDesc(Packet):
                    OSPFv3OptionsField(),
                    ShortField("mtu", 1500),
                    ByteField("reserved2", 0),
-                   FlagsField("dbdescr", 0, 8, ["MS", "M", "I", "R"]),
+                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
                    IntField("ddseq", 1),
                    PacketListField("lsaheaders", None, OSPFv3_LSA_Hdr,
                                     count_from = lambda pkt:None,
