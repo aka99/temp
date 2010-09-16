@@ -19,12 +19,7 @@ from scapy.layers.inet import IP
 from scapy.layers.inet6 import IPv6, IP6Field, in6_chksum
 
 
-class OSPFOptionsField(FlagsField):
-
-    def __init__(self, name="options", default=0, size=8,
-                 names=["MT", "E", "MC", "NP", "L", "DC", "O", "DN"]):
-        FlagsField.__init__(self, name, default, size, names)
-
+_OSPF_options = ["MT","E","MC","NP","L","DC","O","DN"]
 
 _OSPF_types = {1: "Hello",
                2: "DBDesc",
@@ -94,7 +89,7 @@ class OSPF_Hello(Packet):
     name = "OSPF Hello"
     fields_desc = [IPField("mask", "255.255.255.0"),
                    ShortField("hellointerval", 10),
-                   OSPFOptionsField(),
+                   FlagsField("options", 0, 8, _OSPF_options),
                    ByteField("prio", 1),
                    IntField("deadinterval", 40),
                    IPField("router", "0.0.0.0"),
@@ -119,21 +114,17 @@ class LLS_Generic_TLV(Packet):
         return Padding
 
 
-class LLS_ExtendedOptionsField(FlagsField):
-
-    def __init__(self, name="options", default=0, size=32,
-                 names=["LR","RS","I","F","res4","res5","res6","res7",
-                        "res8","res9","res10","res11","res12","res13","res14","res15",
-                        "res16","res17","res18","res19","res20","res21","res22","res23",
-                        "res24","res25","res26","res27","res28","res29","res30","res31"]):
-        FlagsField.__init__(self, name, default, size, names)
+_LLS_ext_options = ["LR","RS","I","F","res4","res5","res6","res7",
+                    "res8","res9","res10","res11","res12","res13","res14","res15",
+                    "res16","res17","res18","res19","res20","res21","res22","res23",
+                    "res24","res25","res26","res27","res28","res29","res30","res31"]
 
 
 class LLS_Extended_Options(LLS_Generic_TLV):
     name = "LLS Extended Options and Flags"
     fields_desc = [ShortField("type", 1),
                    ShortField("len", 4),
-                   LLS_ExtendedOptionsField()]
+                   FlagsField("options", 0, 32, _LLS_ext_options)]
 
 
 class LLS_Crypto_Auth(LLS_Generic_TLV):
@@ -250,7 +241,7 @@ class _OSPF_BaseLSA(Packet):
 class OSPF_LSA_Hdr(_OSPF_BaseLSA):
     name = "OSPF LSA Header"
     fields_desc = [ShortField("age", 1),
-                   OSPFOptionsField(),
+                   FlagsField("options", 0, 8, _OSPF_options),
                    ByteEnumField("type", 0, _OSPF_LStypes),
                    IPField("id", "192.168.0.0"),
                    IPField("adrouter", "1.1.1.1"),
@@ -350,7 +341,7 @@ class OSPF_NSSA_External_LSA(OSPF_External_LSA):
 class OSPF_DBDesc(Packet):
     name = "OSPF Database Description"
     fields_desc = [ShortField("mtu", 1500),
-                   OSPFOptionsField(),
+                   FlagsField("options", 0, 8, _OSPF_options),
                    FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
                    IntField("ddseq", 1),
                    PacketListField("lsaheaders", None, OSPF_LSA_Hdr,
@@ -498,20 +489,16 @@ class OSPFv3_Hdr(Packet):
         return p
 
 
-class OSPFv3OptionsField(FlagsField):
-
-    def __init__(self, name="options", default=0, size=24,
-                 names=["V6","E","MC","N","R","DC","res6","res7",
-                        "AF","L","I","F","res12","res13","res14","res15",
-                        "res16","res17","res18","res19","res20","res21","res22","res23"]):
-        FlagsField.__init__(self, name, default, size, names)
+_OSPFv3_options = ["V6","E","MC","N","R","DC","res6","res7",
+                   "AF","L","I","F","res12","res13","res14","res15",
+                   "res16","res17","res18","res19","res20","res21","res22","res23"]
 
 
 class OSPFv3_Hello(Packet):
     name = "OSPFv3 Hello"
     fields_desc = [IntField("intid", 0),
                    ByteField("prio", 1),
-                   OSPFv3OptionsField(),
+                   FlagsField("options", 0, 24, _OSPFv3_options),
                    ShortField("hellointerval", 10),
                    ShortField("deadinterval", 40),
                    IPField("router", "0.0.0.0"),
@@ -587,7 +574,7 @@ class OSPFv3_Router_LSA(_OSPF_BaseLSA):
     type = 0x2001
     fields_desc = [OSPFv3_LSA_Hdr,
                    FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
-                   OSPFv3OptionsField(),
+                   FlagsField("options", 0, 24, _OSPFv3_options),
                    PacketListField("linklist", [], OSPFv3_Link,
                                    length_from=lambda pkt:pkt.len - 24)]
 
@@ -597,16 +584,12 @@ class OSPFv3_Network_LSA(_OSPF_BaseLSA):
     type = 0x2002
     fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
-                   OSPFv3OptionsField(),
+                   FlagsField("options", 0, 24, _OSPFv3_options),
                    FieldListField("routerlist", [], IPField("", "0.0.0.1"),
                                   length_from=lambda pkt: pkt.len - 24)]
 
 
-class OSPFv3PrefixOptionsField(FlagsField):
-
-    def __init__(self, name="prefixoptions", default=0, size=8,
-                 names=["NU","LA","MC","P","DN","res5","res6","res7"]):
-        FlagsField.__init__(self, name, default, size, names)
+_OSPFv3_prefix_options = ["NU","LA","MC","P","DN","res5","res6","res7"]
 
 
 class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
@@ -616,7 +599,7 @@ class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
                    ByteField("reserved", 0),
                    X3BytesField("metric", 10),
                    ByteField("prefixlen", 64),
-                   OSPFv3PrefixOptionsField(),
+                   FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
                    ShortField("reserved2", 0),
                    OspfIP6Field("prefix", "2001:db8:0:42::",
                                 length_from=lambda pkt: pkt.prefixlen)]
@@ -638,7 +621,7 @@ class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
                    FlagsField("flags", 0, 8, ["T","F","E","res3","res4","res5","res6","res7"]),
                    X3BytesField("metric", 20),
                    ByteField("prefixlen", 64),
-                   OSPFv3PrefixOptionsField(),
+                   FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
                    ShortEnumField("reflstype", 0, _OSPFv3_LStypes),
                    OspfIP6Field("prefix", "2001:db8:0:42::",
                                 length_from=lambda pkt: pkt.prefixlen),
@@ -658,7 +641,7 @@ class OSPFv3_Type_7_LSA(OSPFv3_AS_External_LSA):
 class OSPFv3_Prefix_Item(Packet):
     name = "OSPFv3 Link Prefix Item"
     fields_desc = [ByteField("prefixlen", 64),
-                   OSPFv3PrefixOptionsField(),
+                   FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
                    ShortField("metric", 10),
                    OspfIP6Field("prefix", "2001:db8:0:42::",
                                 length_from=lambda pkt: pkt.prefixlen)]
@@ -672,7 +655,7 @@ class OSPFv3_Link_LSA(_OSPF_BaseLSA):
     type = 0x0008
     fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("prio", 1),
-                   OSPFv3OptionsField(),
+                   FlagsField("options", 0, 24, _OSPFv3_options),
                    IP6Field("lladdr", "fe80::"),
                    IntField("prefixes", 0),
                    PacketListField("prefixlist", None, OSPFv3_Prefix_Item,
@@ -694,7 +677,7 @@ class OSPFv3_Intra_Area_Prefix_LSA(_OSPF_BaseLSA):
 class OSPFv3_DBDesc(Packet):
     name = "OSPFv3 Database Description"
     fields_desc = [ByteField("reserved", 0),
-                   OSPFv3OptionsField(),
+                   FlagsField("options", 0, 24, _OSPFv3_options),
                    ShortField("mtu", 1500),
                    ByteField("reserved2", 0),
                    FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
