@@ -37,7 +37,7 @@ class OSPF_Hdr(Packet):
     name = "OSPF Header"
     fields_desc = [
                     ByteField("version", 2),
-                    ByteEnumField("type", 1, _OSPF_types),
+                    ByteEnumField("type", 0, _OSPF_types),
                     ShortField("len", None),
                     IPField("src", "1.1.1.1"),
                     IPField("area", "0.0.0.0"),
@@ -103,7 +103,7 @@ class OSPF_Hello(Packet):
 
     def guess_payload_class(self, payload):
         # Check presence of LLS data block flag
-        if self.options & 0x10 == 0x10:
+        if self.options & 0x10:
             return OSPF_LLS_Hdr
         else:
             return Packet.guess_payload_class(self, payload)
@@ -231,11 +231,27 @@ def ospf_lsa_checksum(lsa):
     return chr(x) + chr(y)
 
 
+class _OSPF_BaseLSA(Packet):
+    """An abstract base class for Link State Advertisements"""
+
+    def post_build(self, p, pay):
+        if self.len is None:
+            length = len(p)
+            p = p[:18] + struct.pack("!H", length) + p[20:]
+        if self.chksum is None:
+            chksum = ospf_lsa_checksum(p)
+            p = p[:16] + chksum + p[18:]
+        return p
+
+    def extract_padding(self, s):
+        return "", s
+
+
 class OSPF_LSA_Hdr(_OSPF_BaseLSA):
     name = "OSPF LSA Header"
     fields_desc = [ShortField("age", 1),
                    OSPFOptionsField(),
-                   ByteEnumField("type", 1, _OSPF_LStypes),
+                   ByteEnumField("type", 0, _OSPF_LStypes),
                    IPField("id", "192.168.0.0"),
                    IPField("adrouter", "1.1.1.1"),
                    XIntField("seq", 0x80000001),
@@ -274,32 +290,11 @@ def _LSAGuessPayloadClass(p, **kargs):
     return cls(p, **kargs)
 
 
-class _OSPF_BaseLSA(Packet):
-    """An abstract base class for Link State Advertisements"""
-
-    def post_build(self, p, pay):
-        if self.len is None:
-            length = len(p)
-            p = p[:18] + struct.pack("!H", length) + p[20:]
-        if self.chksum is None:
-            chksum = ospf_lsa_checksum(p)
-            p = p[:16] + chksum + p[18:]
-        return p
-
-    def extract_padding(self, s):
-        return "", s
-
-
 class OSPF_Router_LSA(_OSPF_BaseLSA):
     name = "OSPF Router LSA"
-    fields_desc = [ShortField("age", 1),
-                   OSPFOptionsField(),
-                   ByteField("type", 1),
-                   IPField("id", "1.1.1.1"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 1
+    id = "1.1.1.1"
+    fields_desc = [OSPF_LSA_Hdr,
                    FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
                    ByteField("reserved", 0),
                    FieldLenField("linkcount", None, count_of="linklist"),
@@ -310,14 +305,8 @@ class OSPF_Router_LSA(_OSPF_BaseLSA):
 
 class OSPF_Network_LSA(_OSPF_BaseLSA):
     name = "OSPF Network LSA"
-    fields_desc = [ShortField("age", 1),
-                   OSPFOptionsField(),
-                   ByteField("type", 2),
-                   IPField("id", "192.168.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 2
+    fields_desc = [OSPF_LSA_Hdr,
                    IPField("mask", "255.255.255.0"),
                    FieldListField("routerlist", [], IPField("", "1.1.1.1"),
                                   length_from=lambda pkt: pkt.len - 24)]
@@ -325,14 +314,8 @@ class OSPF_Network_LSA(_OSPF_BaseLSA):
 
 class OSPF_SummaryIP_LSA(_OSPF_BaseLSA):
     name = "OSPF Summary LSA (IP Network)"
-    fields_desc = [ShortField("age", 1),
-                   OSPFOptionsField(),
-                   ByteField("type", 3),
-                   IPField("id", "192.168.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 3
+    fields_desc = [OSPF_LSA_Hdr,
                    IPField("mask", "255.255.255.0"),
                    ByteField("reserved", 0),
                    X3BytesField("metric", 10)]
@@ -348,14 +331,9 @@ class OSPF_SummaryASBR_LSA(OSPF_SummaryIP_LSA):
 
 class OSPF_External_LSA(_OSPF_BaseLSA):
     name = "OSPF External LSA (ASBR)"
-    fields_desc = [ShortField("age", 1),
-                   OSPFOptionsField(),
-                   ByteField("type", 5),
-                   IPField("id", "192.168.0.0"),
-                   IPField("adrouter", "2.2.2.2"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 5
+    adrouter = "2.2.2.2"
+    fields_desc = [OSPF_LSA_Hdr,
                    IPField("mask", "255.255.255.0"),
                    FlagsField("ebit", 0, 1, ["E"]),
                    BitField("reserved", 0, 7),
@@ -381,7 +359,7 @@ class OSPF_DBDesc(Packet):
 
     def guess_payload_class(self, payload):
         # Check presence of LLS data block flag
-        if self.options & 0x10 == 0x10:
+        if self.options & 0x10:
             return OSPF_LLS_Hdr
         else:
             return Packet.guess_payload_class(self, payload)
@@ -497,7 +475,7 @@ class OspfIP6Field(StrField, IP6Field):
 class OSPFv3_Hdr(Packet):
     name = "OSPFv3 Header"
     fields_desc = [ByteField("version", 3),
-                   ByteEnumField("type", 1, _OSPF_types),
+                   ByteEnumField("type", 0, _OSPF_types),
                    ShortField("len", None),
                    IPField("src", "1.1.1.1"),
                    IPField("area", "0.0.0.0"),
@@ -564,7 +542,7 @@ _OSPFv3_LSclasses = {0x2001: "OSPFv3_Router_LSA",
 class OSPFv3_LSA_Hdr(_OSPF_BaseLSA):
     name = "OSPFv3 LSA Header"
     fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2001, _OSPFv3_LStypes),
+                   ShortEnumField("type", 0, _OSPFv3_LStypes),
                    IPField("id", "0.0.0.0"),
                    IPField("adrouter", "1.1.1.1"),
                    XIntField("seq", 0x80000001),
@@ -606,13 +584,8 @@ class OSPFv3_Link(Packet):
 
 class OSPFv3_Router_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Router LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2001, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x2001
+    fields_desc = [OSPFv3_LSA_Hdr,
                    FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
                    OSPFv3OptionsField(),
                    PacketListField("linklist", [], OSPFv3_Link,
@@ -621,13 +594,8 @@ class OSPFv3_Router_LSA(_OSPF_BaseLSA):
 
 class OSPFv3_Network_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Network LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2002, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x2002
+    fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
                    OSPFv3OptionsField(),
                    FieldListField("routerlist", [], IPField("", "0.0.0.1"),
@@ -643,13 +611,8 @@ class OSPFv3PrefixOptionsField(FlagsField):
 
 class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Inter Area Prefix LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2003, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x2003
+    fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
                    X3BytesField("metric", 10),
                    ByteField("prefixlen", 64),
@@ -661,13 +624,8 @@ class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
 
 class OSPFv3_Inter_Area_Router_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Inter Area Router LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2004, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x2004
+    fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
                    X3BytesField("metric", 1),
                    IPField("router", "2.2.2.2")]
@@ -675,13 +633,8 @@ class OSPFv3_Inter_Area_Router_LSA(_OSPF_BaseLSA):
 
 class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 AS External LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x4005, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x4005
+    fields_desc = [OSPFv3_LSA_Hdr,
                    FlagsField("flags", 0, 8, ["T","F","E","res3","res4","res5","res6","res7"]),
                    X3BytesField("metric", 20),
                    ByteField("prefixlen", 64),
@@ -690,9 +643,9 @@ class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
                    OspfIP6Field("prefix", "2001:db8:0:42::",
                                 length_from=lambda pkt: pkt.prefixlen),
                    ConditionalField(IP6Field("fwaddr", "::"),
-                                    lambda pkt: pkt.flags & 0x02 == 0x02),
+                                    lambda pkt: pkt.flags & 0x02),
                    ConditionalField(IntField("tag", 0),
-                                    lambda pkt: pkt.flags & 0x01 == 0x01),
+                                    lambda pkt: pkt.flags & 0x01),
                    ConditionalField(IPField("reflsid", 0),
                                     lambda pkt: pkt.reflstype != 0)]
 
@@ -716,13 +669,8 @@ class OSPFv3_Prefix_Item(Packet):
 
 class OSPFv3_Link_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Link LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x0008, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x0008
+    fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("prio", 1),
                    OSPFv3OptionsField(),
                    IP6Field("lladdr", "fe80::"),
@@ -733,13 +681,8 @@ class OSPFv3_Link_LSA(_OSPF_BaseLSA):
 
 class OSPFv3_Intra_Area_Prefix_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Intra Area Prefix LSA"
-    fields_desc = [ShortField("age", 1),
-                   ShortEnumField("type", 0x2009, _OSPFv3_LStypes),
-                   IPField("id", "0.0.0.0"),
-                   IPField("adrouter", "1.1.1.1"),
-                   XIntField("seq", 0x80000001),
-                   XShortField("chksum", None),
-                   ShortField("len", None),
+    type = 0x2009
+    fields_desc = [OSPFv3_LSA_Hdr,
                    ShortField("prefixes", 0),
                    ShortEnumField("reflstype", 0, _OSPFv3_LStypes),
                    IPField("reflsid", "0.0.0.0"),
