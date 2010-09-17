@@ -58,6 +58,10 @@ class ASN1F_field(ASN1F_element):
 
     def i2repr(self, pkt, x):
         return repr(x)
+    def i2len(self, pkt, x):
+        return len(self.i2m(pkt, x))
+    def i2count(self, pkt, x):
+        return 1 #XXX: need to override this in list fields
     def i2h(self, pkt, x):
         return x
     def any2i(self, pkt, x):

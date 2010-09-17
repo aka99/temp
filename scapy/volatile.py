@@ -216,7 +216,8 @@ class RandBin(RandString):
 class RandTermString(RandString):
     def __init__(self, size=None, term="\x00"):
         chars = map(chr,range(256))
-        chars.remove(term)
+        if term in chars:
+            chars.remove(term)
         RandString.__init__(self, size, "".join(chars))
         self.term = term
     def _fix(self):
