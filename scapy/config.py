@@ -370,8 +370,8 @@ extensions_paths: path or list of paths where extensions are to be looked for
     stats_dot11_protocols = []
     temp_files = []
     netcache = NetCache()
-    load_layers = ["l2", "inet", "cdp", "dhcp", "dns", "dot11", "gprs", "hsrp", "inet6", "ir", "isakmp", "l2tp",
-                   "mgcp", "mobileip", "netbios", "netflow", "ntp", "ospf", "ppp", "radius", "rip", "rtp",
+    load_layers = ["l2", "inet", "cdp", "dhcp", "dns", "dot11", "eigrp", "gprs", "hsrp", "inet6", "ir", "isakmp",
+                   "l2tp", "mgcp", "mobileip", "netbios", "netflow", "ntp", "ospf", "ppp", "radius", "rip", "rtp",
                    "sebek", "skinny", "smb", "snmp", "tftp", "x509", "bluetooth", "dhcp6", "llmnr", "sctp", "vrrp" ]
     
 
