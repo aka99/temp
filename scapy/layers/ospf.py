@@ -140,8 +140,11 @@ _OSPF_LLSclasses = {1: "LLS_Extended_Options",
                     2: "LLS_Crypto_Auth"}
 
 
-def _LLSGuessPayloadClass(p, **kargs):
-    """Guess the correct LLS class for a given payload"""
+def _LLSGuessPacketClass(p=None, **kargs):
+    """Guess the correct LLS class for a given packet"""
+
+    if p is None:
+        return LLS_Generic_TLV(**kargs)
 
     cls = Raw
 
@@ -157,7 +160,7 @@ class OSPF_LLS_Hdr(Packet):
     name = "OSPF Link-local signaling"
     fields_desc = [XShortField("chksum", None),
                    ShortField("len", None), # Length in 32-bit words
-                   PacketListField("llstlv", [], _LLSGuessPayloadClass)]
+                   PacketListField("llstlv", [], _LLSGuessPacketClass)]
 
     def post_build(self, p, pay):
         p += pay
@@ -268,14 +271,17 @@ class OSPF_Link(Packet):
         return "", s
 
 
-def _LSAGuessPayloadClass(p, **kargs):
-    """Guess the correct LSA class for a given payload"""
+def _LSAGuessPacketClass(p=None, **kargs):
+    """Guess the correct LSA class for a given packet"""
+
+    if p is None:
+        return OSPF_LSA_Hdr(**kargs)
 
     cls = Raw
 
     if len(p) >= 4:
         typ = struct.unpack("!B", p[3])[0]
-        clsname = _OSPF_LSclasses.get(typ, "Raw")
+        clsname = _OSPF_LSclasses.get(typ, "OSPF_LSA_Hdr")
         cls = globals()[clsname]
 
     return cls(p, **kargs)
@@ -376,7 +382,7 @@ class OSPF_LSReq(Packet):
 class OSPF_LSUpd(Packet):
     name = "OSPF Link State Update"
     fields_desc = [FieldLenField("lsacount", None, fmt="!I", count_of="lsalist"),
-                   PacketListField("lsalist", [], _LSAGuessPayloadClass,
+                   PacketListField("lsalist", [], _LSAGuessPacketClass,
                                 count_from = lambda pkt: pkt.lsacount,
                                 length_from = lambda pkt: pkt.underlayer.len - 24)]
 
@@ -537,14 +543,17 @@ class OSPFv3_LSA_Hdr(_OSPF_BaseLSA):
                    ShortField("len", None)]
 
 
-def _OSPFv3_LSAGuessPayloadClass(p, **kargs):
-    """ Guess the correct OSPFv3 LSA class for a given payload """
+def _OSPFv3_LSAGuessPacketClass(p=None, **kargs):
+    """ Guess the correct OSPFv3 LSA class for a given packet """
+
+    if p is None:
+        return OSPFv3_LSA_Hdr(**kargs)
 
     cls = Raw
 
     if len(p) >= 6:
         typ = struct.unpack("!H", p[2:4])[0]
-        clsname = _OSPFv3_LSclasses.get(typ, "Raw")
+        clsname = _OSPFv3_LSclasses.get(typ, "OSPFv3_LSA_Hdr")
         cls = globals()[clsname]
 
     return cls(p, **kargs)
@@ -708,7 +717,7 @@ class OSPFv3_LSReq(Packet):
 class OSPFv3_LSUpd(Packet):
     name = "OSPFv3 Link State Update"
     fields_desc = [FieldLenField("lsacount", None, fmt="!I", count_of="lsalist"),
-                   PacketListField("lsalist", [], _OSPFv3_LSAGuessPayloadClass,
+                   PacketListField("lsalist", [], _OSPFv3_LSAGuessPacketClass,
                                 count_from = lambda pkt:pkt.lsacount,
                                 length_from = lambda pkt:pkt.underlayer.len - 16)]
 

@@ -377,7 +377,10 @@ _EIGRP_tlv_cls = {0x0001: "EIGRPParam",
                   0x0403: "EIGRPv6ExtRoute"}
 
 
-def _EIGRPGuessPayloadClass(p, **kargs):
+def _EIGRPGuessPacketClass(p=None, **kargs):
+    if p is None:
+        return EIGRPGeneric(**kargs)
+
     cls = Raw
 
     if len(p) >= 2:
@@ -412,7 +415,7 @@ class EIGRP(Packet):
                    IntField("seq", 0),
                    IntField("ack", 0),
                    IntField("asn", 100),
-                   PacketListField("tlvlist", [], _EIGRPGuessPayloadClass)]
+                   PacketListField("tlvlist", [], _EIGRPGuessPacketClass)]
 
     def post_build(self, p, pay):
         p += pay

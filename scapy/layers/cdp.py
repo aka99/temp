@@ -65,16 +65,6 @@ _CDP_tlv_types = {0x0001: "Device ID",
                   0x001a: "Power Available"}
 
 
-def _CDPGuessPayloadClass(p, **kargs):
-    cls = Raw
-    if len(p) >= 2:
-        t = struct.unpack("!H", p[:2])[0]
-        clsname = _CDP_tlv_cls.get(t, "CDPMsgGeneric")
-        cls = globals()[clsname]
-
-    return cls(p, **kargs)
-
-
 class CDPMsgGeneric(Packet):
     name = "CDP Generic Message"
     fields_desc = [XShortEnumField("type", 0x0000, _CDP_tlv_types),
@@ -83,6 +73,19 @@ class CDPMsgGeneric(Packet):
 
     def guess_payload_class(self, p):
         return Padding
+
+
+def _CDPGuessPacketClass(p=None, **kargs):
+    if p is None:
+        return CDPMsgGeneric(**kargs)
+
+    cls = Raw
+    if len(p) >= 2:
+        t = struct.unpack("!H", p[:2])[0]
+        clsname = _CDP_tlv_cls.get(t, "CDPMsgGeneric")
+        cls = globals()[clsname]
+
+    return cls(p, **kargs)
 
 
 class CDPMsgDeviceID(CDPMsgGeneric):
@@ -125,7 +128,10 @@ class CDPAddrRecordIPv6(CDPAddrRecord):
                    IP6Field("addr", "fe80::1")]
 
 
-def _CDPGuessAddrRecord(p, **kargs):
+def _CDPGuessAddrRecord(p=None, **kargs):
+    if p is None:
+        return CDPAddrRecord(**kargs)
+
     cls = Raw
 
     if len(p) >= 2:
@@ -301,7 +307,7 @@ class CDPv2_Hdr(CDPMsgGeneric):
     fields_desc = [ByteField("vers", 2),
                    ByteField("ttl", 180),
                    XShortField("cksum", None),
-                   PacketListField("msg", [], _CDPGuessPayloadClass)]
+                   PacketListField("msg", [], _CDPGuessPacketClass)]
 
     def post_build(self, pkt, pay):
         p = pkt + pay
