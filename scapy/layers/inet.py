@@ -645,7 +645,7 @@ class ICMP(Packet):
                     ConditionalField(ICMPTimeStampField("ts_tx", None), lambda pkt:pkt.type in [13,14]),
                     ConditionalField(IPField("gw","0.0.0.0"),  lambda pkt:pkt.type==5),
                     ConditionalField(ByteField("ptr",0),   lambda pkt:pkt.type==12),
-                    ConditionalField(X3BytesField("reserved",0), lambda pkt:pkt.type==12),
+                    ConditionalField(XThreeBytesField("reserved",0), lambda pkt:pkt.type==12),
                     ConditionalField(IPField("addr_mask","0.0.0.0"), lambda pkt:pkt.type in [17,18]),
                     ConditionalField(IntField("unused",0), lambda pkt:pkt.type in [3,4,11]),
                     

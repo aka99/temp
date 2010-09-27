@@ -209,7 +209,7 @@ class CookedLinux(Packet):
 
 class SNAP(Packet):
     name = "SNAP"
-    fields_desc = [ X3BytesField("OUI",0x000000),
+    fields_desc = [ XThreeBytesField("OUI",0x000000),
                     XShortEnumField("code", 0x000, ETHER_TYPES) ]
 
 conf.neighbor.register_l3(Dot3, SNAP, lambda l2,l3: conf.neighbor.resolve(l2,l3.payload))

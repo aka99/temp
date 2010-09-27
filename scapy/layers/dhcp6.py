@@ -937,7 +937,7 @@ class _DHCP6GuessPayload(Packet):
 class DHCP6(_DHCP6OptGuessPayload):
     name = "DHCPv6 Generic Message"
     fields_desc = [ ByteEnumField("msgtype",None,dhcp6types),
-                    X3BytesField("trid",0x000000) ]
+                    XThreeBytesField("trid",0x000000) ]
     overload_fields = { UDP: {"sport": 546, "dport": 547} }
 
     def hashret(self):

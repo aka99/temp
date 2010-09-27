@@ -141,12 +141,6 @@ class _EIGRP_IP6Field(StrField, IP6Field, _EIGRP_IPField):
         return _EIGRP_IPField.getfield(self, pkt, s)
 
 
-class _EIGRP_ThreeBytesField(X3BytesField, ByteField):
-
-    def i2repr(self, pkt, x):
-        return ByteField.i2repr(self, pkt, x)
-
-
 class EIGRPGeneric(Packet):
     name = "EIGRP Generic TLV"
     fields_desc = [XShortField("type", 0x0000),
@@ -284,7 +278,7 @@ class EIGRPIntRoute(EIGRPGeneric):
                    IPField("nexthop", "192.168.0.1"),
                    IntField("delay", 128000),
                    IntField("bandwidth", 256),
-                   _EIGRP_ThreeBytesField("mtu", 1500),
+                   ThreeBytesField("mtu", 1500),
                    ByteField("hopcount", 0),
                    ByteField("reliability", 255),
                    ByteField("load", 0),
@@ -323,7 +317,7 @@ class EIGRPExtRoute(EIGRPGeneric):
                    FlagsField("flags", 0, 8, _EIGRP_EXTROUTE_FLAGS),
                    IntField("delay", 0),
                    IntField("bandwidth", 256),
-                   _EIGRP_ThreeBytesField("mtu", 1500),
+                   ThreeBytesField("mtu", 1500),
                    ByteField("hopcount", 0),
                    ByteField("reliability", 255),
                    ByteField("load", 0),
@@ -339,7 +333,7 @@ class EIGRPv6IntRoute(EIGRPGeneric):
                    IP6Field("nexthop", "::"),
                    IntField("delay", 128000),
                    IntField("bandwidth", 256000),
-                   _EIGRP_ThreeBytesField("mtu", 1500),
+                   ThreeBytesField("mtu", 1500),
                    ByteField("hopcount", 1),
                    ByteField("reliability", 255),
                    ByteField("load", 0),
@@ -362,7 +356,7 @@ class EIGRPv6ExtRoute(EIGRPGeneric):
                    FlagsField("flags", 1, 8, _EIGRP_EXTROUTE_FLAGS),
                    IntField("delay", 0),
                    IntField("bandwidth", 256000),
-                   _EIGRP_ThreeBytesField("mtu", 1500),
+                   ThreeBytesField("mtu", 1500),
                    ByteField("hopcount", 1),
                    ByteField("reliability", 0),
                    ByteField("load", 1),

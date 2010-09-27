@@ -309,7 +309,7 @@ class OSPF_SummaryIP_LSA(_OSPF_BaseLSA):
     fields_desc = [OSPF_LSA_Hdr,
                    IPField("mask", "255.255.255.0"),
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 10)]
+                   XThreeBytesField("metric", 10)]
 
 
 class OSPF_SummaryASBR_LSA(OSPF_SummaryIP_LSA):
@@ -328,7 +328,7 @@ class OSPF_External_LSA(_OSPF_BaseLSA):
                    IPField("mask", "255.255.255.0"),
                    FlagsField("ebit", 0, 1, ["E"]),
                    BitField("reserved", 0, 7),
-                   X3BytesField("metric", 20),
+                   XThreeBytesField("metric", 20),
                    IPField("fwdaddr", "0.0.0.0"),
                    XIntField("tag", 0)]
 
@@ -597,7 +597,7 @@ class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
     type = 0x2003
     fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 10),
+                   XThreeBytesField("metric", 10),
                    ByteField("prefixlen", 64),
                    FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
                    ShortField("reserved2", 0),
@@ -610,7 +610,7 @@ class OSPFv3_Inter_Area_Router_LSA(_OSPF_BaseLSA):
     type = 0x2004
     fields_desc = [OSPFv3_LSA_Hdr,
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 1),
+                   XThreeBytesField("metric", 1),
                    IPField("router", "2.2.2.2")]
 
 
@@ -619,7 +619,7 @@ class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
     type = 0x4005
     fields_desc = [OSPFv3_LSA_Hdr,
                    FlagsField("flags", 0, 8, ["T","F","E","res3","res4","res5","res6","res7"]),
-                   X3BytesField("metric", 20),
+                   XThreeBytesField("metric", 20),
                    ByteField("prefixlen", 64),
                    FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
                    ShortEnumField("reflstype", 0, _OSPFv3_LStypes),
