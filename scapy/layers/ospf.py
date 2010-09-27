@@ -235,7 +235,7 @@ class _OSPF_BaseLSA(Packet):
         if self.chksum is None:
             chksum = ospf_lsa_checksum(p)
             p = p[:16] + chksum + p[18:]
-        return p
+        return p+pay
 
     def extract_padding(self, s):
         return "", s

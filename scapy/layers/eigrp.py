@@ -180,13 +180,11 @@ class EIGRPAuthData(EIGRPGeneric):
                    StrLenField("authdata", RandString(16), length_from=lambda pkt: pkt.keysize)]
 
     def post_build(self, p, pay):
-        p += pay
-
         if self.keysize is None:
             keysize = len(self.authdata)
             p = p[:6] + chr((keysize >> 8) & 0xff) + chr(keysize & 0xff) + p[8:]
 
-        return p
+        return p+pay
 
 
 class EIGRPSeq(EIGRPGeneric):
@@ -198,13 +196,11 @@ class EIGRPSeq(EIGRPGeneric):
                    ConditionalField(IP6Field("ip6addr", "fe80::1"), lambda pkt: pkt.addrlen == 16)]
 
     def post_build(self, p, pay):
-        p += pay
-
         if self.len is None:
             l = len(p)
             p = p[:2] + chr((l >> 8) & 0xff) + chr(l & 0xff) + p[4:]
 
-        return p
+        return p+pay
 
 
 class _EIGRP_ShortVersionField(ShortField):
