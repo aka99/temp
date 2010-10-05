@@ -195,16 +195,6 @@ duidtypes = { 1: "Link-layer address plus time",
               2: "Vendor-assigned unique ID based on Enterprise Number",
               3: "Link-layer Address" }
 
-class UTCTimeField(IntField):
-    epoch = (2000, 1, 1, 0, 0, 0, 5, 1, 0) # required Epoch
-    def i2repr(self, pkt, x):
-        x = self.i2h(pkt, x)
-        from time import gmtime, strftime, mktime
-        delta = mktime(self.epoch) - mktime(gmtime(0))
-        x = x + delta
-        t = strftime("%a, %d %b %Y %H:%M:%S +0000", gmtime(x))
-        return "%s (%d)" % (t, x)
-
 class _LLAddrField(MACField):
     pass
 
@@ -214,7 +204,7 @@ class DUID_LLT(Packet):  # sect 9.2 RFC 3315
     name = "DUID - Link-layer address plus time"
     fields_desc = [ ShortEnumField("type", 1, duidtypes),
                     XShortEnumField("hwtype", 1, hardware_types),
-                    UTCTimeField("timeval", 0), # i.e. 01 Jan 2000
+                    UTCTimeField("timeval", 0, (2000,1,1,0,0,0,5,1,0)), # 01 Jan 2000
                     _LLAddrField("lladdr", ETHER_ANY) ]
 
 # In fact, IANA enterprise-numbers file available at 

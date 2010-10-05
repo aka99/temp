@@ -7,7 +7,7 @@
 Fields: basic data structures that make up parts of packets.
 """
 
-import struct,copy,socket
+import struct,copy,socket,time
 from config import conf
 from base_classes import BasePacket,Gen,Net
 from volatile import *
@@ -1188,6 +1188,25 @@ class FixedPointField(BitField):
         return int_part+frac_part
     def randval(self):
         return RandFloat(max=2**(self.size-self.frac_bits)-1)
+
+
+class UTCTimeField(IntField):
+    def __init__(self, name, default, epoch=time.gmtime(0)):
+        IntField.__init__(self, name, default)
+        self.epoch = epoch
+        self.delta = time.mktime(epoch) - time.mktime(time.gmtime(0))
+    def i2repr(self, pkt, x):
+        x = int(x) + self.delta
+        t = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(x))
+        return "%s (%d)" % (t, x)
+
+class LETimeField(UTCTimeField,LEIntField):
+    def __init__(self, name, default, epoch=time.gmtime(0)):
+        LEIntField.__init__(self, name, default)
+        self.epoch = epoch
+        self.delta = time.mktime(epoch) - time.mktime(time.gmtime(0))
+
+
 
 import packet
 
