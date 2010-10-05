@@ -322,7 +322,7 @@ class XShortField(ShortField):
     def i2repr(self, pkt, x):
         return lhex(self.i2h(pkt, x))
 
-class LEXShortField(LEShortField,XShortField):
+class XLEShortField(LEShortField,XShortField):
     def i2repr(self, pkt, x):
         return XShortField.i2repr(self, pkt, x)
 
@@ -350,6 +350,18 @@ class LESignedIntField(Field):
 class XIntField(IntField):
     def i2repr(self, pkt, x):
         return lhex(self.i2h(pkt, x))
+
+class XSignedIntField(SignedIntField,XIntField):
+    def i2repr(self, pkt, x):
+        return XIntField.i2repr(self, pkt, x)
+
+class XLEIntField(LEIntField,XIntField):
+    def i2repr(self, pkt, x):
+        return XIntField.i2repr(self, pkt, x)
+
+class XLESignedIntField(LESignedIntField,XIntField):
+    def i2repr(self, pkt, x):
+        return XIntField.i2repr(self, pkt, x)
 
 
 class LongField(Field):
@@ -1032,7 +1044,7 @@ class XShortEnumField(ShortEnumField,XEnumField):
     def i2repr_one(self, pkt, x):
         return XEnumField.i2repr_one(self, pkt, x)
 
-class LEXShortEnumField(LEShortEnumField,XEnumField):
+class XLEShortEnumField(LEShortEnumField,XEnumField):
     def i2repr_one(self, pkt, x):
         return XEnumField.i2repr_one(self, pkt, x)
 
@@ -1054,6 +1066,9 @@ class XIntEnumField(IntEnumField,XEnumField):
     def i2repr_one(self, pkt, x):
         return XEnumField.i2repr_one(self, pkt, x)
 
+class XLEIntEnumField(LEIntEnumField,XEnumField):
+    def i2repr_one(self, pkt, x):
+        return XEnumField.i2repr_one(self, pkt, x)
 
 class MultiEnumField(EnumField):
     def __init__(self, name, default, enum, depends_on, fmt = "H"):
