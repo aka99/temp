@@ -4728,15 +4728,12 @@ class SMB_FIND_FILE_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-#                   FieldLenField("EaSize",None,length_of="FEAList",fmt="<I"),
                    LEIntField("EaSize",0),
                    FieldLenField("ShortNameLength",None,length_of="ShortName",fmt="B"),
                    ByteField("Reserved",0),
                    StrFixedLenField("ShortName","",24,codec="utf-16-le"),
                    SMB_UCHAR_LenField("FileName","",
                                       length_from=lambda pkt:pkt.FileNameLength),
-#                   PacketListField("FEAList",[],SMB_FEA,
-#                                   length_from=lambda pkt:pkt.EaSize),
                    StrLenField("Pad","",
                                length_from=lambda pkt:pkt.NextEntryOffset-pkt.FileNameLength-94)]
 
@@ -5032,46 +5029,13 @@ def _set_andx_overloads():
 
 _set_andx_overloads()
 
-"""
-def _bind_smb_info(codes, transacts, overload=False): #XXX: to be replaced
-    for k,v in codes.iteritems():
-        i = globals().get("SMB_%s" % v, None)
-        if i:
-            for t in transacts:
-                if overload:
-                    bind_layers(t, i, InformationLevel=k)
-                else:
-                    bind_layers(t, i) #TODO: use payload_guess
-            bind_layers(i, i)
-"""
-"""
-_bind_smb_info(smb_info_find_codes,    [SMB_TRANS2_FIND_FIRST2_Res,
-                                        SMB_TRANS2_FIND_NEXT2_Res,
-                                        SMB_TRANS2_FIND_NOTIFY_FIRST_Res,
-                                        SMB_TRANS2_FIND_NOTIFY_NEXT_Res])
 
-_bind_smb_info(smb_info_queryfs_codes, [SMB_TRANS2_QUERY_FS_INFORMATION_Res])
-
-_bind_smb_info(smb_info_query_codes,   [SMB_TRANS2_QUERY_PATH_INFORMATION_Res,
-                                        SMB_TRANS2_QUERY_FILE_INFORMATION_Res])
-""" #XXX: doesn't work
-"""
-_bind_smb_info(smb_info_set_codes,     [SMB_TRANS2_SET_PATH_INFORMATION_Req,
-                                        SMB_TRANS2_SET_FILE_INFORMATION_Req],
-               overload=True)
-"""
 def _set_info_binds():
     for k,v in smb_info_set_codes.iteritems():
         i = globals().get("SMB_%s" % v, None)
         if i:
             bind_layers(SMB_TRANS2_SET_PATH_INFORMATION_Req, i, InformationLevel=k)
             bind_layers(SMB_TRANS2_SET_FILE_INFORMATION_Req, i, InformationLevel=k)
-#            bind_layers(i, i)
-#    for c in [smb_info_find_codes,smb_info_queryfs_codes,smb_info_query_codes]:
-#        for k,v in c.iteritems():
-#            i = globals().get("SMB_%s" % v, None)
-#            if i:
-#                bind_layers(i, i)
 
 _set_info_binds()
 
