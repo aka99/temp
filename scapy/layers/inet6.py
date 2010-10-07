@@ -2385,7 +2385,7 @@ class MIP6OptAltCoA(_MIP6OptAlign, Packet):
 class MIP6OptNonceIndices(_MIP6OptAlign, Packet):                 
     name = 'MIPv6 Option - Nonce Indices'
     fields_desc = [ ByteEnumField('otype', 4, _mobopttypes),
-                    ByteField('olen', 16),
+                    ByteField('olen', 4),
                     ShortField('hni', 0),
                     ShortField('coni', 0) ]
     x = 2 ; y = 0 # alignment requirement: 2n
@@ -2393,7 +2393,7 @@ class MIP6OptNonceIndices(_MIP6OptAlign, Packet):
 class MIP6OptBindingAuthData(_MIP6OptAlign, Packet):              
     name = 'MIPv6 Option - Binding Authorization Data'
     fields_desc = [ ByteEnumField('otype', 5, _mobopttypes),
-                    ByteField('olen', 16),
+                    ByteField('olen', 12),
                     BitField('authenticator', 0, 96) ]
     x = 8 ; y = 2 # alignment requirement: 8n+2
 
