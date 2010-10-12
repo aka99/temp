@@ -1334,7 +1334,7 @@ class _SMBGuessPayload:
                 if com in ["TRANSACTION","TRANSACTION2","NT_TRANSACT","IOCTL"]:
                     cls = "SMB_COM_%s_ResI" % com
                 else:
-                    default = SMB_COM_ResNull
+                    default = SMB_COM_Null
             elif h in SMB_TRANS.smb_trans_db:
                 t = SMB_TRANS.smb_trans_db[h]
                 if t['com'] == cnum:
@@ -1435,8 +1435,8 @@ class SMB_COM(Packet):
             return None
         return bool(self.underlayer.Flags2 & 0x8000)
 
-class SMB_COM_ResNull(SMB_COM):
-    name="SMB Command Null Response"
+class SMB_COM_Null(SMB_COM):
+    name="SMB Command (no data)"
     fields_desc = [ByteField("WordCount",0),
                    LEShortField("ByteCount",0)]
 
@@ -1578,27 +1578,18 @@ class SMB_COM_CREATE_DIRECTORY_Req(SMB_COM):
                    ByteField("BufferFormat",4),
                    SMB_STRING_Field("DirectoryName","")]
 
-class SMB_COM_CREATE_DIRECTORY_Res(SMB_COM):
+class SMB_COM_CREATE_DIRECTORY_Res(SMB_COM_Null):
     name="SMB Command - CREATE_DIRECTORY - Response"
     overload_fields = {SMB_Header:{"Command":0x00,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_DELETE_DIRECTORY_Req(SMB_COM):
+class SMB_COM_DELETE_DIRECTORY_Req(SMB_COM_CREATE_DIRECTORY_Req):
     name="SMB Command - DELETE_DIRECTORY - Request"
     overload_fields = {SMB_Header:{"Command":0x01,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   FieldLenField("ByteCount",None,length_of="DirectoryName",fmt="<H",
-                                 adjust=lambda pkt,x:x+1),
-                   ByteField("BufferFormat",4),
-                   SMB_STRING_Field("DirectoryName","")]
 
-class SMB_COM_DELETE_DIRECTORY_Res(SMB_COM):
+class SMB_COM_DELETE_DIRECTORY_Res(SMB_COM_Null):
     name="SMB Command - DELETE_DIRECTORY - Response"
     overload_fields = {SMB_Header:{"Command":0x01,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_OPEN_Req(SMB_COM):
@@ -1651,25 +1642,18 @@ class SMB_COM_CLOSE_Req(SMB_COM):
                    LETimeField("LastTimeModified",0),
                    LEShortField("ByteCount",0)]
 
-class SMB_COM_CLOSE_Res(SMB_COM):
+class SMB_COM_CLOSE_Res(SMB_COM_Null):
     name="SMB Command - CLOSE - Response"
     overload_fields = {SMB_Header:{"Command":0x04,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_FLUSH_Req(SMB_COM):
+class SMB_COM_FLUSH_Req(SMB_COM_CREATE_Res):
     name="SMB Command - FLUSH - Request"
     overload_fields = {SMB_Header:{"Command":0x05,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_FLUSH_Res(SMB_COM):
+class SMB_COM_FLUSH_Res(SMB_COM_Null):
     name="SMB Command - FLUSH - Response"
     overload_fields = {SMB_Header:{"Command":0x05,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_DELETE_Req(SMB_COM):
@@ -1682,11 +1666,9 @@ class SMB_COM_DELETE_Req(SMB_COM):
                    ByteField("BufferFormat",4),
                    SMB_STRING_Field("FileName","")]
 
-class SMB_COM_DELETE_Res(SMB_COM):
+class SMB_COM_DELETE_Res(SMB_COM_Null):
     name="SMB Command - DELETE - Response"
     overload_fields = {SMB_Header:{"Command":0x06,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_RENAME_Req(SMB_COM):
@@ -1707,11 +1689,9 @@ class SMB_COM_RENAME_Req(SMB_COM):
         p += pay
         return p
 
-class SMB_COM_RENAME_Res(SMB_COM):
+class SMB_COM_RENAME_Res(SMB_COM_Null):
     name="SMB Command - RENAME - Response"
     overload_fields = {SMB_Header:{"Command":0x07,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_QUERY_INFORMATION_Req(SMB_COM):
@@ -1746,11 +1726,9 @@ class SMB_COM_SET_INFORMATION_Req(SMB_COM):
                    ByteField("BufferFormat",4),
                    SMB_STRING_Field("FileName","")]
 
-class SMB_COM_SET_INFORMATION_Res(SMB_COM):
+class SMB_COM_SET_INFORMATION_Res(SMB_COM_Null):
     name="SMB Command - SET_INFORMATION - Response"
     overload_fields = {SMB_Header:{"Command":0x09,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_READ_Req(SMB_COM):
@@ -1809,11 +1787,9 @@ class SMB_COM_LOCK_BYTE_RANGE_Req(SMB_COM):
                    LEIntField("LockOffsetInBytes",0),
                    LEShortField("ByteCount",0)]
 
-class SMB_COM_LOCK_BYTE_RANGE_Res(SMB_COM):
+class SMB_COM_LOCK_BYTE_RANGE_Res(SMB_COM_Null):
     name="SMB Command - LOCK_BYTE_RANGE - Response"
     overload_fields = {SMB_Header:{"Command":0x0C,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_UNLOCK_BYTE_RANGE_Req(SMB_COM):
@@ -1825,11 +1801,9 @@ class SMB_COM_UNLOCK_BYTE_RANGE_Req(SMB_COM):
                    LEIntField("UnlockOffsetInBytes",0),
                    LEShortField("ByteCount",0)]
 
-class SMB_COM_UNLOCK_BYTE_RANGE_Res(SMB_COM):
+class SMB_COM_UNLOCK_BYTE_RANGE_Res(SMB_COM_Null):
     name="SMB Command - UNLOCK_BYTE_RANGE - Response"
     overload_fields = {SMB_Header:{"Command":0x0D,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_CREATE_TEMPORARY_Req(SMB_COM):
@@ -1854,52 +1828,31 @@ class SMB_COM_CREATE_TEMPORARY_Res(SMB_COM):
                    SMB_STRING_Field("TemporaryFileName","")]
 
 
-class SMB_COM_CREATE_NEW_Req(SMB_COM):
+class SMB_COM_CREATE_NEW_Req(SMB_COM_CREATE_Req):
     name="SMB Command - CREATE_NEW - Request"
     overload_fields = {SMB_Header:{"Command":0x0F,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",3),
-                   LEFlagsField("FileAttributes",0,16,SMB_FILE_ATTRIBUTES),
-                   LETimeField("CreationTime",0),
-                   FieldLenField("ByteCount",None,length_of="FileName",fmt="<H",
-                                 adjust=lambda pkt,x:x+1),
-                   ByteField("BufferFormat",4),
-                   SMB_STRING_Field("FileName","")]
 
-class SMB_COM_CREATE_NEW_Res(SMB_COM):
+class SMB_COM_CREATE_NEW_Res(SMB_COM_CREATE_Res):
     name="SMB Command - CREATE_NEW - Response"
     overload_fields = {SMB_Header:{"Command":0x0F,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_CHECK_DIRECTORY_Req(SMB_COM):
+class SMB_COM_CHECK_DIRECTORY_Req(SMB_COM_CREATE_DIRECTORY_Req):
     name="SMB Command - CHECK_DIRECTORY - Request"
     overload_fields = {SMB_Header:{"Command":0x10,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   FieldLenField("ByteCount",None,length_of="DirectoryName",fmt="<H",
-                                 adjust=lambda pkt,x:x+1),
-                   ByteField("BufferFormat",4),
-                   SMB_STRING_Field("DirectoryName","")]
 
-class SMB_COM_CHECK_DIRECTORY_Res(SMB_COM):
+class SMB_COM_CHECK_DIRECTORY_Res(SMB_COM_Null):
     name="SMB Command - CHECK_DIRECTORY - Response"
     overload_fields = {SMB_Header:{"Command":0x10,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_PROCESS_EXIT_Req(SMB_COM):
+class SMB_COM_PROCESS_EXIT_Req(SMB_COM_Null):
     name="SMB Command - PROCESS_EXIT - Request"
     overload_fields = {SMB_Header:{"Command":0x11,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_PROCESS_EXIT_Res(SMB_COM):
+class SMB_COM_PROCESS_EXIT_Res(SMB_COM_Null):
     name="SMB Command - PROCESS_EXIT - Response"
     overload_fields = {SMB_Header:{"Command":0x11,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_SEEK_Req(SMB_COM):
@@ -1919,51 +1872,22 @@ class SMB_COM_SEEK_Res(SMB_COM):
                    LEShortField("ByteCount",0)]
 
 
-class SMB_COM_LOCK_AND_READ_Req(SMB_COM):
+class SMB_COM_LOCK_AND_READ_Req(SMB_COM_READ_Req):
     name="SMB Command - LOCK_AND_READ - Request"
     overload_fields = {SMB_Header:{"Command":0x13,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",5),
-                   LEShortField("FID",0),
-                   LEShortField("CountOfBytesToRead",0),
-                   LEIntField("ReadOffsetInBytes",0),
-                   LEShortField("EstimateOfRemainingBytesToBeRead",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_LOCK_AND_READ_Res(SMB_COM):
+class SMB_COM_LOCK_AND_READ_Res(SMB_COM_READ_Res):
     name="SMB Command - LOCK_AND_READ - Response"
     overload_fields = {SMB_Header:{"Command":0x13,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",5),
-                   FieldLenField("CountOfBytesReturned",None,length_of="Bytes",fmt="<H"),
-                   BitField("Reserved",0,16*4),
-                   FieldLenField("ByteCount",None,length_of="Bytes",fmt="<H",
-                                 adjust=lambda pkt,x:x+3),
-                   ByteField("BufferFormat",1),
-                   FieldLenField("CountOfBytesRead",None,length_of="Bytes",fmt="<H"),
-                   StrLenField("Bytes","",
-                               length_from=lambda pkt:pkt.CountOfBytesRead)]
 
 
-class SMB_COM_WRITE_AND_UNLOCK_Req(SMB_COM):
+class SMB_COM_WRITE_AND_UNLOCK_Req(SMB_COM_WRITE_Req):
     name="SMB Command - WRITE_AND_UNLOCK - Request"
     overload_fields = {SMB_Header:{"Command":0x14,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",5),
-                   LEShortField("FID",0),
-                   FieldLenField("CountOfBytesToWrite",None,length_of="Data",fmt="<H"),
-                   LEIntField("WriteOffsetInBytes",0),
-                   LEShortField("EstimateOfRemainingBytesToBeWritten",0),
-                   FieldLenField("ByteCount",None,length_of="Data",fmt="<H",
-                                 adjust=lambda pkt,x:x+3),
-                   ByteField("BufferFormat",1),
-                   FieldLenField("DataLength",None,length_of="Data",fmt="<H"),
-                   StrLenField("Data","",
-                               length_from=lambda pkt:pkt.DataLength)]
 
-class SMB_COM_WRITE_AND_UNLOCK_Res(SMB_COM):
+class SMB_COM_WRITE_AND_UNLOCK_Res(SMB_COM_WRITE_Res):
     name="SMB Command - WRITE_AND_UNLOCK - Response"
     overload_fields = {SMB_Header:{"Command":0x14,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("CountOfBytesWritten",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_READ_RAW_Req(SMB_COM):
@@ -2187,19 +2111,14 @@ class SMB_COM_SET_INFORMATION2_Req(SMB_COM):
                    SMB_TIME_Field("LastWriteTime",None),
                    LEShortField("ByteCount",0)]
 
-class SMB_COM_SET_INFORMATION2_Res(SMB_COM):
+class SMB_COM_SET_INFORMATION2_Res(SMB_COM_Null):
     name="SMB Command - SET_INFORMATION2 - Response"
     overload_fields = {SMB_Header:{"Command":0x22,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_QUERY_INFORMATION2_Req(SMB_COM):
+class SMB_COM_QUERY_INFORMATION2_Req(SMB_COM_CREATE_Res):
     name="SMB Command - QUERY_INFORMATION2 - Request"
     overload_fields = {SMB_Header:{"Command":0x23,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",0)]
 
 class SMB_COM_QUERY_INFORMATION2_Res(SMB_COM):
     name="SMB Command - QUERY_INFORMATION2 - Response"
@@ -2254,9 +2173,6 @@ class SMB_COM_LOCKING_ANDX_Req(SMB_ANDX):
 class SMB_COM_LOCKING_ANDX_Res(SMB_ANDX):
     name="SMB Command - LOCKING_ANDX - Response"
     overload_fields = {SMB_Header:{"Command":0x24,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",2),
-                   _smb_fields_AndX,
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_TRANSACTION_Req(SMB_TRANS):
@@ -2318,12 +2234,9 @@ class SMB_COM_TRANSACTION_Res(SMB_TRANS):
             self.add_trans_db(0x25, self._trans_code[0], self._trans_code[1])
         return self.post_build_trans(p,pay,9,15,1,7,3,13)
 
-class SMB_COM_TRANSACTION_ResI(SMB_COM_TRANSACTION_Res):
+class SMB_COM_TRANSACTION_ResI(SMB_COM_Null):
     name="SMB Command - TRANSACTION - Interim Response"
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
-    def post_build(self, p, pay):
-        return p+pay
+    overload_fields = {SMB_Header:{"Command":0x25,"Flags":0x80}}
 
 
 class SMB_COM_TRANSACTION_SECONDARY_Req(SMB_TRANS):
@@ -2390,30 +2303,14 @@ class SMB_COM_IOCTL_Res(SMB_TRANS):
     def post_build(self, p, pay):
         return self.post_build_trans(p,pay,7,13,1,5,3,11)
 
-class SMB_COM_IOCTL_ResI(SMB_COM_IOCTL_Res): # obsolete (LANMAN1.0)
+class SMB_COM_IOCTL_ResI(SMB_COM_Null): # obsolete (LANMAN1.0)
     name="SMB Command - IOCTL - Interim Response"
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
-    def post_build(self, p, pay):
-        return p+pay
+    overload_fields = {SMB_Header:{"Command":0x27,"Flags":0x80}}
 
 
-class SMB_COM_IOCTL_SECONDARY_Req(SMB_TRANS): # obsolete (LANMAN1.0)
+class SMB_COM_IOCTL_SECONDARY_Req(SMB_COM_IOCTL_Res): # obsolete (LANMAN1.0)
     name="SMB Command - IOCTL_SECONDARY - Request"
-    base_len = 19
     overload_fields = {SMB_Header:{"Command":0x28,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",8),
-                   _smb_fields_TRANS_SECONDARY_words,
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
-                   StrLenField("Parameters","",
-                               length_from=lambda pkt:pkt.ParameterCount),
-                   SMBUnicodePadField("Pad2",None,padtype=2,
-                                      padlen=lambda pkt:(pkt.getfieldlen("Pad1")+1+pkt.getfieldlen("Parameters"))%2),
-                   StrLenField("Data","",
-                               length_from=lambda pkt:pkt.DataCount)]
-    def post_build(self, p, pay):
-        return self.post_build_trans(p,pay,7,13,1,5,3,11)
 
 
 class SMB_COM_COPY_Req(SMB_COM): # obsolete (LANMAN1.0)
@@ -2469,15 +2366,9 @@ class SMB_COM_MOVE_Req(SMB_COM): # obsolete (LANMAN1.0)
         p += pay
         return p
 
-class SMB_COM_MOVE_Res(SMB_COM): # obsolete (LANMAN1.0)
+class SMB_COM_MOVE_Res(SMB_COM_COPY_Res): # obsolete (LANMAN1.0)
     name="SMB Command - MOVE - Response"
     overload_fields = {SMB_Header:{"Command":0x2A,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("Count",0),
-                   FieldLenField("ByteCount",None,length_of="ErrorFileName",fmt="<H",
-                                 adjust=lambda pkt,x:x+1),
-                   ByteField("BufferFormat",4),
-                   SMB_STRING_Field("ErrorFileName","")]
 
 
 class SMB_COM_ECHO_Req(SMB_COM):
@@ -2515,12 +2406,9 @@ class SMB_COM_WRITE_AND_CLOSE_Req(SMB_COM):
                    StrLenField("Data","",
                                length_from=lambda pkt:pkt.CountOfBytesToWrite)]
 
-class SMB_COM_WRITE_AND_CLOSE_Res(SMB_COM):
+class SMB_COM_WRITE_AND_CLOSE_Res(SMB_COM_WRITE_Res):
     name="SMB Command - WRITE_AND_CLOSE - Response"
     overload_fields = {SMB_Header:{"Command":0x2C,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("CountOfBytesWritten",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_OPEN_ANDX_Req(SMB_ANDX):
@@ -2681,19 +2569,13 @@ class SMB_COM_WRITE_ANDX_Res(SMB_ANDX):
                    LEShortField("ByteCount",0)]
 
 
-class SMB_COM_CLOSE_AND_TREE_DISC_Req(SMB_COM): # not implemented (partial in WinNT)
+class SMB_COM_CLOSE_AND_TREE_DISC_Req(SMB_COM_CLOSE_Req): # not implemented (partial in WinNT)
     name="SMB Command - CLOSE_AND_TREE_DISC - Request"
     overload_fields = {SMB_Header:{"Command":0x31,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",3),
-                   LEShortField("FID",0),
-                   LETimeField("LastTimeModified",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_CLOSE_AND_TREE_DISC_Res(SMB_COM): # not implemented (partial in WinNT)
+class SMB_COM_CLOSE_AND_TREE_DISC_Res(SMB_COM_Null): # not implemented (partial in WinNT)
     name="SMB Command - CLOSE_AND_TREE_DISC - Response"
     overload_fields = {SMB_Header:{"Command":0x31,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_TRANSACTION2_Req(SMB_TRANS):
@@ -2760,12 +2642,9 @@ class SMB_COM_TRANSACTION2_Res(SMB_TRANS):
             self.add_trans_db(0x32, self._trans_code[0], self._trans_code[1], info)
         return self.post_build_trans(p,pay,9,15,1,7,3,13)
 
-class SMB_COM_TRANSACTION2_ResI(SMB_COM_TRANSACTION2_Res):
+class SMB_COM_TRANSACTION2_ResI(SMB_COM_Null):
     name="SMB Command - TRANSACTION2 - Interim Response"
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
-    def post_build(self, p, pay):
-        return p+pay
+    overload_fields = {SMB_Header:{"Command":0x32,"Flags":0x80}}
 
 
 class SMB_COM_TRANSACTION2_SECONDARY_Req(SMB_TRANS):
@@ -2793,27 +2672,20 @@ class SMB_COM_FIND_CLOSE2_Req(SMB_COM):
                    LEShortField("SID",0),
                    LEShortField("ByteCount",0)]
 
-class SMB_COM_FIND_CLOSE2_Res(SMB_COM):
+class SMB_COM_FIND_CLOSE2_Res(SMB_COM_Null):
     name="SMB Command - FIND_CLOSE2 - Response"
     overload_fields = {SMB_Header:{"Command":0x34,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 # [XOPEN-SMB 15.3] http://www.opengroup.org/pubs/catalog/c209.htm
-class SMB_COM_FIND_NOTIFY_CLOSE_Req(SMB_COM): # obsolete (X/Open 2.0)
+class SMB_COM_FIND_NOTIFY_CLOSE_Req(SMB_COM_FIND_CLOSE2_Req): # obsolete (X/Open 2.0)
     name="SMB Command - FIND_NOTIFY_CLOSE - Request"
     overload_fields = {SMB_Header:{"Command":0x35,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("SID",0),
-                   LEShortField("ByteCount",0)]
 
 # [XOPEN-SMB 15.3] http://www.opengroup.org/pubs/catalog/c209.htm
-class SMB_COM_FIND_NOTIFY_CLOSE_Res(SMB_COM): # obsolete (X/Open 2.0)
+class SMB_COM_FIND_NOTIFY_CLOSE_Res(SMB_COM_Null): # obsolete (X/Open 2.0)
     name="SMB Command - FIND_NOTIFY_CLOSE - Response"
     overload_fields = {SMB_Header:{"Command":0x35,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_TREE_CONNECT_Req(SMB_COM):
@@ -2843,17 +2715,13 @@ class SMB_COM_TREE_CONNECT_Res(SMB_COM):
                    LEShortField("ByteCount",0)]
 
 
-class SMB_COM_TREE_DISCONNECT_Req(SMB_COM):
+class SMB_COM_TREE_DISCONNECT_Req(SMB_COM_Null):
     name="SMB Command - TREE_DISCONNECT - Request"
     overload_fields = {SMB_Header:{"Command":0x71,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_TREE_DISCONNECT_Res(SMB_COM):
+class SMB_COM_TREE_DISCONNECT_Res(SMB_COM_Null):
     name="SMB Command - TREE_DISCONNECT - Response"
     overload_fields = {SMB_Header:{"Command":0x71,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_NEGOTIATE_Req(SMB_COM):
@@ -3066,16 +2934,10 @@ class SMB_COM_SESSION_SETUP_ANDX_Res_ExtSec(SMB_COM_SESSION_SETUP_ANDX_Res):
 class SMB_COM_LOGOFF_ANDX_Req(SMB_ANDX):
     name="SMB Command - LOGOFF_ANDX - Request"
     overload_fields = {SMB_Header:{"Command":0x74,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",2),
-                   _smb_fields_AndX,
-                   LEShortField("ByteCount",0)]
 
 class SMB_COM_LOGOFF_ANDX_Res(SMB_ANDX):
     name="SMB Command - LOGOFF_ANDX - Response"
     overload_fields = {SMB_Header:{"Command":0x74,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",2),
-                   _smb_fields_AndX,
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_TREE_CONNECT_ANDX_Req(SMB_ANDX):
@@ -3167,11 +3029,9 @@ class SMB_COM_SECURITY_PACKAGE_ANDX_Res(SMB_ANDX): # obsolete (LANMAN1.0)
                                length_from=lambda pkt:pkt.PackageArgLen)]
 
 
-class SMB_COM_QUERY_INFORMATION_DISK_Req(SMB_COM):
+class SMB_COM_QUERY_INFORMATION_DISK_Req(SMB_COM_Null):
     name="SMB Command - QUERY_INFORMATION_DISK - Request"
     overload_fields = {SMB_Header:{"Command":0x80,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 class SMB_COM_QUERY_INFORMATION_DISK_Res(SMB_COM):
     name="SMB Command - QUERY_INFORMATION_DISK - Response"
@@ -3222,41 +3082,13 @@ class SMB_COM_SEARCH_Res(SMB_COM):
                                count_from=lambda pkt:pkt.Count)]
 
 
-class SMB_COM_FIND_Req(SMB_COM):
+class SMB_COM_FIND_Req(SMB_COM_SEARCH_Req):
     name="SMB Command - FIND - Request"
     overload_fields = {SMB_Header:{"Command":0x82,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",2),
-                   LEShortField("MaxCount",0),
-                   LEFlagsField("SearchAttributes",0,16,SMB_FILE_ATTRIBUTES_SEARCH),
-                   LEShortField("ByteCount",None),
-                   ByteField("BufferFormat1",4),
-                   SMB_STRING_Field("FileName",""),
-                   ByteField("BufferFormat2",5),
-                   LEShortEnumField("ResumeKeyLength",0,smb_enum_ResumeKeyLength),
-                   ConditionalField(ByteField("ResumeKey_Reserved",0),
-                                    lambda pkt:pkt.ResumeKeyLength == 21),
-                   ConditionalField(StrFixedLenField("ResumeKey_ServerState","",16),
-                                    lambda pkt:pkt.ResumeKeyLength == 21),
-                   ConditionalField(StrFixedLenField("ResumeKey_ClientState","",4),
-                                    lambda pkt:pkt.ResumeKeyLength == 21)]
-    def post_build(self, p, pay):
-        if self.ByteCount is None:
-            l = len(p)-7
-            p = p[:5]+struct.pack("<H",l)+p[7:]
-        p += pay
-        return p
 
-class SMB_COM_FIND_Res(SMB_COM):
+class SMB_COM_FIND_Res(SMB_COM_SEARCH_Res):
     name="SMB Command - FIND - Response"
     overload_fields = {SMB_Header:{"Command":0x82,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   FieldLenField("Count",None,count_of="DirectoryInformationData",fmt="<H"),
-                   FieldLenField("ByteCount",None,length_of="DirectoryInformationData",fmt="<H",
-                                 adjust=lambda pkt,x:x+3),
-                   ByteField("BufferFormat",5),
-                   FieldLenField("DataLength",None,length_of="DirectoryInformationData",fmt="<H"),
-                   PacketListField("DirectoryInformationData",[],SMB_Directory_Information,
-                               count_from=lambda pkt:pkt.Count)]
 
 
 class SMB_COM_FIND_UNIQUE_Req(SMB_COM):
@@ -3272,17 +3104,9 @@ class SMB_COM_FIND_UNIQUE_Req(SMB_COM):
                    ByteField("BufferFormat2",5),
                    LEShortField("ResumeKeyLength",0)]
 
-class SMB_COM_FIND_UNIQUE_Res(SMB_COM):
+class SMB_COM_FIND_UNIQUE_Res(SMB_COM_SEARCH_Res):
     name="SMB Command - FIND_UNIQUE - Response"
     overload_fields = {SMB_Header:{"Command":0x83,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   FieldLenField("Count",None,count_of="DirectoryInformationData",fmt="<H"),
-                   FieldLenField("ByteCount",None,length_of="DirectoryInformationData",fmt="<H",
-                                 adjust=lambda pkt,x:x+3),
-                   ByteField("BufferFormat",5),
-                   FieldLenField("DataLength",None,length_of="DirectoryInformationData",fmt="<H"),
-                   PacketListField("DirectoryInformationData",[],SMB_Directory_Information,
-                               count_from=lambda pkt:pkt.Count)]
 
 
 class SMB_COM_FIND_CLOSE_Req(SMB_COM):
@@ -3359,12 +3183,9 @@ class SMB_COM_NT_TRANSACT_Res(SMB_TRANS):
             self.add_trans_db(0xA0, self._trans_code[0], self._trans_code[1])
         return self.post_build_trans(p,pay,16,28,4,12,8,24,longfld=True)
 
-class SMB_COM_NT_TRANSACT_ResI(SMB_COM_NT_TRANSACT_Res):
+class SMB_COM_NT_TRANSACT_ResI(SMB_COM_Null):
     name="SMB Command - NT_TRANSACT - Interim Response"
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
-    def post_build(self, p, pay):
-        return p+pay
+    overload_fields = {SMB_Header:{"Command":0xA0,"Flags":0x80}}
 
 
 class SMB_COM_NT_TRANSACT_SECONDARY_Req(SMB_TRANS):
@@ -3454,11 +3275,9 @@ class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
                    LEShortField("ByteCount",0)])
 
 
-class SMB_COM_NT_CANCEL_Req(SMB_COM):
+class SMB_COM_NT_CANCEL_Req(SMB_COM_Null):
     name="SMB Command - NT_CANCEL - Request"
     overload_fields = {SMB_Header:{"Command":0xA4,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_NT_RENAME_Req(SMB_COM):
@@ -3482,11 +3301,9 @@ class SMB_COM_NT_RENAME_Req(SMB_COM):
         p += pay
         return p
 
-class SMB_COM_NT_RENAME_Res(SMB_COM):
+class SMB_COM_NT_RENAME_Res(SMB_COM_Null):
     name="SMB Command - NT_RENAME - Response"
     overload_fields = {SMB_Header:{"Command":0xA5,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_OPEN_PRINT_FILE_Req(SMB_COM):
@@ -3500,12 +3317,9 @@ class SMB_COM_OPEN_PRINT_FILE_Req(SMB_COM):
                    ByteField("BufferFormat",4),
                    SMB_STRING_Field("Identifier","")]
 
-class SMB_COM_OPEN_PRINT_FILE_Res(SMB_COM):
+class SMB_COM_OPEN_PRINT_FILE_Res(SMB_COM_CREATE_Res):
     name="SMB Command - OPEN_PRINT_FILE - Response"
     overload_fields = {SMB_Header:{"Command":0xC0,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_WRITE_PRINT_FILE_Req(SMB_COM):
@@ -3520,25 +3334,18 @@ class SMB_COM_WRITE_PRINT_FILE_Req(SMB_COM):
                    StrLenField("Data","",
                                length_from=lambda pkt:pkt.DataLength)]
 
-class SMB_COM_WRITE_PRINT_FILE_Res(SMB_COM):
+class SMB_COM_WRITE_PRINT_FILE_Res(SMB_COM_Null):
     name="SMB Command - WRITE_PRINT_FILE - Response"
     overload_fields = {SMB_Header:{"Command":0xC1,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
-class SMB_COM_CLOSE_PRINT_FILE_Req(SMB_COM):
+class SMB_COM_CLOSE_PRINT_FILE_Req(SMB_COM_CREATE_Res):
     name="SMB Command - CLOSE_PRINT_FILE - Request"
     overload_fields = {SMB_Header:{"Command":0xC2,"Flags":0x00}}
-    fields_desc = [ByteField("WordCount",1),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",0)]
 
-class SMB_COM_CLOSE_PRINT_FILE_Res(SMB_COM):
+class SMB_COM_CLOSE_PRINT_FILE_Res(SMB_COM_Null):
     name="SMB Command - CLOSE_PRINT_FILE - Response"
     overload_fields = {SMB_Header:{"Command":0xC2,"Flags":0x80}}
-    fields_desc = [ByteField("WordCount",0),
-                   LEShortField("ByteCount",0)]
 
 
 class SMB_COM_GET_PRINT_QUEUE_Req(SMB_COM): # obsolete (Core)
@@ -3610,17 +3417,9 @@ class SMB_TRANS_RAW_READ_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
                                length_from=lambda pkt:pkt.DataCount)]
 
 
-class SMB_TRANS_QUERY_NMPIPE_STATE_Req(SMB_COM_TRANSACTION_Req):
+class SMB_TRANS_QUERY_NMPIPE_STATE_Req(SMB_TRANS_RAW_READ_NMPIPE_Req):
     name="SMB Trans - TRANS_QUERY_NMPIPE_STATE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0021,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\")]
+    Subcommand = 0x0021
 
 class SMB_TRANS_QUERY_NMPIPE_STATE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_QUERY_NMPIPE_STATE - Response"
@@ -3665,17 +3464,9 @@ class SMB_TRANS_QUERY_NMPIPE_INFO_Res(SMB_COM_TRANSACTION_Res):
                    SMB_STRING_Field("PipeName","")]
 
 
-class SMB_TRANS_PEEK_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
+class SMB_TRANS_PEEK_NMPIPE_Req(SMB_TRANS_RAW_READ_NMPIPE_Req):
     name="SMB Trans - TRANS_PEEK_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0023,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\")]
+    Subcommand = 0x0023
 
 class SMB_TRANS_PEEK_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_PEEK_NMPIPE - Response"
@@ -3725,20 +3516,9 @@ class SMB_TRANS_TRANSACT_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
                                length_from=lambda pkt:pkt.DataCount)]
 
 
-class SMB_TRANS_RAW_WRITE_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
+class SMB_TRANS_RAW_WRITE_NMPIPE_Req(SMB_TRANS_TRANSACT_NMPIPE_Req):
     name="SMB Trans - TRANS_RAW_WRITE_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0031,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
-                   SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   StrLenField("WriteData","",
-                               length_from=lambda pkt:pkt.DataCount)]
+    Subcommand = 0x0031
 
 class SMB_TRANS_RAW_WRITE_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_RAW_WRITE_NMPIPE - Response"
@@ -3752,45 +3532,18 @@ class SMB_TRANS_RAW_WRITE_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
                    LEShortField("BytesWritten",0)]
 
 
-class SMB_TRANS_READ_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
+class SMB_TRANS_READ_NMPIPE_Req(SMB_TRANS_RAW_READ_NMPIPE_Req):
     name="SMB Trans - TRANS_READ_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0036,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\")]
+    Subcommand = 0x0036
 
-class SMB_TRANS_READ_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
+class SMB_TRANS_READ_NMPIPE_Res(SMB_TRANS_TRANSACT_NMPIPE_Res):
     name="SMB Trans - TRANS_READ_NMPIPE - Response"
     _trans_code = (2,0x0036)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad2",None,padtype=2,padlen=1),
-                   StrLenField("ReadData","",
-                               length_from=lambda pkt:pkt.DataCount)]
 
 
-class SMB_TRANS_WRITE_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
+class SMB_TRANS_WRITE_NMPIPE_Req(SMB_TRANS_TRANSACT_NMPIPE_Req):
     name="SMB Trans - TRANS_WRITE_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0037,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
-                   SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   StrLenField("WriteData","",
-                               length_from=lambda pkt:pkt.DataCount)]
+    Subcommand = 0x0037
 
 class SMB_TRANS_WRITE_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_WRITE_NMPIPE - Response"
@@ -3841,17 +3594,9 @@ class SMB_TRANS_CALL_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
                    StrLenField("WriteData","",
                                length_from=lambda pkt:pkt.DataCount)]
 
-class SMB_TRANS_CALL_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
+class SMB_TRANS_CALL_NMPIPE_Res(SMB_TRANS_TRANSACT_NMPIPE_Res):
     name="SMB Trans - TRANS_CALL_NMPIPE - Response"
     _trans_code = (2,0x0054)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad2",None,padtype=2,padlen=1),
-                   StrLenField("ReadData","",
-                               length_from=lambda pkt:pkt.DataCount)]
 
 
 class SMB_TRANS_MAILSLOT_WRITE_Req(SMB_COM_TRANSACTION_Req):
@@ -4147,19 +3892,9 @@ class SMB_TRANS2_QUERY_FILE_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
                    LEShortField("FID",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_query_codes)]
 
-class SMB_TRANS2_QUERY_FILE_INFORMATION_Res(_SMBGuessPayload_INFO_QUERY,SMB_COM_TRANSACTION2_Res):
+class SMB_TRANS2_QUERY_FILE_INFORMATION_Res(SMB_TRANS2_QUERY_PATH_INFORMATION_Res):
     name="SMB Trans - TRANS2_QUERY_FILE_INFORMATION - Response"
     _trans_code = (1,0x0007)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
-                   ConditionalField(LEShortField("EaErrorOffset",0),
-                                    lambda pkt:pkt.ParameterCount > 0), #XXX: why is this missing sometimes?
-                   SMBUnicodePadField("Pad2",None,padtype=2,
-                                      padlen=lambda pkt:(pkt.getfieldlen("Pad1")+1)%2)]
 
 
 class SMB_TRANS2_SET_FILE_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
@@ -4179,18 +3914,9 @@ class SMB_TRANS2_SET_FILE_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
                    SMBUnicodePadField("Pad2",None,padtype=2,
                                       padlen=lambda pkt:pkt.getfieldlen("Pad1")%2)]
 
-class SMB_TRANS2_SET_FILE_INFORMATION_Res(SMB_COM_TRANSACTION2_Res):
+class SMB_TRANS2_SET_FILE_INFORMATION_Res(SMB_TRANS2_SET_PATH_INFORMATION_Res):
     name="SMB Trans - TRANS2_SET_FILE_INFORMATION - Response"
     _trans_code = (1,0x0008)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
-                   LEShortField("EaErrorOffset",0),
-                   SMBUnicodePadField("Pad2",None,padtype=2,
-                                      padlen=lambda pkt:pkt.getfieldlen("Pad1")%2)]
 
 
 class SMB_TRANS2_FIND_NOTIFY_FIRST_Req(SMB_COM_TRANSACTION2_Req): # obsolete (X/Open 2.0)
@@ -4644,31 +4370,17 @@ class SMB_QUERY_INFO_QUERY_EA_SIZE(_SMB_INFO,Packet):
                    LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
                    LEIntField("EaSize",0)]
 
-class SMB_QUERY_INFO_QUERY_EAS_FROM_LIST(_SMB_INFO,Packet):
+class SMB_QUERY_INFO_QUERY_EAS_FROM_LIST(SMB_SET_INFO_SET_EAS):
     name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EAS_FROM_LIST"
     _info_code = 0x0003
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
 
-class SMB_QUERY_INFO_QUERY_ALL_EAS(_SMB_INFO,Packet):
+class SMB_QUERY_INFO_QUERY_ALL_EAS(SMB_SET_INFO_SET_EAS):
     name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_ALL_EAS"
     _info_code = 0x0004
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
 
-class SMB_QUERY_FILE_BASIC_INFO(_SMB_INFO,Packet):
+class SMB_QUERY_FILE_BASIC_INFO(SMB_SET_FILE_BASIC_INFO):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_BASIC_INFO"
     _info_code = 0x0101
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   LEIntField("Reserved",0)]
 
 class SMB_QUERY_FILE_STANDARD_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_STANDARD_INFO"
@@ -4711,12 +4423,9 @@ class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
                    StrLenField("FileName","",codec="utf-16-le",
                                length_from=lambda pkt:pkt.FileNameLength)]
 
-class SMB_QUERY_FILE_ALT_NAME_INFO(_SMB_INFO,Packet):
+class SMB_QUERY_FILE_ALT_NAME_INFO(SMB_QUERY_FILE_NAME_INFO):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_ALT_NAME_INFO"
     _info_code = 0x0108
-    fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
 
 class SMB_QUERY_FILE_STREAM_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_STREAM_INFO"
