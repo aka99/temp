@@ -1180,6 +1180,19 @@ class _smb_fields_SMB_NMPIPE_STATUS(Packet):
                    BitEnumField("NMPipeStatus_NamedPipeType",0,2,smb_enum_NamedPipeType),
                    BitEnumField("NMPipeStatus_ReadMode",0,2,smb_enum_NamedPipeType)]
 
+class _smb_fields_SMB_FEA_LIST(Packet):
+    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
+                                 adjust=lambda pkt,x:x+4),
+                   PacketListField("FEAList",[],SMB_FEA,
+                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+
+class _smb_fields_SMB_GEA_LIST(Packet):
+    fields_desc = [ConditionalField(FieldLenField("SizeOfListInBytes",None,length_of="GEAList",fmt="<I",
+                                                  adjust=lambda pkt,x:x+4),
+                                    lambda pkt:pkt.InformationLevel == 0x0003),
+                   ConditionalField(FieldListField("GEAList",[],SMB_GEA_Field("GEA",""),
+                                                    length_from=lambda pkt:pkt.SizeOfListInBytes-4),
+                                    lambda pkt:pkt.InformationLevel == 0x0003)]
 
 class _smb_fields_AccessMode(Packet):
     fields_desc = [BitField("AccessMode_Reserved2",0,1),
@@ -1202,12 +1215,18 @@ class _smb_fields_OpenMode(Packet):
                    BitEnumField("OpenMode_FileExistsOpts",0,2,{0:"fail",1:"append",2:"trunc"}),
                    BitField("OpenMode_Reserved3",0,8)]
 
+class _smb_fields_OpenResults(Packet):
+    fields_desc = [BitField("OpenResults_Reserved1",0,6),
+                   BitEnumField("OpenResults_CreateFile",0,2,smb_enum_OpenResult),
+                   BitField("OpenResults_LockStatus",0,1),
+                   BitField("OpenResults_Reserved2",0,7)]
+
 class _smb_fields_AndX(Packet):
     fields_desc = [XByteEnumField("AndXCommand",0xFF,smb_command_codes),
                    ByteField("AndXReserved",0),
                    LEShortField("AndXOffset",None)]
 
-class _smb_fields_TRANS_Req_words(Packet):
+class _smb_fields_TRANS_Req_count_offset(Packet):
     fields_desc = [LEShortField("TotalParameterCount",None),
                    LEShortField("TotalDataCount",None),
                    LEShortField("MaxParameterCount",0),
@@ -1222,7 +1241,7 @@ class _smb_fields_TRANS_Req_words(Packet):
                    LEShortField("DataCount",None),
                    LEShortField("DataOffset",None)]
 
-class _smb_fields_TRANS_Res_words(Packet):
+class _smb_fields_TRANS_Res_count_offset(Packet):
     fields_desc = [LEShortField("TotalParameterCount",None),
                    LEShortField("TotalDataCount",None),
                    LEShortField("Reserved1",0),
@@ -1233,7 +1252,7 @@ class _smb_fields_TRANS_Res_words(Packet):
                    LEShortField("DataOffset",None),
                    LEShortField("DataDisplacement",0)]
 
-class _smb_fields_TRANS_SECONDARY_words(Packet):
+class _smb_fields_TRANS_SECONDARY_count_offset(Packet):
     fields_desc = [LEShortField("TotalParameterCount",None),
                    LEShortField("TotalDataCount",None),
                    LEShortField("ParameterCount",None),
@@ -1243,7 +1262,47 @@ class _smb_fields_TRANS_SECONDARY_words(Packet):
                    LEShortField("DataOffset",None),
                    LEShortField("DataDisplacement",0)]
 
-class _smb_fields_NT_TRANSACT_Req_words(Packet):
+class _smb_fields_TRANS_Req_HDR_with_fid(Packet):
+    fields_desc = [ByteField("WordCount",16),
+                   _smb_fields_TRANS_Req_count_offset,
+                   ByteField("SetupCount",2),
+                   ByteField("Reserved3",0),
+                   XLEShortEnumField("Subcommand",0xFFFF,smb_trans_codes),
+                   LEShortField("FID",0),
+                   LEShortField("ByteCount",None),
+                   SMBUnicodePadField("Pad",None,padlen=1),
+                   SMB_STRING_Field("Name","\\PIPE\\")]
+
+class _smb_fields_TRANS_Req_HDR_with_priority(Packet):
+    fields_desc = [ByteField("WordCount",16),
+                   _smb_fields_TRANS_Req_count_offset,
+                   ByteField("SetupCount",2),
+                   ByteField("Reserved3",0),
+                   XLEShortEnumField("Subcommand",0xFFFF,smb_trans_codes),
+                   LEShortField("Priority",0),
+                   LEShortField("ByteCount",None),
+                   SMBUnicodePadField("Pad",None,padlen=1),
+                   SMB_STRING_Field("Name","\\PIPE\\")]
+
+class _smb_fields_TRANS_Res_HDR(Packet):
+    fields_desc = [ByteField("WordCount",10),
+                   _smb_fields_TRANS_Res_count_offset,
+                   ByteField("SetupCount",0),
+                   ByteField("Reserved2",0),
+                   LEShortField("ByteCount",None)]
+
+class _smb_fields_TRANS2_Req_HDR(Packet):
+    fields_desc = [ByteField("WordCount",15),
+                   _smb_fields_TRANS_Req_count_offset,
+                   ByteField("SetupCount",1),
+                   ByteField("Reserved3",0),
+                   XLEShortEnumField("Setup",0xFFFF,smb_trans2_codes),
+                   LEShortField("ByteCount",None),
+                   SMBUnicodePadField("Pad",None,padlen=1),
+                   SMB_STRING_Field("Name",""),
+                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0)]
+
+class _smb_fields_NT_TRANSACT_Req_count_offset(Packet):
     fields_desc = [ByteField("MaxSetupCount",0),
                    LEShortField("Reserved1",0),
                    LEIntField("TotalParameterCount",None),
@@ -1255,7 +1314,7 @@ class _smb_fields_NT_TRANSACT_Req_words(Packet):
                    LEIntField("DataCount",None),
                    LEIntField("DataOffset",None)]
 
-class _smb_fields_NT_TRANSACT_Res_words(Packet):
+class _smb_fields_NT_TRANSACT_Res_count_offset(Packet):
     fields_desc = [BitField("Reserved1",0,8*3),
                    LEIntField("TotalParameterCount",None),
                    LEIntField("TotalDataCount",None),
@@ -1265,6 +1324,53 @@ class _smb_fields_NT_TRANSACT_Res_words(Packet):
                    LEIntField("DataCount",None),
                    LEIntField("DataOffset",None),
                    LEIntField("DataDisplacement",0)]
+
+class _smb_fields_NT_TRANSACT_Req_HDR_setup0(Packet):
+    fields_desc = [ByteField("WordCount",19),
+                   _smb_fields_NT_TRANSACT_Req_count_offset,
+                   ByteField("SetupCount",0),
+                   XLEShortEnumField("Function",0xFFFF,smb_nttrans_codes),
+                   LEShortField("ByteCount",None),
+                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1)]
+
+class _smb_fields_NT_TRANSACT_Req_HDR_setup4(Packet):
+    fields_desc = [ByteField("WordCount",23),
+                   _smb_fields_NT_TRANSACT_Req_count_offset,
+                   ByteField("SetupCount",4),
+                   XLEShortEnumField("Function",0xFFFF,smb_nttrans_codes)]
+
+class _smb_fields_NT_TRANSACT_Res_HDR(Packet):
+    fields_desc = [ByteField("WordCount",18),
+                   _smb_fields_NT_TRANSACT_Res_count_offset,
+                   ByteField("SetupCount",0),
+                   LEShortField("ByteCount",None)]
+
+class _smb_fields_date_time(Packet):
+    fields_desc = [SMB_DATE_Field("CreationDate",None),
+                   SMB_TIME_Field("CreationTime",None),
+                   SMB_DATE_Field("LastAccessDate",None),
+                   SMB_TIME_Field("LastAccessTime",None),
+                   SMB_DATE_Field("LastWriteDate",None),
+                   SMB_TIME_Field("LastWriteTime",None)]
+
+class _smb_fields_FILE_BASIC_INFO(Packet):
+    fields_desc = [FILETIME_Field("CreationTime",None),
+                   FILETIME_Field("LastAccessTime",None),
+                   FILETIME_Field("LastWriteTime",None),
+                   FILETIME_Field("ChangeTime",None),
+                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR)]
+
+class _smb_fields_FILE_DIRECTORY_INFO(Packet):
+    fields_desc = [LEIntField("NextEntryOffset",None),
+                   LEIntField("FileIndex",0),
+                   FILETIME_Field("CreationTime",None),
+                   FILETIME_Field("LastAccessTime",None),
+                   FILETIME_Field("LastWriteTime",None),
+                   FILETIME_Field("ChangeTime",None),
+                   LELongField("EndOfFile",0),
+                   LELongField("AllocationSize",0),
+                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I")]
 
 
 
@@ -2103,12 +2209,7 @@ class SMB_COM_SET_INFORMATION2_Req(SMB_COM):
     overload_fields = {SMB_Header:{"Command":0x22,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",7),
                    LEShortField("FID",0),
-                   SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
+                   _smb_fields_date_time,
                    LEShortField("ByteCount",0)]
 
 class SMB_COM_SET_INFORMATION2_Res(SMB_COM_Null):
@@ -2124,12 +2225,7 @@ class SMB_COM_QUERY_INFORMATION2_Res(SMB_COM):
     name="SMB Command - QUERY_INFORMATION2 - Response"
     overload_fields = {SMB_Header:{"Command":0x23,"Flags":0x80}}
     fields_desc = [ByteField("WordCount",11),
-                   SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
+                   _smb_fields_date_time,
                    LEIntField("FileDataSize",0),
                    LEIntField("FileAllocationSize",0),
                    LEFlagsField("FileAttributes",0,16,SMB_FILE_ATTRIBUTES),
@@ -2181,7 +2277,7 @@ class SMB_COM_TRANSACTION_Req(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0x25,"Flags":0x00}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+14),
-                   _smb_fields_TRANS_Req_words,
+                   _smb_fields_TRANS_Req_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    ByteField("Reserved3",0),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
@@ -2216,7 +2312,7 @@ class SMB_COM_TRANSACTION_Res(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0x25,"Flags":0x80}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+10),
-                   _smb_fields_TRANS_Res_words,
+                   _smb_fields_TRANS_Res_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    ByteField("Reserved2",0),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
@@ -2244,7 +2340,7 @@ class SMB_COM_TRANSACTION_SECONDARY_Req(SMB_TRANS):
     base_len = 19
     overload_fields = {SMB_Header:{"Command":0x26,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",8),
-                   _smb_fields_TRANS_SECONDARY_words,
+                   _smb_fields_TRANS_SECONDARY_count_offset,
                    LEShortField("ByteCount",None),
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    StrLenField("Trans_Parameters","",
@@ -2291,7 +2387,7 @@ class SMB_COM_IOCTL_Res(SMB_TRANS):
     base_len = 19
     overload_fields = {SMB_Header:{"Command":0x27,"Flags":0x80}}
     fields_desc = [ByteField("WordCount",8),
-                   _smb_fields_TRANS_SECONDARY_words,
+                   _smb_fields_TRANS_SECONDARY_count_offset,
                    LEShortField("ByteCount",None),
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    StrLenField("Parameters","",
@@ -2442,10 +2538,7 @@ class SMB_COM_OPEN_ANDX_Res(SMB_ANDX):
                    LEShortEnumField("GrantedAccess",0,smb_enum_GrantedAccess),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
                    _smb_fields_SMB_NMPIPE_STATUS,
-                   BitField("OpenResults_Reserved1",0,6),
-                   BitEnumField("OpenResults_CreateFile",0,2,smb_enum_OpenResult),
-                   BitField("OpenResults_LockStatus",0,1),
-                   BitField("OpenResults_Reserved2",0,7),
+                   _smb_fields_OpenResults,
                    BitField("Reserved",0,16*3),
                    LEShortField("ByteCount",0)]
 
@@ -2460,10 +2553,7 @@ class SMB_COM_OPEN_ANDX_ResExtend(SMB_COM_OPEN_ANDX_Res):
                    LEShortEnumField("GrantedAccess",0,smb_enum_GrantedAccess),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
                    _smb_fields_SMB_NMPIPE_STATUS,
-                   BitField("OpenResults_Reserved1",0,6),
-                   BitEnumField("OpenResults_CreateFile",0,2,smb_enum_OpenResult),
-                   BitField("OpenResults_LockStatus",0,1),
-                   BitField("OpenResults_Reserved2",0,7),
+                   _smb_fields_OpenResults,
                    LEIntField("ServerFID",0),
                    LEShortField("Reserved",0),
                    LEFlagsField("MaximalAccessRights",0,32,smb_flags_File_Pipe_Printer_Access_Mask),
@@ -2584,7 +2674,7 @@ class SMB_COM_TRANSACTION2_Req(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0x32,"Flags":0x00}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+14),
-                   _smb_fields_TRANS_Req_words,
+                   _smb_fields_TRANS_Req_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    ByteField("Reserved3",0),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
@@ -2620,7 +2710,7 @@ class SMB_COM_TRANSACTION2_Res(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0x32,"Flags":0x80}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+10),
-                   _smb_fields_TRANS_Res_words,
+                   _smb_fields_TRANS_Res_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    ByteField("Reserved2",0),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
@@ -2652,7 +2742,7 @@ class SMB_COM_TRANSACTION2_SECONDARY_Req(SMB_TRANS):
     base_len = 19
     overload_fields = {SMB_Header:{"Command":0x33,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",9),
-                   _smb_fields_TRANS_SECONDARY_words,
+                   _smb_fields_TRANS_SECONDARY_count_offset,
                    LEShortField("FID",0xFFFF),
                    LEShortField("ByteCount",None),
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
@@ -3141,7 +3231,7 @@ class SMB_COM_NT_TRANSACT_Req(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0xA0,"Flags":0x00}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+19),
-                   _smb_fields_NT_TRANSACT_Req_words,
+                   _smb_fields_NT_TRANSACT_Req_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    XLEShortEnumField("Function",0,smb_nttrans_codes),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
@@ -3166,7 +3256,7 @@ class SMB_COM_NT_TRANSACT_Res(SMB_TRANS):
     overload_fields = {SMB_Header:{"Command":0xA0,"Flags":0x80}}
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+18),
-                   _smb_fields_NT_TRANSACT_Res_words,
+                   _smb_fields_NT_TRANSACT_Res_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
                                   length_from=lambda pkt:(pkt.WordCount-18)*2),
@@ -3193,7 +3283,7 @@ class SMB_COM_NT_TRANSACT_SECONDARY_Req(SMB_TRANS):
     base_len = 39
     overload_fields = {SMB_Header:{"Command":0xA1,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
+                   _smb_fields_NT_TRANSACT_Res_count_offset,
                    ByteField("Reserved2",0),
                    LEShortField("ByteCount",None),
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
@@ -3236,11 +3326,7 @@ class SMB_COM_NT_CREATE_ANDX_Res(SMB_ANDX):
                    ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   _smb_fields_FILE_BASIC_INFO,
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
@@ -3255,11 +3341,7 @@ class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
                    ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   _smb_fields_FILE_BASIC_INFO,
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType)] +
@@ -3370,48 +3452,26 @@ class SMB_COM_GET_PRINT_QUEUE_Res(SMB_COM): # obsolete (Core)
 
 class SMB_TRANS_SET_NMPIPE_STATE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_SET_NMPIPE_STATE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0001,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
+    Subcommand = 0x0001
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_fid,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
                    LEFlagsField("PipeState",0,16,smb_flags_PipeState)]
 
 class SMB_TRANS_SET_NMPIPE_STATE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_SET_NMPIPE_STATE - Response"
     _trans_code = (2,0x0001)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None)]
+    fields_desc = [_smb_fields_TRANS_Res_HDR]
 
 
 class SMB_TRANS_RAW_READ_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_RAW_READ_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0011,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\")]
+    Subcommand = 0x0011
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_fid]
 
 class SMB_TRANS_RAW_READ_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_RAW_READ_NMPIPE - Response"
     _trans_code = (2,0x0011)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=1),
                    StrLenField("BytesRead","",
                                length_from=lambda pkt:pkt.DataCount)]
@@ -3424,37 +3484,22 @@ class SMB_TRANS_QUERY_NMPIPE_STATE_Req(SMB_TRANS_RAW_READ_NMPIPE_Req):
 class SMB_TRANS_QUERY_NMPIPE_STATE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_QUERY_NMPIPE_STATE - Response"
     _trans_code = (2,0x0021)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    _smb_fields_SMB_NMPIPE_STATUS]
 
 
 class SMB_TRANS_QUERY_NMPIPE_INFO_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_QUERY_NMPIPE_INFO - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0022,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
+    Subcommand = 0x0022
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_fid,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
                    LEShortField("Level",1)]
 
 class SMB_TRANS_QUERY_NMPIPE_INFO_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_QUERY_NMPIPE_INFO - Response"
     _trans_code = (2,0x0022)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=1), #XXX: pad here or before string?
                    LEShortField("OutputBufferSize",0),
                    LEShortField("InputBufferSize",0),
@@ -3471,11 +3516,7 @@ class SMB_TRANS_PEEK_NMPIPE_Req(SMB_TRANS_RAW_READ_NMPIPE_Req):
 class SMB_TRANS_PEEK_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_PEEK_NMPIPE - Response"
     _trans_code = (2,0x0023)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("ReadDataAvailable",0),
                    LEShortField("MessageBytesLength",0),
@@ -3489,15 +3530,8 @@ class SMB_TRANS_PEEK_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
 
 class SMB_TRANS_TRANSACT_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_TRANSACT_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0026,smb_trans_codes),
-                   LEShortField("FID",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
+    Subcommand = 0x0026
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_fid,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
                    StrLenField("WriteData","",
                                length_from=lambda pkt:pkt.DataCount)]
@@ -3506,11 +3540,7 @@ class SMB_TRANS_TRANSACT_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
 class SMB_TRANS_TRANSACT_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_TRANSACT_NMPIPE - Response"
     _trans_code = (2,0x0026)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=1),
                    StrLenField("ReadData","",
                                length_from=lambda pkt:pkt.DataCount)]
@@ -3523,11 +3553,7 @@ class SMB_TRANS_RAW_WRITE_NMPIPE_Req(SMB_TRANS_TRANSACT_NMPIPE_Req):
 class SMB_TRANS_RAW_WRITE_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_RAW_WRITE_NMPIPE - Response"
     _trans_code = (2,0x0031)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
                    LEShortField("BytesWritten",0)]
 
@@ -3548,48 +3574,26 @@ class SMB_TRANS_WRITE_NMPIPE_Req(SMB_TRANS_TRANSACT_NMPIPE_Req):
 class SMB_TRANS_WRITE_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_WRITE_NMPIPE - Response"
     _trans_code = (2,0x0037)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
                    LEShortField("BytesWritten",0)]
 
 
 class SMB_TRANS_WAIT_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_WAIT_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0053,smb_trans_codes),
-                   LEShortField("Priority",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\")]
+    Subcommand = 0x0053
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_priority]
 
 class SMB_TRANS_WAIT_NMPIPE_Res(SMB_COM_TRANSACTION_Res):
     name="SMB Trans - TRANS_WAIT_NMPIPE - Response"
     _trans_code = (2,0x0053)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None)] #TODO: verify fields
+    fields_desc = [_smb_fields_TRANS_Res_HDR] #TODO: verify fields
 
 
 class SMB_TRANS_CALL_NMPIPE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_CALL_NMPIPE - Request"
-    fields_desc = [ByteField("WordCount",16),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",2),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Subcommand",0x0054,smb_trans_codes),
-                   LEShortField("Priority",0),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name","\\PIPE\\"),
+    Subcommand = 0x0054
+    fields_desc = [_smb_fields_TRANS_Req_HDR_with_priority,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
                    StrLenField("WriteData","",
                                length_from=lambda pkt:pkt.DataCount)]
@@ -3602,7 +3606,7 @@ class SMB_TRANS_CALL_NMPIPE_Res(SMB_TRANS_TRANSACT_NMPIPE_Res):
 class SMB_TRANS_MAILSLOT_WRITE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_MAILSLOT_WRITE - Request"
     fields_desc = [ByteField("WordCount",17),
-                   _smb_fields_TRANS_Req_words,
+                   _smb_fields_TRANS_Req_count_offset,
                    ByteField("SetupCount",3),
                    ByteField("Reserved3",0),
                    XLEShortEnumField("MailSlotOpcode",0x0001,{0x0001:"TRANS_MAILSLOT_WRITE"}),
@@ -3622,15 +3626,8 @@ class SMB_TRANS_MAILSLOT_WRITE_Res(SMB_COM_TRANSACTION_Res):
 
 class SMB_TRANS2_OPEN2_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_OPEN2 - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0000,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0000
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEFlagsField("Param_Flags",0,16,smb_flags_TRANS2_OPEN2_Flags),
                    _smb_fields_AccessMode,
                    LEShortField("Param_Reserved1",0),
@@ -3641,19 +3638,12 @@ class SMB_TRANS2_OPEN2_Req(SMB_COM_TRANSACTION2_Req):
                    BitField("Param_Reserved",0,16*5),
                    SMB_STRING_Field("FileName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                               length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+                   _smb_fields_SMB_FEA_LIST]
 
 class SMB_TRANS2_OPEN2_Res(SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_OPEN2 - Response"
     _trans_code = (1,0x0000)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("FID",0),
                    LEFlagsField("FileAttributes",0,16,SMB_FILE_ATTRIBUTES),
@@ -3675,15 +3665,8 @@ class SMB_TRANS2_OPEN2_Res(SMB_COM_TRANSACTION2_Res):
 
 class SMB_TRANS2_FIND_FIRST2_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_FIND_FIRST2 - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0001,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0001
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEFlagsField("SearchAttributes",0,16,SMB_FILE_ATTRIBUTES_SEARCH),
                    LEShortField("SearchCount",0),
                    LEFlagsField("Param_Flags",0,16,smb_flags_TRANS2_FIND_Flags),
@@ -3692,21 +3675,12 @@ class SMB_TRANS2_FIND_FIRST2_Req(SMB_COM_TRANSACTION2_Req):
                                                                    0x00000040:"NON_DIRECTORY_FILE"}),
                    SMB_STRING_Field("FileName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   ConditionalField(FieldLenField("SizeOfListInBytes",None,length_of="GEAList",fmt="<I",
-                                                  adjust=lambda pkt,x:x+4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003),
-                   ConditionalField(FieldListField("GEAList",[],SMB_GEA_Field("GEA",""),
-                                                    length_from=lambda pkt:pkt.SizeOfListInBytes-4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003)]
+                   _smb_fields_SMB_GEA_LIST]
 
 class SMB_TRANS2_FIND_FIRST2_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_FIND_FIRST2 - Response"
     _trans_code = (1,0x0001)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("SID",0),
                    LEShortField("SearchCount",0),
@@ -3719,15 +3693,8 @@ class SMB_TRANS2_FIND_FIRST2_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2
 
 class SMB_TRANS2_FIND_NEXT2_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_FIND_NEXT2 - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0002,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0002
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("SID",0),
                    LEShortField("SearchCount",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_find_codes),
@@ -3735,21 +3702,12 @@ class SMB_TRANS2_FIND_NEXT2_Req(SMB_COM_TRANSACTION2_Req):
                    LEFlagsField("Param_Flags",0,16,smb_flags_TRANS2_FIND_Flags),
                    SMB_STRING_Field("FileName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   ConditionalField(FieldLenField("SizeOfListInBytes",None,length_of="GEAList",fmt="<I",
-                                                  adjust=lambda pkt,x:x+4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003),
-                   ConditionalField(FieldListField("GEAList",[],SMB_GEA_Field("GEA",""),
-                                                    length_from=lambda pkt:pkt.SizeOfListInBytes-4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003)]
+                   _smb_fields_SMB_GEA_LIST]
 
 class SMB_TRANS2_FIND_NEXT2_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_FIND_NEXT2 - Response"
     _trans_code = (1,0x0002)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("SearchCount",0),
                    LEShortField("EndOfSearch",0),
@@ -3761,39 +3719,21 @@ class SMB_TRANS2_FIND_NEXT2_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2_
 
 class SMB_TRANS2_QUERY_FS_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_QUERY_FS_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0003,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0003
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_queryfs_codes)]
 
 class SMB_TRANS2_QUERY_FS_INFORMATION_Res(_SMBGuessPayload_INFO_QUERYFS,SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_QUERY_FS_INFORMATION - Response"
     _trans_code = (1,0x0003)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=1)]
 
 
 class SMB_TRANS2_SET_FS_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_SET_FS_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0004,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0004
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("FID",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_set_codes),
                    SMBUnicodePadField("Pad2",None,padtype=2,
@@ -3804,43 +3744,23 @@ class SMB_TRANS2_SET_FS_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
 class SMB_TRANS2_SET_FS_INFORMATION_Res(SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_SET_FS_INFORMATION - Response"
     _trans_code = (1,0x0004)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None)]
+    fields_desc = [_smb_fields_TRANS_Res_HDR]
 
 
 class SMB_TRANS2_QUERY_PATH_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_QUERY_PATH_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0005,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0005
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_query_codes),
                    LEIntField("Param_Reserved",0),
                    SMB_STRING_Field("FileName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   ConditionalField(FieldLenField("SizeOfListInBytes",None,length_of="GEAList",fmt="<I",
-                                                  adjust=lambda pkt,x:x+4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003),
-                   ConditionalField(FieldListField("GEAList",[],SMB_GEA_Field("GEA",""),
-                                                    length_from=lambda pkt:pkt.SizeOfListInBytes-4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003)]
+                   _smb_fields_SMB_GEA_LIST]
 
 class SMB_TRANS2_QUERY_PATH_INFORMATION_Res(_SMBGuessPayload_INFO_QUERY,SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_QUERY_PATH_INFORMATION - Response"
     _trans_code = (1,0x0005)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    ConditionalField(LEShortField("EaErrorOffset",0),
                                     lambda pkt:pkt.ParameterCount > 0), #XXX: why is this missing sometimes?
@@ -3850,15 +3770,8 @@ class SMB_TRANS2_QUERY_PATH_INFORMATION_Res(_SMBGuessPayload_INFO_QUERY,SMB_COM_
 
 class SMB_TRANS2_SET_PATH_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_SET_PATH_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0006,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0006
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_set_codes),
                    LEIntField("Param_Reserved",0),
                    SMB_STRING_Field("FileName",""),
@@ -3867,11 +3780,7 @@ class SMB_TRANS2_SET_PATH_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
 class SMB_TRANS2_SET_PATH_INFORMATION_Res(SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_SET_PATH_INFORMATION - Response"
     _trans_code = (1,0x0006)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("EaErrorOffset",0),
                    SMBUnicodePadField("Pad2",None,padtype=2,
@@ -3880,15 +3789,8 @@ class SMB_TRANS2_SET_PATH_INFORMATION_Res(SMB_COM_TRANSACTION2_Res):
 
 class SMB_TRANS2_QUERY_FILE_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_QUERY_FILE_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0007,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0007
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("FID",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_query_codes)]
 
@@ -3899,15 +3801,8 @@ class SMB_TRANS2_QUERY_FILE_INFORMATION_Res(SMB_TRANS2_QUERY_PATH_INFORMATION_Re
 
 class SMB_TRANS2_SET_FILE_INFORMATION_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_SET_FILE_INFORMATION - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0008,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x0008
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("FID",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_set_codes),
                    LEShortField("Param_Reserved",0),
@@ -3921,36 +3816,20 @@ class SMB_TRANS2_SET_FILE_INFORMATION_Res(SMB_TRANS2_SET_PATH_INFORMATION_Res):
 
 class SMB_TRANS2_FIND_NOTIFY_FIRST_Req(SMB_COM_TRANSACTION2_Req): # obsolete (X/Open 2.0)
     name="SMB Trans - TRANS2_FIND_NOTIFY_FIRST - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x000B,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x000B
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEFlagsField("SearchAttributes",0,16,SMB_FILE_ATTRIBUTES_SEARCH),
                    LEShortField("ChangeCount",0),
                    XLEShortEnumField("InformationLevel",0x0001,smb_info_find_codes),
                    LEIntField("Param_Reserved",0),
                    SMB_STRING_Field("PathSpec",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   ConditionalField(FieldLenField("SizeOfListInBytes",None,length_of="GEAList",fmt="<I",
-                                                  adjust=lambda pkt,x:x+4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003),
-                   ConditionalField(FieldListField("GEAList",[],SMB_GEA_Field("GEA",""),
-                                                    length_from=lambda pkt:pkt.SizeOfListInBytes-4),
-                                    lambda pkt:pkt.InformationLevel == 0x0003)]
+                   _smb_fields_SMB_GEA_LIST]
 
 class SMB_TRANS2_FIND_NOTIFY_FIRST_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2_Res): # obsolete (X/Open 2.0)
     name="SMB Trans - TRANS2_FIND_NOTIFY_FIRST - Response"
     _trans_code = (1,0x000B)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("SID",0),
                    LEShortField("ChangeCount",0),
@@ -3961,15 +3840,8 @@ class SMB_TRANS2_FIND_NOTIFY_FIRST_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSA
 
 class SMB_TRANS2_FIND_NOTIFY_NEXT_Req(SMB_COM_TRANSACTION2_Req): # obsolete (X/Open 2.0)
     name="SMB Trans - TRANS2_FIND_NOTIFY_NEXT - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x000C,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x000C
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("SID",0),
                    LEShortField("ChangeCount",0),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
@@ -3979,11 +3851,7 @@ class SMB_TRANS2_FIND_NOTIFY_NEXT_Req(SMB_COM_TRANSACTION2_Req): # obsolete (X/O
 class SMB_TRANS2_FIND_NOTIFY_NEXT_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSACTION2_Res): # obsolete (X/Open 2.0)
     name="SMB Trans - TRANS2_FIND_NOTIFY_NEXT - Response"
     _trans_code = (1,0x000C)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("ChangeCount",0),
                    LEShortField("EaErrorOffset",0),
@@ -3993,58 +3861,33 @@ class SMB_TRANS2_FIND_NOTIFY_NEXT_Res(_SMBGuessPayload_INFO_FIND,SMB_COM_TRANSAC
 
 class SMB_TRANS2_CREATE_DIRECTORY_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_CREATE_DIRECTORY - Request"
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x000D,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+    Setup = 0x000D
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEIntField("Param_Reserved",0),
                    SMB_STRING_Field("DirectoryName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                               length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+                   _smb_fields_SMB_FEA_LIST]
 
 class SMB_TRANS2_CREATE_DIRECTORY_Res(SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_CREATE_DIRECTORY - Response"
     _trans_code = (1,0x000D)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0),
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    LEShortField("EaErrorOffset",0)]
 
 
 class SMB_TRANS2_GET_DFS_REFERRAL_Req(SMB_COM_TRANSACTION2_Req):
     name="SMB Trans - TRANS2_GET_DFS_REFERRAL - Request"
-    overload_fields = {SMB_Header:{"Command":0x32,"Flags":0x00,"Flags2":0x8000}}
-    fields_desc = [ByteField("WordCount",15),
-                   _smb_fields_TRANS_Req_words,
-                   ByteField("SetupCount",1),
-                   ByteField("Reserved3",0),
-                   XLEShortEnumField("Setup",0x0010,smb_trans2_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad",None,padlen=1),
-                   SMB_STRING_Field("Name",""),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=0),
+#    overload_fields = {SMB_Header:{"Command":0x32,"Flags":0x00,"Flags2":0x8000}}
+    Setup = 0x0010
+    fields_desc = [_smb_fields_TRANS2_Req_HDR,
                    LEShortField("MaxReferralLevel",1),
                    SMB_STRING_Field("RequestFileName","")]
 
 class SMB_TRANS2_GET_DFS_REFERRAL_Res(SMB_COM_TRANSACTION2_Res):
     name="SMB Trans - TRANS2_GET_DFS_REFERRAL - Response"
     _trans_code = (1,0x0010)
-    fields_desc = [ByteField("WordCount",10),
-                   _smb_fields_TRANS_Res_words,
-                   ByteField("SetupCount",0), #XXX: verify this
-                   ByteField("Reserved2",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_TRANS_Res_HDR, #XXX: verify setup count
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=1),
                    StrLenField("Trans2_Data","", #TODO: RESP_GET_DFS_REFERRAL format
                                length_from=lambda pkt:pkt.DataCount)]
@@ -4052,12 +3895,8 @@ class SMB_TRANS2_GET_DFS_REFERRAL_Res(SMB_COM_TRANSACTION2_Res):
 
 class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_CREATE - Request"
-    fields_desc = [ByteField("WordCount",19),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",0),
-                   XLEShortEnumField("Function",0x0001,smb_nttrans_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
+    Function = 0x0001
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEFlagsField("Flags",0,32,smb_flags_NT_CREATE_Flags),
                    LEIntField("RootDirectoryFID",0),
                    LEFlagsField("DesiredAccess",0,32,smb_flags_DesiredAccess),
@@ -4085,10 +3924,7 @@ class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_CREATE_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_CREATE - Response"
     _trans_code = (0,0x0001)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    ByteField("Param_Reserved",0),
@@ -4096,11 +3932,7 @@ class SMB_NT_TRANSACT_CREATE_Res(SMB_COM_NT_TRANSACT_Res):
                    LEIntEnumField("CreateAction",0,{0:"SUPERSEDE",1:"OPEN",
                                                     2:"CREATE",3:"OVERWRITE"}),
                    LEIntField("EAErrorOffset",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   _smb_fields_FILE_BASIC_INFO,
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
@@ -4110,10 +3942,8 @@ class SMB_NT_TRANSACT_CREATE_Res(SMB_COM_NT_TRANSACT_Res):
 
 class SMB_NT_TRANSACT_IOCTL_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_IOCTL - Request"
-    fields_desc = [ByteField("WordCount",23),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",4),
-                   XLEShortEnumField("Function",0x0002,smb_nttrans_codes),
+    Function = 0x0002
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup4,
                    XLEIntEnumField("FunctionCode",0,fsctl_codes),
                    LEShortField("FID",0),
                    ByteEnumField("IsFctl",0,smb_enum_BOOLEAN),
@@ -4128,7 +3958,7 @@ class SMB_NT_TRANSACT_IOCTL_Res(SMB_COM_NT_TRANSACT_Res):
     _trans_code = (0,0x0002)
     fields_desc = [FieldLenField("WordCount",None,length_of="Setup",fmt="B",
                                  adjust=lambda pkt,x:x/2+18),
-                   _smb_fields_NT_TRANSACT_Res_words,
+                   _smb_fields_NT_TRANSACT_Res_count_offset,
                    FieldLenField("SetupCount",None,count_of="Setup",fmt="B"),
                    FieldListField("Setup",[],LEShortField("setup_word",0),
                                   length_from=lambda pkt:(pkt.WordCount-18)*2),
@@ -4140,12 +3970,8 @@ class SMB_NT_TRANSACT_IOCTL_Res(SMB_COM_NT_TRANSACT_Res):
 
 class SMB_NT_TRANSACT_SET_SECURITY_DESC_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_SET_SECURITY_DESC - Request"
-    fields_desc = [ByteField("WordCount",19),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",0),
-                   XLEShortEnumField("Function",0x0003,smb_nttrans_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
+    Function = 0x0003
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEShortField("FID",0),
                    LEShortField("Param_Reserved",0),
                    LEFlagsField("SecurityInformation",0,32,smb_flags_SecurityInformation),
@@ -4157,18 +3983,13 @@ class SMB_NT_TRANSACT_SET_SECURITY_DESC_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_SET_SECURITY_DESC_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_SET_SECURITY_DESC - Response"
     _trans_code = (0,0x0003)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None)]
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR]
 
 
 class SMB_NT_TRANSACT_NOTIFY_CHANGE_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_NOTIFY_CHANGE - Request"
-    fields_desc = [ByteField("WordCount",23),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",4),
-                   XLEShortEnumField("Function",0x0004,smb_nttrans_codes),
+    Function = 0x0004
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup4,
                    LEFlagsField("CompletionFilter",0,32,smb_flags_CompletionFilter),
                    LEShortField("FID",0),
                    ByteEnumField("WatchTree",0,smb_enum_BOOLEAN),
@@ -4178,10 +3999,7 @@ class SMB_NT_TRANSACT_NOTIFY_CHANGE_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_NOTIFY_CHANGE_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_NOTIFY_CHANGE - Response"
     _trans_code = (0,0x0004)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    PacketListField("FileNotifyInformation",[],SMB_FILE_NOTIFY_INFORMATION,
                                length_from=lambda pkt:pkt.DataCount)]
@@ -4189,12 +4007,8 @@ class SMB_NT_TRANSACT_NOTIFY_CHANGE_Res(SMB_COM_NT_TRANSACT_Res):
 
 class SMB_NT_TRANSACT_QUERY_SECURITY_DESC_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_QUERY_SECURITY_DESC - Request"
-    fields_desc = [ByteField("WordCount",19),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",0),
-                   XLEShortEnumField("Function",0x0006,smb_nttrans_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
+    Function = 0x0006
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEShortField("FID",0),
                    LEShortField("Param_Reserved",0),
                    LEFlagsField("SecurityInformation",0,32,smb_flags_SecurityInformation)]
@@ -4202,10 +4016,7 @@ class SMB_NT_TRANSACT_QUERY_SECURITY_DESC_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_QUERY_SECURITY_DESC_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_QUERY_SECURITY_DESC - Response"
     _trans_code = (0,0x0006)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR,
                    ConditionalField(SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                                     lambda pkt:pkt.ParameterCount >= 4),
                    ConditionalField(FieldLenField("SecurityDescriptorLength",None,length_of="SecurityDescriptor",fmt="<I"),
@@ -4218,12 +4029,8 @@ class SMB_NT_TRANSACT_QUERY_SECURITY_DESC_Res(SMB_COM_NT_TRANSACT_Res):
 
 class SMB_NT_TRANSACT_QUERY_QUOTA_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_QUERY_QUOTA - Request"
-    fields_desc = [ByteField("WordCount",19),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",0),
-                   XLEShortEnumField("Function",0x0007,smb_nttrans_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
+    Function = 0x0007
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEShortField("FID",0),
                    ByteEnumField("ReturnSingleEntry",0,smb_enum_BOOLEAN),
                    ByteEnumField("RestartScan",0,smb_enum_BOOLEAN),
@@ -4238,10 +4045,7 @@ class SMB_NT_TRANSACT_QUERY_QUOTA_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_QUERY_QUOTA_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_QUERY_QUOTA - Response"
     _trans_code = (0,0x0007)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None),
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR,
                    SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
                    FieldLenField("DataLength",None,length_of="QuotaInformation",fmt="<I"),
                    SMBUnicodePadField("Pad2",None,padtype=2,
@@ -4252,12 +4056,8 @@ class SMB_NT_TRANSACT_QUERY_QUOTA_Res(SMB_COM_NT_TRANSACT_Res):
 
 class SMB_NT_TRANSACT_SET_QUOTA_Req(SMB_COM_NT_TRANSACT_Req):
     name="SMB Trans - NT_TRANSACT_SET_QUOTA - Request"
-    fields_desc = [ByteField("WordCount",19),
-                   _smb_fields_NT_TRANSACT_Req_words,
-                   ByteField("SetupCount",0),
-                   XLEShortEnumField("Function",0x0008,smb_nttrans_codes),
-                   LEShortField("ByteCount",None),
-                   SMBUnicodePadField("Pad1",None,padtype=1,padlen=1),
+    Function = 0x0008
+    fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEShortField("FID",0),
                    SMBUnicodePadField("Pad2",None,padtype=2,
                                       padlen=lambda pkt:(pkt.getfieldlen("Pad1")+1)%2),
@@ -4267,10 +4067,7 @@ class SMB_NT_TRANSACT_SET_QUOTA_Req(SMB_COM_NT_TRANSACT_Req):
 class SMB_NT_TRANSACT_SET_QUOTA_Res(SMB_COM_NT_TRANSACT_Res):
     name="SMB Trans - NT_TRANSACT_SET_QUOTA - Response"
     _trans_code = (0,0x0008)
-    fields_desc = [ByteField("WordCount",18),
-                   _smb_fields_NT_TRANSACT_Res_words,
-                   ByteField("SetupCount",0),
-                   LEShortField("ByteCount",None)]
+    fields_desc = [_smb_fields_NT_TRANSACT_Res_HDR]
 
 
 class SMB_NT_TRANSACT_CREATE2_Req(SMB_NT_TRANSACT_CREATE_Req):
@@ -4305,29 +4102,17 @@ class _SMB_INFO:
 
 class SMB_SET_INFO_STANDARD(_SMB_INFO,Packet):
     name="SMB Info (SET) - SMB_INFO_STANDARD"
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
+    fields_desc = [_smb_fields_date_time,
                    BitField("Reserved",0,8*10)]
 #XXX: smbtorture missing Reserved bytes
 
 class SMB_SET_INFO_SET_EAS(_SMB_INFO,Packet):
     name="SMB Info (SET) - SMB_INFO_SET_EAS"
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+    fields_desc = [_smb_fields_SMB_FEA_LIST]
 
 class SMB_SET_FILE_BASIC_INFO(_SMB_INFO,Packet):
     name="SMB Info (SET) - SMB_SET_FILE_BASIC_INFO"
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+    fields_desc = [_smb_fields_FILE_BASIC_INFO,
                    LEIntField("Reserved",0)]
 
 class SMB_SET_FILE_DISPOSITION_INFO(_SMB_INFO,Packet):
@@ -4346,12 +4131,7 @@ class SMB_SET_FILE_END_OF_FILE_INFO(_SMB_INFO,Packet):
 class SMB_QUERY_INFO_STANDARD(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_INFO_STANDARD"
     _info_code = 0x0001
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
+    fields_desc = [_smb_fields_date_time,
                    LEIntField("FileDataSize",0),
                    LEIntField("AllocationSize",0),
                    LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES)]
@@ -4359,15 +4139,7 @@ class SMB_QUERY_INFO_STANDARD(_SMB_INFO,Packet):
 class SMB_QUERY_INFO_QUERY_EA_SIZE(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EA_SIZE"
     _info_code = 0x0002
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
+    fields_desc = [SMB_QUERY_INFO_STANDARD,
                    LEIntField("EaSize",0)]
 
 class SMB_QUERY_INFO_QUERY_EAS_FROM_LIST(SMB_SET_INFO_SET_EAS):
@@ -4406,17 +4178,9 @@ class SMB_QUERY_FILE_NAME_INFO(_SMB_INFO,Packet):
 class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_ALL_INFO"
     _info_code = 0x0107
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+    fields_desc = [_smb_fields_FILE_BASIC_INFO,
                    LEIntField("Reserved1",0),
-                   LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
-                   LEIntField("NumberOfLinks",0),
-                   ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
-                   ByteEnumField("Directory",0,smb_enum_BOOLEAN),
+                   SMB_QUERY_FILE_STANDARD_INFO,
                    LEShortField("Reserved2",0),
                    LEIntField("EaSize",0),
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
@@ -4451,15 +4215,7 @@ class SMB_QUERY_FILE_COMPRESSION_INFO(_SMB_INFO,Packet):
 class SMB_FIND_INFO_STANDARD(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_INFO_STANDARD"
     _info_code = 0x0001
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
+    fields_desc = [SMB_QUERY_INFO_STANDARD,
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="B"),
                    SMBUnicodePadField("Pad",None,padlen=1),
                    SMB_UCHAR_LenField("FileName","",
@@ -4478,15 +4234,7 @@ class SMB_FIND_INFO_STANDARD_Resume(SMB_FIND_INFO_STANDARD): #XXX: not detected
 class SMB_FIND_INFO_QUERY_EA_SIZE(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_INFO_QUERY_EA_SIZE"
     _info_code = 0x0002
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
+    fields_desc = [SMB_QUERY_INFO_STANDARD,
                    LEIntField("EaSize",0),
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="B"),
                    SMBUnicodePadField("Pad",None,padlen=1),
@@ -4507,19 +4255,8 @@ class SMB_FIND_INFO_QUERY_EA_SIZE_Resume(SMB_FIND_INFO_QUERY_EA_SIZE): #XXX: not
 class SMB_FIND_INFO_QUERY_EAS_FROM_LIST(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_INFO_QUERY_EAS_FROM_LIST"
     _info_code = 0x0003
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
-                   FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4),
+    fields_desc = [SMB_QUERY_INFO_STANDARD,
+                   _smb_fields_SMB_FEA_LIST,
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="B"), #XXX: Windows NT sets this wrong
                    SMBUnicodePadField("Pad",None,
                                       padlen=lambda pkt:(pkt.getfieldlen("FEAList")+1) % 2),
@@ -4539,16 +4276,7 @@ class SMB_FIND_INFO_QUERY_EAS_FROM_LIST_Resume(SMB_FIND_INFO_QUERY_EAS_FROM_LIST
 class SMB_FIND_FILE_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_DIRECTORY_INFO"
     _info_code = 0x0101
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   LEIntField("FileIndex",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+    fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    SMB_UCHAR_LenField("FileName","",
                                       length_from=lambda pkt:pkt.FileNameLength),
                    StrLenField("Pad","",
@@ -4557,16 +4285,7 @@ class SMB_FIND_FILE_DIRECTORY_INFO(_SMB_INFO,Packet):
 class SMB_FIND_FILE_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_FULL_DIRECTORY_INFO"
     _info_code = 0x0102
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   LEIntField("FileIndex",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+    fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    LEIntField("EaSize",0),
                    SMB_UCHAR_LenField("FileName","",
                                       length_from=lambda pkt:pkt.FileNameLength),
@@ -4587,16 +4306,7 @@ class SMB_FIND_FILE_NAMES_INFO(_SMB_INFO,Packet):
 class SMB_FIND_FILE_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_BOTH_DIRECTORY_INFO"
     _info_code = 0x0104
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   LEIntField("FileIndex",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+    fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    LEIntField("EaSize",0),
                    FieldLenField("ShortNameLength",None,length_of="ShortName",fmt="B"),
                    ByteField("Reserved",0),
@@ -4609,16 +4319,7 @@ class SMB_FIND_FILE_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
 class SMB_FIND_FILE_ID_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_ID_FULL_DIRECTORY_INFO"
     _info_code = 0x0105
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   LEIntField("FileIndex",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+    fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    LEIntField("EaSize",0),
                    LELongField("FileID",0),
                    SMB_UCHAR_LenField("FileName","",
@@ -4630,16 +4331,7 @@ class SMB_FIND_FILE_ID_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
 class SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO"
     _info_code = 0x0106
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   LEIntField("FileIndex",0),
-                   FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+    fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    LEIntField("EaSize",0),
                    FieldLenField("ShortNameLength",None,length_of="ShortName",fmt="B"),
                    ByteField("Reserved",0),
