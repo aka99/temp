@@ -4575,6 +4575,168 @@ class _SMB_INFO:
         return None
 
 
+class SMB_SET_INFO_STANDARD(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_INFO_STANDARD"
+    fields_desc = [SMB_DATE_Field("CreationDate",None),
+                   SMB_TIME_Field("CreationTime",None),
+                   SMB_DATE_Field("LastAccessDate",None),
+                   SMB_TIME_Field("LastAccessTime",None),
+                   SMB_DATE_Field("LastWriteDate",None),
+                   SMB_TIME_Field("LastWriteTime",None),
+                   BitField("Reserved",0,8*10)]
+#XXX: smbtorture missing Reserved bytes
+
+class SMB_SET_INFO_SET_EAS(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_INFO_SET_EAS"
+    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
+                                 adjust=lambda pkt,x:x+4),
+                   PacketListField("FEAList",[],SMB_FEA,
+                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+
+class SMB_SET_FILE_BASIC_INFO(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_SET_FILE_BASIC_INFO"
+    fields_desc = [FILETIME_Field("CreationTime",None),
+                   FILETIME_Field("LastAccessTime",None),
+                   FILETIME_Field("LastWriteTime",None),
+                   FILETIME_Field("ChangeTime",None),
+                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   LEIntField("Reserved",0)]
+
+class SMB_SET_FILE_DISPOSITION_INFO(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_SET_FILE_DISPOSITION_INFO"
+    fields_desc = [ByteEnumField("DeletePending",0,smb_enum_BOOLEAN)]
+
+class SMB_SET_FILE_ALLOCATION_INFO(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_SET_FILE_ALLOCATION_INFO"
+    fields_desc = [LESignedLongField("AllocationSize",0)]
+
+class SMB_SET_FILE_END_OF_FILE_INFO(_SMB_INFO,Packet):
+    name="SMB Info (SET) - SMB_SET_FILE_END_OF_FILE_INFO"
+    fields_desc = [LESignedLongField("EndOfFile",0)]
+
+
+class SMB_QUERY_INFO_STANDARD(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_INFO_STANDARD"
+    _info_code = 0x0001
+    fields_desc = [SMB_DATE_Field("CreationDate",None),
+                   SMB_TIME_Field("CreationTime",None),
+                   SMB_DATE_Field("LastAccessDate",None),
+                   SMB_TIME_Field("LastAccessTime",None),
+                   SMB_DATE_Field("LastWriteDate",None),
+                   SMB_TIME_Field("LastWriteTime",None),
+                   LEIntField("FileDataSize",0),
+                   LEIntField("AllocationSize",0),
+                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES)]
+
+class SMB_QUERY_INFO_QUERY_EA_SIZE(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EA_SIZE"
+    _info_code = 0x0002
+    fields_desc = [SMB_DATE_Field("CreationDate",None),
+                   SMB_TIME_Field("CreationTime",None),
+                   SMB_DATE_Field("LastAccessDate",None),
+                   SMB_TIME_Field("LastAccessTime",None),
+                   SMB_DATE_Field("LastWriteDate",None),
+                   SMB_TIME_Field("LastWriteTime",None),
+                   LEIntField("FileDataSize",0),
+                   LEIntField("AllocationSize",0),
+                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
+                   LEIntField("EaSize",0)]
+
+class SMB_QUERY_INFO_QUERY_EAS_FROM_LIST(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EAS_FROM_LIST"
+    _info_code = 0x0003
+    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
+                                 adjust=lambda pkt,x:x+4),
+                   PacketListField("FEAList",[],SMB_FEA,
+                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+
+class SMB_QUERY_INFO_QUERY_ALL_EAS(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_ALL_EAS"
+    _info_code = 0x0004
+    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
+                                 adjust=lambda pkt,x:x+4),
+                   PacketListField("FEAList",[],SMB_FEA,
+                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
+
+class SMB_QUERY_FILE_BASIC_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_BASIC_INFO"
+    _info_code = 0x0101
+    fields_desc = [FILETIME_Field("CreationTime",None),
+                   FILETIME_Field("LastAccessTime",None),
+                   FILETIME_Field("LastWriteTime",None),
+                   FILETIME_Field("ChangeTime",None),
+                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   LEIntField("Reserved",0)]
+
+class SMB_QUERY_FILE_STANDARD_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_STANDARD_INFO"
+    _info_code = 0x0102
+    fields_desc = [LELongField("AllocationSize",0),
+                   LELongField("EndOfFile",0),
+                   LEIntField("NumberOfLinks",0),
+                   ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
+                   ByteEnumField("Directory",0,smb_enum_BOOLEAN)]
+
+class SMB_QUERY_FILE_EA_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_EA_INFO"
+    _info_code = 0x0103
+    fields_desc = [LEIntField("EaSize",0)]
+
+class SMB_QUERY_FILE_NAME_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_NAME_INFO"
+    _info_code = 0x0104
+    fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+                   StrLenField("FileName","",codec="utf-16-le",
+                               length_from=lambda pkt:pkt.FileNameLength)]
+
+class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_ALL_INFO"
+    _info_code = 0x0107
+    fields_desc = [FILETIME_Field("CreationTime",None),
+                   FILETIME_Field("LastAccessTime",None),
+                   FILETIME_Field("LastWriteTime",None),
+                   FILETIME_Field("ChangeTime",None),
+                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
+                   LEIntField("Reserved1",0),
+                   LELongField("AllocationSize",0),
+                   LELongField("EndOfFile",0),
+                   LEIntField("NumberOfLinks",0),
+                   ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
+                   ByteEnumField("Directory",0,smb_enum_BOOLEAN),
+                   LEShortField("Reserved2",0),
+                   LEIntField("EaSize",0),
+                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+                   StrLenField("FileName","",codec="utf-16-le",
+                               length_from=lambda pkt:pkt.FileNameLength)]
+
+class SMB_QUERY_FILE_ALT_NAME_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_ALT_NAME_INFO"
+    _info_code = 0x0108
+    fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
+                   StrLenField("FileName","",codec="utf-16-le",
+                               length_from=lambda pkt:pkt.FileNameLength)]
+
+class SMB_QUERY_FILE_STREAM_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_STREAM_INFO"
+    _info_code = 0x0109
+    fields_desc = [LEIntField("NextEntryOffset",None),
+                   FieldLenField("StreamNameLength",None,length_of="StreamName",fmt="<I"),
+                   LELongField("StreamSize",0),
+                   LELongField("StreamAllocationSize",0),
+                   StrLenField("StreamName","",codec="utf-16-le",
+                               length_from=lambda pkt:pkt.StreamNameLength)]
+
+class SMB_QUERY_FILE_COMPRESSION_INFO(_SMB_INFO,Packet):
+    name="SMB Info (QUERY) - SMB_QUERY_FILE_COMPRESSION_INFO"
+    _info_code = 0x010B
+    fields_desc = [LELongField("CompressedFileSize",0),
+                   LEShortEnumField("CompressionFormat",0,{0:"NONE",1:"DEFAULT",2:"LZNT1"}),
+                   ByteField("CompressionUnitShift",0),
+                   ByteField("ChunkShift",0),
+                   ByteField("ClusterShift",0),
+                   BitField("Reserved",0,8*3)]
+
+
 class SMB_FIND_INFO_STANDARD(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_INFO_STANDARD"
     _info_code = 0x0001
@@ -4828,168 +4990,6 @@ class SMB_QUERY_FS_ATTRIBUTE_INFO(_SMB_INFO,Packet):
                    FieldLenField("LengthOfFileSystemName",None,length_of="FileSystemName",fmt="<I"),
                    StrLenField("FileSystemName","",codec="utf-16-le",
                                length_from=lambda pkt:pkt.LengthOfFileSystemName)]
-
-
-class SMB_QUERY_INFO_STANDARD(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_INFO_STANDARD"
-    _info_code = 0x0001
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES)]
-
-class SMB_QUERY_INFO_QUERY_EA_SIZE(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EA_SIZE"
-    _info_code = 0x0002
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   LEIntField("FileDataSize",0),
-                   LEIntField("AllocationSize",0),
-                   LEFlagsField("Attributes",0,16,SMB_FILE_ATTRIBUTES),
-                   LEIntField("EaSize",0)]
-
-class SMB_QUERY_INFO_QUERY_EAS_FROM_LIST(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_EAS_FROM_LIST"
-    _info_code = 0x0003
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
-
-class SMB_QUERY_INFO_QUERY_ALL_EAS(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_INFO_QUERY_ALL_EAS"
-    _info_code = 0x0004
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
-
-class SMB_QUERY_FILE_BASIC_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_BASIC_INFO"
-    _info_code = 0x0101
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   LEIntField("Reserved",0)]
-
-class SMB_QUERY_FILE_STANDARD_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_STANDARD_INFO"
-    _info_code = 0x0102
-    fields_desc = [LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
-                   LEIntField("NumberOfLinks",0),
-                   ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
-                   ByteEnumField("Directory",0,smb_enum_BOOLEAN)]
-
-class SMB_QUERY_FILE_EA_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_EA_INFO"
-    _info_code = 0x0103
-    fields_desc = [LEIntField("EaSize",0)]
-
-class SMB_QUERY_FILE_NAME_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_NAME_INFO"
-    _info_code = 0x0104
-    fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
-
-class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_ALL_INFO"
-    _info_code = 0x0107
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   LEIntField("Reserved1",0),
-                   LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
-                   LEIntField("NumberOfLinks",0),
-                   ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
-                   ByteEnumField("Directory",0,smb_enum_BOOLEAN),
-                   LEShortField("Reserved2",0),
-                   LEIntField("EaSize",0),
-                   FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
-
-class SMB_QUERY_FILE_ALT_NAME_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_ALT_NAME_INFO"
-    _info_code = 0x0108
-    fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
-
-class SMB_QUERY_FILE_STREAM_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_STREAM_INFO"
-    _info_code = 0x0109
-    fields_desc = [LEIntField("NextEntryOffset",None),
-                   FieldLenField("StreamNameLength",None,length_of="StreamName",fmt="<I"),
-                   LELongField("StreamSize",0),
-                   LELongField("StreamAllocationSize",0),
-                   StrLenField("StreamName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.StreamNameLength)]
-
-class SMB_QUERY_FILE_COMPRESSION_INFO(_SMB_INFO,Packet):
-    name="SMB Info (QUERY) - SMB_QUERY_FILE_COMPRESSION_INFO"
-    _info_code = 0x010B
-    fields_desc = [LELongField("CompressedFileSize",0),
-                   LEShortEnumField("CompressionFormat",0,{0:"NONE",1:"DEFAULT",2:"LZNT1"}),
-                   ByteField("CompressionUnitShift",0),
-                   ByteField("ChunkShift",0),
-                   ByteField("ClusterShift",0),
-                   BitField("Reserved",0,8*3)]
-
-
-class SMB_SET_INFO_STANDARD(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_INFO_STANDARD"
-    fields_desc = [SMB_DATE_Field("CreationDate",None),
-                   SMB_TIME_Field("CreationTime",None),
-                   SMB_DATE_Field("LastAccessDate",None),
-                   SMB_TIME_Field("LastAccessTime",None),
-                   SMB_DATE_Field("LastWriteDate",None),
-                   SMB_TIME_Field("LastWriteTime",None),
-                   BitField("Reserved",0,8*10)]
-#XXX: smbtorture missing Reserved bytes
-
-class SMB_SET_INFO_SET_EAS(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_INFO_SET_EAS"
-    fields_desc = [FieldLenField("SizeOfListInBytes",None,length_of="FEAList",fmt="<I",
-                                 adjust=lambda pkt,x:x+4),
-                   PacketListField("FEAList",[],SMB_FEA,
-                                   length_from=lambda pkt:pkt.SizeOfListInBytes-4)]
-
-class SMB_SET_FILE_BASIC_INFO(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_SET_FILE_BASIC_INFO"
-    fields_desc = [FILETIME_Field("CreationTime",None),
-                   FILETIME_Field("LastAccessTime",None),
-                   FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("ChangeTime",None),
-                   LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
-                   LEIntField("Reserved",0)]
-
-class SMB_SET_FILE_DISPOSITION_INFO(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_SET_FILE_DISPOSITION_INFO"
-    fields_desc = [ByteEnumField("DeletePending",0,smb_enum_BOOLEAN)]
-
-class SMB_SET_FILE_ALLOCATION_INFO(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_SET_FILE_ALLOCATION_INFO"
-    fields_desc = [LESignedLongField("AllocationSize",0)]
-
-class SMB_SET_FILE_END_OF_FILE_INFO(_SMB_INFO,Packet):
-    name="SMB Info (SET) - SMB_SET_FILE_END_OF_FILE_INFO"
-    fields_desc = [LESignedLongField("EndOfFile",0)]
 
 
 def _set_andx_overloads():
