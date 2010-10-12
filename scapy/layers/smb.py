@@ -1759,7 +1759,7 @@ class SMB_COM_READ_Req(SMB_COM):
     name="SMB Command - READ - Request"
     overload_fields = {SMB_Header:{"Command":0x0A,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",5),
-                   LESignedShortField("FID",0),
+                   LEShortField("FID",0),
                    LEShortField("CountOfBytesToRead",0),
                    LEIntField("ReadOffsetInBytes",0),
                    LEShortField("EstimateOfRemainingBytesToBeRead",0),
@@ -1822,7 +1822,7 @@ class SMB_COM_UNLOCK_BYTE_RANGE_Req(SMB_COM):
     name="SMB Command - UNLOCK_BYTE_RANGE - Request"
     overload_fields = {SMB_Header:{"Command":0x0D,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",5),
-                   LESignedShortField("FID",0),
+                   LEShortField("FID",0),
                    LEIntField("CountOfBytesToUnlock",0),
                    LEIntField("UnlockOffsetInBytes",0),
                    LEShortField("ByteCount",0)]
@@ -1910,7 +1910,7 @@ class SMB_COM_SEEK_Req(SMB_COM):
     fields_desc = [ByteField("WordCount",4),
                    LEShortField("FID",0),
                    LEShortEnumField("Mode",0,{0:"start",1:"current",2:"end"}),
-                   LESignedIntField("Offset",0),
+                   LEIntField("Offset",0),
                    LEShortField("ByteCount",0)]
 
 class SMB_COM_SEEK_Res(SMB_COM):
@@ -2207,7 +2207,7 @@ class SMB_COM_QUERY_INFORMATION2_Res(SMB_COM):
     name="SMB Command - QUERY_INFORMATION2 - Response"
     overload_fields = {SMB_Header:{"Command":0x23,"Flags":0x80}}
     fields_desc = [ByteField("WordCount",11),
-                   SMB_DATE_Field("CreateDate",None),
+                   SMB_DATE_Field("CreationDate",None),
                    SMB_TIME_Field("CreationTime",None),
                    SMB_DATE_Field("LastAccessDate",None),
                    SMB_TIME_Field("LastAccessTime",None),
@@ -3417,10 +3417,10 @@ class SMB_COM_NT_CREATE_ANDX_Res(SMB_ANDX):
                   [ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
-                   FILETIME_Field("CreateTime",None),
+                   FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
@@ -3436,10 +3436,10 @@ class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
                   [ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
-                   FILETIME_Field("CreateTime",None),
+                   FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
@@ -4375,7 +4375,7 @@ class SMB_NT_TRANSACT_CREATE_Res(SMB_COM_NT_TRANSACT_Res):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LELongField("AllocationSize",0),
                    LELongField("EndOfFile",0),
@@ -4675,7 +4675,7 @@ class SMB_FIND_FILE_DIRECTORY_INFO(_SMB_INFO,Packet):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastAttrChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LELongField("EndOfFile",0),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
@@ -4693,7 +4693,7 @@ class SMB_FIND_FILE_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastAttrChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LELongField("EndOfFile",0),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
@@ -4723,7 +4723,7 @@ class SMB_FIND_FILE_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LELongField("EndOfFile",0),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
@@ -4745,7 +4745,7 @@ class SMB_FIND_FILE_ID_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LELongField("EndOfFile",0),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
@@ -4766,7 +4766,7 @@ class SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
                    FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LELongField("EndOfFile",0),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
@@ -4883,7 +4883,7 @@ class SMB_QUERY_FILE_BASIC_INFO(_SMB_INFO,Packet):
     fields_desc = [FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEIntField("Reserved",0)]
 
@@ -4914,7 +4914,7 @@ class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
     fields_desc = [FILETIME_Field("CreationTime",None),
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
-                   FILETIME_Field("LastAttrChangeTime",None),
+                   FILETIME_Field("ChangeTime",None),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEIntField("Reserved1",0),
                    LELongField("AllocationSize",0),
