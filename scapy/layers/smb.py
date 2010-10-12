@@ -1447,15 +1447,11 @@ class SMB_ANDX(_SMBGuessPayload,SMB_COM):
     def post_build(self, p, pay):
         if self.AndXOffset is None and self.AndXCommand != 0xFF:
             off = 32+len(p)
-            ul = self.underlayer.copy()
-            del(ul.payload)
-            while ul:
-                if isinstance(ul, SMB_ANDX):
-                    off += len(ul)
-                elif isinstance(ul, SMB_Header):
-                    break
+            ul = self
+            while isinstance(ul.underlayer, SMB_ANDX):
                 ul = ul.underlayer.copy()
                 del(ul.payload)
+                off += len(ul)
             p = p[:3]+struct.pack("<H",off)+p[5:]
         p += pay
         return p
@@ -1792,7 +1788,7 @@ class SMB_COM_WRITE_Req(SMB_COM):
                    ByteField("BufferFormat",1),
                    FieldLenField("DataLength",None,length_of="Data",fmt="<H"),
                    StrLenField("Data","",
-                               length_from=lambda pkt:pkt.CountOfBytesToWrite)]
+                               length_from=lambda pkt:pkt.DataLength)]
 
 class SMB_COM_WRITE_Res(SMB_COM):
     name="SMB Command - WRITE - Response"
