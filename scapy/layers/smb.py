@@ -13,12 +13,17 @@ from scapy.fields import *
 from scapy.layers.netbios import NBTDatagram,NBTSession
 
 
-# ### Wishlist ###
+### Wishlist ###
 # Support additional information levels
 # Mailslot protocol, Browser protocol (\MAILSLOT\BROWSE), etc.
 # LANMAN API (\PIPE\LANMAN), other pipe protocols?
 # Somehow support old dialect versions of current commands?
 
+################################################################################
+##                                 CONSTANTS                                  ##
+################################################################################
+
+############################## Enumerated Values ###############################
 
 smb_command_codes = {0x00:"CREATE_DIRECTORY",
                      0x01:"DELETE_DIRECTORY",
@@ -692,38 +697,51 @@ smb_enum_DeviceType = {0x0001:"BEEP",
                        0x002c:"VDM"}
 
 
+################################# Flag Values ##################################
+
+_reserved_flags = ["res0","res1","res2","res3",
+                   "res4","res5","res6","res7",
+                   "res8","res9","res10","res11",
+                   "res12","res13","res14","res15",
+                   "res16","res17","res18","res19",
+                   "res20","res21","res22","res23",
+                   "res24","res25","res26","res27",
+                   "res28","res29","res30","res31"]
+
+_ACCESS_MASK_common = ["DELETE","READ_CONTROL","WRITE_DAC","WRITE_OWNER",
+                       "SYNCHRONIZE","res21","res22","res23",
+                       "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","res26","res27",
+                       "GENERIC_ALL","GENERIC_EXECUTE","GENERIC_WRITE","GENERIC_READ"]
+
+ACCESS_MASK = ["READ_DATA","WRITE_DATA","APPEND_DATA","READ_EA",
+               "WRITE_EA","EXECUTE","DELETE_CHILD","READ_ATTRIBUTES",
+               "WRITE_ATTRIBUTES"]+\
+              _reserved_flags[9:16]+_ACCESS_MASK_common
+
+ACCESS_MASK_directory = ["LIST_DIRECTORY","ADD_FILE","ADD_SUBDIRECTORY","READ_EA",
+                         "WRITE_EA","TRAVERSE","DELETE_CHILD","READ_ATTRIBUTES",
+                         "WRITE_ATTRIBUTES"]+\
+                        _reserved_flags[9:16]+_ACCESS_MASK_common
 
 SMB_FILE_ATTRIBUTES = ["READONLY","HIDDEN","SYSTEM","VOLUME",
-                       "DIRECTORY","ARCHIVE","res6","res7",
-                       "res8","res9","res10","res11",
-                       "res12","res13","res14","res15"]
+                       "DIRECTORY","ARCHIVE"]+\
+                      _reserved_flags[6:16]
 
-SMB_FILE_ATTRIBUTES_SEARCH = ["READONLY","HIDDEN","SYSTEM","VOLUME",
-                              "DIRECTORY","ARCHIVE","res6","res7",
-                              "SEARCH_READONLY","SEARCH_HIDDEN","SEARCH_SYSTEM","res11",
+SMB_FILE_ATTRIBUTES_SEARCH = SMB_FILE_ATTRIBUTES[0:8]+\
+                             ["SEARCH_READONLY","SEARCH_HIDDEN","SEARCH_SYSTEM","res11",
                               "SEARCH_DIRECTORY","SEARCH_ARCHIVE","res14","res15"]
 
-SMB_EXT_FILE_ATTR = ["READONLY","HIDDEN","SYSTEM","res3",
-                     "DIRECTORY","ARCHIVE","res6","NORMAL",
+SMB_EXT_FILE_ATTR = SMB_FILE_ATTRIBUTES[0:7]+["NORMAL",
                      "TEMPORARY","SPARSE","REPARSE_POINT","COMPRESSED",
-                     "OFFLINE","NOT_CONTENT_INDEXED","ENCRYPTED","res15",
-                     "res16","res17","res18","res19",
-                     "res20","res21","res22","res23",
-                     "POSIX_SEMANTICS","BACKUP_SEMANTICS","DELETE_ON_CLOSE","SEQUENTIAL_SCAN",
+                     "OFFLINE","NOT_CONTENT_INDEXED","ENCRYPTED"]+\
+                    _reserved_flags[15:24]+\
+                    ["POSIX_SEMANTICS","BACKUP_SEMANTICS","DELETE_ON_CLOSE","SEQUENTIAL_SCAN",
                      "RANDOM_ACCESS","NO_BUFFERING","res30","WRITE_THROUGH"]
 
-smb_flags_TRANSACTION_Flags = ["DISCONNECT_TID","NO_RESPONSE","EXTENDED_SIGNATURES","EXTENDED_RESPONSE",
-                               "res4","res5","res6","res7",
-                               "res8","res9","res10","res11",
-                               "res12","res13","res14","res15"]
+smb_flags_TRANSACTION_Flags = ["DISCONNECT_TID","NO_RESPONSE","EXTENDED_SIGNATURES","EXTENDED_RESPONSE"]+\
+                              _reserved_flags[4:16]
 
-smb_flags_FEA_Flags = ["res0","res1","res2","res3",
-                       "res4","res5","res6","FILE_NEED_EA"]
-
-smb_flags_SECURITY_DESCRIPTOR_Control = ["OD","GD","DP","DD",
-                                         "SP","SD","SS","DT",
-                                         "DC","SC","DI","SI",
-                                         "PD","PS","RM","SR"]
+smb_flags_FEA_Flags = _reserved_flags[0:7]+["FILE_NEED_EA"]
 
 smb_flags_header_Flags = ["LOCK_AND_READ_OK","BUF_AVAIL","res2","CASE_INSENSITIVE",
                           "CANONICALIZED_PATHS","OPLOCK","OPBATCH","REPLY"]
@@ -734,44 +752,27 @@ smb_flags_header_Flags2 = ["LONG_NAMES","EAS","SMB_SECURITY_SIGNATURE","COMPRESS
                            "DFS","PAGING_IO","NT_STATUS","UNICODE"]
 
 smb_flags_WriteMode = ["WritethroughMode","ReadBytesAvailable","NamedPipeRaw","NamedPipeStart",
-                       "res4","res5","res6","ConnectionlessMode",
-                       "res8","res9","res10","res11",
-                       "res12","res13","res14","res15"]
+                       "res4","res5","res6","ConnectionlessMode"]+\
+                      _reserved_flags[8:16]
 
 smb_flags_TypeOfLock =["SHARED_LOCK","OPLOCK_RELEASE","CHANGE_LOCKTYPE","CANCEL_LOCK",
                        "LARGE_FILES","res5","res6","res7"]
 
 smb_flags_COPY_Flags = ["DEST_FILE","DEST_DIRECTORY","COPY_DEST_MODE","COPY_SOURCE_MODE",
-                        "VERIFY_ALL","TREE","res6","res7",
-                        "res8","res9","res10","res11",
-                        "res12","res13","res14","res15"]
+                        "VERIFY_ALL","TREE"]+\
+                       _reserved_flags[6:16]
 
-smb_flags_OPEN_ANDX_Flags = ["QUERY_INFORMATION","OPLOCK","OPBATCH","EXTENDED_RESPONSE",
-                             "res4","res5","res6","res7",
-                             "res8","res9","res10","res11",
-                             "res12","res13","res14","res15"]
+smb_flags_OPEN_ANDX_Flags = ["QUERY_INFORMATION","OPLOCK","OPBATCH","EXTENDED_RESPONSE"]+\
+                            _reserved_flags[4:16]
 
-smb_flags_File_Pipe_Printer_Access_Mask = ["READ_DATA","WRITE_DATA","APPEND_DATA","READ_EA",
-                                           "WRITE_EA","EXECUTE","res6","READ_ATTRIBUTES",
-                                           "WRITE_ATTRIBUTES","res9","res10","res11",
-                                           "res12","res13","res14","res15",
-                                           "DELETE","READ_CONTROL","WRITE_DAC","WRITE_OWNER",
-                                           "SYNCHRONIZE","res21","res22","res23",
-                                           "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","res26","res27",
-                                           "GENERIC_ALL","GENERIC_EXECUTE","GENERIC_WRITE","GENERIC_READ"]
+smb_flags_SecurityMode = ["user level","encrypt passwords"]+\
+                         _reserved_flags[2:16]
 
-smb_flags_SecurityMode = ["user level","encrypt passwords","res2","res3",
-                          "res4","res5","res6","res7",
-                          "res8","res9","res10","res11",
-                          "res12","res13","res14","res15"]
+smb_flags_BlockMode = ["Read Block Raw","Write Block Raw"]+\
+                      _reserved_flags[2:16]
 
-smb_flags_BlockMode = ["Read Block Raw","Write Block Raw","res2","res3",
-                       "res4","res5","res6","res7",
-                       "res8","res9","res10","res11",
-                       "res12","res13","res14","res15"]
-
-smb_flags_SecurityMode_NT = ["USER_SECURITY","ENCRYPT_PASSWORDS","SECURITY_SIGNATURES_ENABLED","SECURITY_SIGNATURES_REQUIRED",
-                             "res4","res5","res6","res7"]
+smb_flags_SecurityMode_NT = ["USER_SECURITY","ENCRYPT_PASSWORDS","SECURITY_SIGNATURES_ENABLED","SECURITY_SIGNATURES_REQUIRED"]+\
+                            _reserved_flags[4:8]
 
 smb_flags_Capabilities = ["RAW_MODE","MPX_MODE","UNICODE","LARGE_FILES",
                           "NT_SMBS","RPC_REMOTE_APIS","STATUS32","LEVEL_II_OPLOCKS",
@@ -782,110 +783,55 @@ smb_flags_Capabilities = ["RAW_MODE","MPX_MODE","UNICODE","LARGE_FILES",
                           "res24","COMPRESSED_DATA","res26","res27",
                           "res28","DYNAMIC_REAUTH","PERSISTENT_HANDLES","EXTENDED_SECURITY"]
 
-smb_flags_Action = ["GUEST","USE_LANMAN_KEY","res2","res3",
-                    "res4","res5","res6","res7",
-                    "res8","res9","res10","res11",
-                    "res12","res13","res14","res15"]
+smb_flags_Action = ["GUEST","USE_LANMAN_KEY"]+\
+                   _reserved_flags[2:16]
 
-smb_flags_OptionalSupport = ["SUPPORT_SEARCH_BITS","SHARE_IS_IN_DFS","res2","res3",
-                             "res4","res5","res6","res7",
-                             "res8","res9","res10","res11",
-                             "res12","res13","res14","res15"]
-
-smb_flags_Directory_Access_Mask = ["LIST_DIRECTORY","ADD_FILE","ADD_SUBDIRECTORY","READ_EA",
-                                   "WRITE_EA","TRAVERSE","DELETE_CHILD","READ_ATTRIBUTES",
-                                   "WRITE_ATTRIBUTES","res9","res10","res11",
-                                   "res12","res13","res14","res15",
-                                   "DELETE","READ_CONTROL","WRITE_DAC","WRITE_OWNER",
-                                   "SYNCHRONIZE","res21","res22","res23",
-                                   "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","res26","res27",
-                                   "GENERIC_ALL","GENERIC_EXECUTE","GENERIC_WRITE","GENERIC_READ"]
+smb_flags_OptionalSupport = ["SUPPORT_SEARCH_BITS","SHARE_IS_IN_DFS"]+\
+                            _reserved_flags[2:16]
 
 smb_flags_NT_CREATE_Flags = ["res0","REQUEST_OPLOCK","REQUEST_OPBATCH","OPEN_TARGET_DIR",
-                             "REQUEST_EXTENDED_RESPONSE","res5","res6","res7",
-                             "res8","res9","res10","res11",
-                             "res12","res13","res14","res15",
-                             "res16","res17","res18","res19",
-                             "res20","res21","res22","res23",
-                             "res24","res25","res26","res27",
-                             "res28","res29","res30","res31"]
+                             "REQUEST_EXTENDED_RESPONSE"]+\
+                            _reserved_flags[5:32]
 
-smb_flags_DesiredAccess = ["FILE_READ_DATA","FILE_WRITE_DATA","FILE_APPEND_DATA","FILE_READ_EA",
-                           "FILE_WRITE_EA","FILE_EXECUTE","res6","FILE_READ_ATTRIBUTES",
-                           "FILE_WRITE_ATTRIBUTES","res9","res10","res11",
-                           "res12","res13","res14","res15",
-                           "DELETE","READ_CONTROL","WRITE_DAC","WRITE_OWNER",
-                           "SYNCHRONIZE","res21","res22","res23",
-                           "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","res26","res27",
-                           "GENERIC_ALL","GENERIC_EXECUTE","GENERIC_WRITE","GENERIC_READ"]
-
-smb_flags_ShareAccess = ["SHARE_READ","SHARE_WRITE","SHARE_DELETE","res3",
-                         "res4","res5","res6","res7",
-                         "res8","res9","res10","res11",
-                         "res12","res13","res14","res15",
-                         "res16","res17","res18","res19",
-                         "res20","res21","res22","res23",
-                         "res24","res25","res26","res27",
-                         "res28","res29","res30","res31"]
+smb_flags_ShareAccess = ["SHARE_READ","SHARE_WRITE","SHARE_DELETE"]+\
+                        _reserved_flags[3:32]
 
 smb_flags_CreateOptions = ["DIRECTORY_FILE","WRITE_THROUGH","SEQUENTIAL_ONLY","NO_INTERMEDIATE_BUFFERING",
                            "SYNCHRONOUS_IO_ALERT","SYNCHRONOUS_IO_NONALERT","NON_DIRECTORY_FILE","CREATE_TREE_CONNECTION",
                            "COMPLETE_IF_OPLOCKED","NO_EA_KNOWLEDGE","OPEN_FOR_RECOVERY","RANDOM_ACCESS",
                            "DELETE_ON_CLOSE","OPEN_BY_FILE_ID","OPEN_FOR_BACKUP_INTENT","NO_COMPRESSION",
                            "res16","res17","res18","res19",
-                           "RESERVE_OPFILTER","res21","OPEN_NO_RECALL","OPEN_FOR_FREE_SPACE_QUERY",
-                           "res24","res25","res26","res27",
-                           "res28","res29","res30","res31"]
+                           "RESERVE_OPFILTER","res21","OPEN_NO_RECALL","OPEN_FOR_FREE_SPACE_QUERY"]+\
+                          _reserved_flags[24:32]
 
-smb_flags_SecurityFlags = ["CONTEXT_TRACKING","EFFECTIVE_ONLY","res2","res3",
-                           "res4","res5","res6","res7"]
+smb_flags_SecurityFlags = ["CONTEXT_TRACKING","EFFECTIVE_ONLY"]+\
+                          _reserved_flags[2:8]
 
-smb_flags_FileStatusFlags = ["NO_EAS","NO_SUBSTREAMS","NO_REPARSETAG","res3",
-                             "res4","res5","res6","res7",
-                             "res8","res9","res10","res11",
-                             "res12","res13","res14","res15"]
+smb_flags_FileStatusFlags = ["NO_EAS","NO_SUBSTREAMS","NO_REPARSETAG"]+\
+                            _reserved_flags[3:16]
 
-smb_flags_PipeState = ["res0","res1","res2","res3",
-                       "res4","res5","res6","res7",
-                       "ReadMode","res9","res10","res11",
+smb_flags_PipeState = _reserved_flags[0:8]+\
+                      ["ReadMode","res9","res10","res11",
                        "res12","res13","res14","Blocking"]
 
-smb_flags_TRANS2_OPEN2_Flags = ["REQ_ATTRIB","REQ_OPLOCK","REQ_OPBATCH","REQ_EASIZE",
-                                "res4","res5","res6","res7",
-                                "res8","res9","res10","res11",
-                                "res12","res13","res14","res15"]
+smb_flags_TRANS2_OPEN2_Flags = ["REQ_ATTRIB","REQ_OPLOCK","REQ_OPBATCH","REQ_EASIZE"]+\
+                               _reserved_flags[4:16]
 
 smb_flags_TRANS2_FIND_Flags = ["CLOSE_AFTER_REQUEST","CLOSE_AT_EOS","RETURN_RESUME_KEYS","CONTINUE_FROM_LAST",
-                               "WITH_BACKUP_INTENT","res5","res6","res7",
-                               "res8","res9","res10","res11",
-                               "res12","res13","res14","res15"]
+                               "WITH_BACKUP_INTENT"]+\
+                              _reserved_flags[5:16]
 
-smb_flags_SecurityInformation = ["OWNER","GROUP","DACL","SACL",
-                                 "res4","res5","res6","res7",
-                                 "res8","res9","res10","res11",
-                                 "res12","res13","res14","res15",
-                                 "res16","res17","res18","res19",
-                                 "res20","res21","res22","res23",
-                                 "res24","res25","res26","res27",
-                                 "res28","res29","res30","res31"]
+smb_flags_SecurityInformation = ["OWNER","GROUP","DACL","SACL"]+\
+                                _reserved_flags[4:32]
 
 smb_flags_CompletionFilter = ["FILE_NAME","DIR_NAME","ATTRIBUTES","SIZE",
                               "LAST_WRITE","LAST_ACCESS","CREATION","EA",
-                              "SECURITY","STREAM_NAME","STREAM_SIZE","STREAM_WRITE",
-                              "res12","res13","res14","res15",
-                              "res16","res17","res18","res19",
-                              "res20","res21","res22","res23",
-                              "res24","res25","res26","res27",
-                              "res28","res29","res30","res31"]
+                              "SECURITY","STREAM_NAME","STREAM_SIZE","STREAM_WRITE"]+\
+                             _reserved_flags[12:32]
 
 smb_flags_DeviceCharacteristics = ["REMOVABLE_MEDIA","READ_ONLY_DEVICE","FLOPPY_DISKETTE","WRITE_ONCE_MEDIA",
-                                   "REMOTE_DEVICE","DEVICE_IS_MOUNTED","VIRTUAL_VOLUME","res7",
-                                   "res8","res9","res10","res11",
-                                   "res12","res13","res14","res15",
-                                   "res16","res17","res18","res19",
-                                   "res20","res21","res22","res23",
-                                   "res24","res25","res26","res27",
-                                   "res28","res29","res30","res31"]
+                                   "REMOTE_DEVICE","DEVICE_IS_MOUNTED","VIRTUAL_VOLUME"]+\
+                                  _reserved_flags[7:32]
 
 smb_flags_FileSystemAttributes = ["CASE_SENSITIVE_SEARCH","CASE_PRESERVED_NAMES","UNICODE_ON_DISK","PERSISTENT_ACLS",
                                   "FILE_COMPRESSION","VOLUME_QUOTAS","SUPPORTS_SPARSE_FILES","SUPPORTS_REPARSE_POINTS",
@@ -893,9 +839,15 @@ smb_flags_FileSystemAttributes = ["CASE_SENSITIVE_SEARCH","CASE_PRESERVED_NAMES"
                                   "res12","res13","res14","VOLUME_IS_COMPRESSED",
                                   "SUPPORTS_OBJECT_IDS","SUPPORTS_ENCRYPTION","NAMED_STREAMS","READ_ONLY_VOLUME",
                                   "SEQUENTIAL_WRITE_ONCE","SUPPORTS_TRANSACTIONS","SUPPORTS_HARD_LINKS","SUPPORTS_EXTENDED_ATTRIBUTES",
-                                  "SUPPORTS_OPEN_BY_FILE_ID","SUPPORTS_USN_JOURNAL","res26","res27",
-                                  "res28","res29","res30","res31"]
+                                  "SUPPORTS_OPEN_BY_FILE_ID","SUPPORTS_USN_JOURNAL"]+\
+                                 _reserved_flags[26:32]
 
+
+################################################################################
+##                              SPECIAL CLASSES                               ##
+################################################################################
+
+#################################### Fields ####################################
 
 class SMB_STRING_Field(StrNullField):
     def __init__(self, name, default, fmt="H", remain=0):
@@ -1071,6 +1023,7 @@ class SMB_UCHAR_LenField(StrLenField,SMB_STRING_Field):
         return SMB_STRING_Field.m2i(self, pkt, x)
 
 
+################################ Data Structures ###############################
 
 class SMB_Directory_Information(Packet):
     name = "SMB Directory Information"
@@ -1121,21 +1074,30 @@ class SMB_FEA(Packet):
                    StrLenField("AttributeValue","",
                                length_from=lambda pkt:pkt.AttributeValueLengthInBytes)]
 
+
+########################### Data Structures [MS-DTYP] ##########################
+
 class SECURITY_DESCRIPTOR(Packet):
     name = "SECURITY_DESCRIPTOR [MS-DTYP]"
     fields_desc = [ByteField("Revision",1),
                    ByteField("Sbz1",0),
-                   LEFlagsField("Control",0x8000,16,smb_flags_SECURITY_DESCRIPTOR_Control),
+                   LEFlagsField("Control",0x8000,16,["OD","GD","DP","DD",
+                                                     "SP","SD","SS","DT",
+                                                     "DC","SC","DI","SI",
+                                                     "PD","PS","RM","SR"]),
                    LEIntField("OffsetOwner",0),
                    LEIntField("OffsetGroup",0),
                    LEIntField("OffsetSacl",0),
                    LEIntField("OffsetDacl",0),
                    StrField("Data","")] #XXX: data fields not implemented
 
+
+########################### Data Structures [MS-FSCC] ##########################
+
 class FILE_FULL_EA_INFORMATION(Packet):
     name = "FILE_FULL_EA_INFORMATION [MS-FSCC]"
     fields_desc = [LEIntField("NextEntryOffset",None),
-                   FlagsField("Flags",0,8,smb_flags_FEA_Flags),
+                   LEFlagsField("Flags",0,8,smb_flags_FEA_Flags),
                    FieldLenField("EaNameLength",None,length_of="EaName",fmt="B"),
                    FieldLenField("EaValueLength",None,length_of="EaValue",fmt="<H"),
                    StrLenField("EaName","",
@@ -1171,6 +1133,7 @@ class FILE_GET_QUOTA_INFORMATION(Packet):
                                length_from=lambda pkt:pkt.SidLength)]
 
 
+############################ Common Field Sequences ############################
 
 class _smb_fields_SMB_NMPIPE_STATUS(Packet):
     fields_desc = [BitField("NMPipeStatus_ICount",0,8),
@@ -1373,6 +1336,7 @@ class _smb_fields_FILE_DIRECTORY_INFO(Packet):
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I")]
 
 
+################################ Guess Payload #################################
 
 class _SMBGuessPayload:
     def guess_payload_class(self, payload):
@@ -1500,12 +1464,18 @@ class _SMBGuessPayload_INFO_QUERY(_SMBGuessPayload_INFO):
         return self.guess_info_class(payload, smb_info_query_codes)
 
 
+################################################################################
+##                                SMB PACKETS                                 ##
+################################################################################
+
+################################ Common Packets ################################
+
 class SMB_Header(_SMBGuessPayload,Packet):
     name="SMB Header"
     fields_desc = [StrFixedLenField("Protocol","\xffSMB",4),
                    XByteEnumField("Command",0xFE,smb_command_codes),
                    XLEIntEnumField("Status",0,smb_error_codes),
-                   FlagsField("Flags",0,8,smb_flags_header_Flags),
+                   LEFlagsField("Flags",0,8,smb_flags_header_Flags),
                    LEFlagsField("Flags2",0,16,smb_flags_header_Flags2),
                    LEShortField("PIDHigh",0),
                    StrFixedLenField("SecurityFeatures","",8),
@@ -1674,6 +1644,7 @@ class SMB_TRANS(SMB_COM):
         return SMB_TRANS.smb_trans_db[h]
 
 
+################################# SMB Commands #################################
 
 class SMB_COM_CREATE_DIRECTORY_Req(SMB_COM):
     name="SMB Command - CREATE_DIRECTORY - Request"
@@ -2053,7 +2024,7 @@ class SMB_COM_READ_MPX_Res(SMB_COM):
         return p
 
 
-class SMB_COM_READ_MPX_SECONDARY_Res(SMB_COM): # obsolete (LANMAN1.0)
+class SMB_COM_READ_MPX_SECONDARY_Res(SMB_COM_READ_MPX_Res): # obsolete (LANMAN1.0)
     name="SMB Command - READ_MPX_SECONDARY - Response"
     overload_fields = {SMB_Header:{"Command":0x1C,"Flags":0x80}}
     fields_desc = [ByteField("WordCount",8),
@@ -2068,18 +2039,6 @@ class SMB_COM_READ_MPX_SECONDARY_Res(SMB_COM): # obsolete (LANMAN1.0)
                                length_from=lambda pkt:pkt.ByteCount-pkt.DataLength),
                    StrLenField("Data","",
                                length_from=lambda pkt:pkt.DataLength)]
-    def post_build(self, p, pay):
-        if self.DataOffset is None:
-            if self.getfieldlen("Data") > 0:
-                offset = 32+19+self.getfieldlen("Padding")
-            else:
-                offset = 0
-            p = p[:15]+struct.pack("<H",offset)+p[17:]
-        if self.ByteCount is None:
-            l = len(p)-19
-            p = p[:17]+struct.pack("<H",l)+p[19:]
-        p += pay
-        return p
 
 
 class SMB_COM_WRITE_RAW_Req(SMB_COM):
@@ -2167,7 +2126,7 @@ class SMB_COM_WRITE_MPX_Res(SMB_COM):
                    LEShortField("ByteCount",0)]
 
 
-class SMB_COM_WRITE_MPX_SECONDARY_Req(SMB_COM): # obsolete (LANMAN1.0)
+class SMB_COM_WRITE_MPX_SECONDARY_Req(SMB_COM_READ_MPX_Res): # obsolete (LANMAN1.0)
     name="SMB Command - WRITE_MPX_SECONDARY - Request"
     overload_fields = {SMB_Header:{"Command":0x1F,"Flags":0x00}}
     fields_desc = [ByteField("WordCount",8),
@@ -2182,18 +2141,6 @@ class SMB_COM_WRITE_MPX_SECONDARY_Req(SMB_COM): # obsolete (LANMAN1.0)
                                length_from=lambda pkt:pkt.ByteCount-pkt.DataLength),
                    StrLenField("Data","",
                                length_from=lambda pkt:pkt.DataLength)]
-    def post_build(self, p, pay):
-        if self.DataOffset is None:
-            if self.getfieldlen("Data") > 0:
-                offset = 32+19+self.getfieldlen("Padding")
-            else:
-                offset = 0
-            p = p[:15]+struct.pack("<H",offset)+p[17:]
-        if self.ByteCount is None:
-            l = len(p)-19
-            p = p[:17]+struct.pack("<H",l)+p[19:]
-        p += pay
-        return p
 
 
 class SMB_COM_WRITE_COMPLETE_Res(SMB_COM):
@@ -2238,7 +2185,7 @@ class SMB_COM_LOCKING_ANDX_Req(SMB_ANDX):
     fields_desc = [ByteField("WordCount",8),
                    _smb_fields_AndX,
                    LEShortField("FID",0),
-                   FlagsField("TypeOfLock",0,8,smb_flags_TypeOfLock),
+                   LEFlagsField("TypeOfLock",0,8,smb_flags_TypeOfLock),
                    ByteEnumField("NewOpLockLevel",0,{0:"None",1:"Level II OpLock"}),
                    LEIntEnumField("Timeout",0,{0xFFFFFFFF:"forever"}),
                    FieldLenField("NumberOfRequestedUnlocks",None,count_of="Unlocks32",fmt="<H",
@@ -2556,8 +2503,8 @@ class SMB_COM_OPEN_ANDX_ResExtend(SMB_COM_OPEN_ANDX_Res):
                    _smb_fields_OpenResults,
                    LEIntField("ServerFID",0),
                    LEShortField("Reserved",0),
-                   LEFlagsField("MaximalAccessRights",0,32,smb_flags_File_Pipe_Printer_Access_Mask),
-                   LEFlagsField("GuestMaximalAccessRights",0,32,smb_flags_File_Pipe_Printer_Access_Mask),
+                   LEFlagsField("MaximalAccessRights",0,32,ACCESS_MASK),
+                   LEFlagsField("GuestMaximalAccessRights",0,32,ACCESS_MASK),
                    LEShortField("ByteCount",0)]
 
 
@@ -2879,7 +2826,7 @@ class SMB_COM_NEGOTIATE_ResNTLM012(SMB_COM_NEGOTIATE_Res):
     name="SMB Command - NEGOTIATE - NT LM 0.12 Response"
     fields_desc = [ByteField("WordCount",17),
                    LEShortField("DialectIndex",0),
-                   FlagsField("SecurityMode",0,8,smb_flags_SecurityMode_NT),
+                   LEFlagsField("SecurityMode",0,8,smb_flags_SecurityMode_NT),
                    LEShortField("MaxMpxCount",0),
                    LEShortField("MaxNumberVcs",0),
                    LEIntField("MaxBufferSize",0),
@@ -2908,7 +2855,7 @@ class SMB_COM_NEGOTIATE_ResNTLM012_ExtSec(SMB_COM_NEGOTIATE_Res):
     overload_fields = {SMB_Header:{"Command":0x72,"Flags":0x80,"Flags2":0x0800}}
     fields_desc = [ByteField("WordCount",17),
                    LEShortField("DialectIndex",0),
-                   FlagsField("SecurityMode",0,8,smb_flags_SecurityMode_NT),
+                   LEFlagsField("SecurityMode",0,8,smb_flags_SecurityMode_NT),
                    LEShortField("MaxMpxCount",0),
                    LEShortField("MaxNumberVcs",0),
                    LEIntField("MaxBufferSize",0),
@@ -3080,8 +3027,8 @@ class SMB_COM_TREE_CONNECT_ANDX_ResExtend(SMB_ANDX):
                    BitField("OptionalSupport_SHARE_IS_IN_DFS",0,1),
                    BitField("OptionalSupport_SUPPORT_SEARCH_BITS",0,1),
                    BitField("OptionalSupport_Reserved2",0,8),
-                   LEFlagsField("MaximalShareAccessRights",0,32,smb_flags_Directory_Access_Mask),
-                   LEFlagsField("GuestMaximalShareAccessRights",0,32,smb_flags_Directory_Access_Mask),
+                   LEFlagsField("MaximalShareAccessRights",0,32,ACCESS_MASK_directory),
+                   LEFlagsField("GuestMaximalShareAccessRights",0,32,ACCESS_MASK_directory),
                    LEShortField("ByteCount",None),
                    OEM_STRING_Field("Service",""),
                    SMBUnicodePadField("Pad",None,
@@ -3306,14 +3253,14 @@ class SMB_COM_NT_CREATE_ANDX_Req(SMB_ANDX):
                    FieldLenField("NameLength",None,length_of="FileName",fmt="<H"),
                    LEFlagsField("Flags",0,32,smb_flags_NT_CREATE_Flags),
                    LEIntField("RootDirectoryFID",0),
-                   LEFlagsField("DesiredAccess",0,32,smb_flags_DesiredAccess),
+                   LEFlagsField("DesiredAccess",0,32,ACCESS_MASK),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEFlagsField("ShareAccess",0,32,smb_flags_ShareAccess),
                    LEIntEnumField("CreateDisposition",0,smb_enum_CreateDisposition),
                    LEFlagsField("CreateOptions",0,32,smb_flags_CreateOptions),
                    LEIntEnumField("ImpersonationLevel",0,smb_enum_ImpersonationLevel),
-                   FlagsField("SecurityFlags",0,8,smb_flags_SecurityFlags),
+                   LEFlagsField("SecurityFlags",0,8,smb_flags_SecurityFlags),
                    FieldLenField("ByteCount",None,length_of="FileName",fmt="<H"),
                    SMBUnicodePadField("Pad",None,padlen=1),
                    SMB_STRING_Field("FileName","")]
@@ -3352,8 +3299,8 @@ class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
                    ByteEnumField("Directory",0,smb_enum_BOOLEAN),
                    StrFixedLenField("VolumeGUID","",16), #TODO: GUID type
                    LELongField("FileId",0),
-                   LEFlagsField("MaximalAccessRights",0,32,smb_flags_File_Pipe_Printer_Access_Mask),
-                   LEFlagsField("GuestMaximalAccessRights",0,32,smb_flags_File_Pipe_Printer_Access_Mask),
+                   LEFlagsField("MaximalAccessRights",0,32,ACCESS_MASK),
+                   LEFlagsField("GuestMaximalAccessRights",0,32,ACCESS_MASK),
                    LEShortField("ByteCount",0)])
 
 
@@ -3449,6 +3396,7 @@ class SMB_COM_GET_PRINT_QUEUE_Res(SMB_COM): # obsolete (Core)
                                length_from=lambda pkt:pkt.ByteCount)]
 
 
+############################### SMB Transactions ###############################
 
 class SMB_TRANS_SET_NMPIPE_STATE_Req(SMB_COM_TRANSACTION_Req):
     name="SMB Trans - TRANS_SET_NMPIPE_STATE - Request"
@@ -3899,7 +3847,7 @@ class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
     fields_desc = [_smb_fields_NT_TRANSACT_Req_HDR_setup0,
                    LEFlagsField("Flags",0,32,smb_flags_NT_CREATE_Flags),
                    LEIntField("RootDirectoryFID",0),
-                   LEFlagsField("DesiredAccess",0,32,smb_flags_DesiredAccess),
+                   LEFlagsField("DesiredAccess",0,32,ACCESS_MASK),
                    LELongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEFlagsField("ShareAccess",0,32,smb_flags_ShareAccess),
@@ -3909,7 +3857,7 @@ class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
                    FieldLenField("EALength",None,length_of="ExtendedAttributes",fmt="<I"),
                    FieldLenField("NameLength",None,length_of="Name",fmt="<I"),
                    LEIntEnumField("ImpersonationLevel",0,smb_enum_ImpersonationLevel),
-                   FlagsField("SecurityFlags",0,8,smb_flags_SecurityFlags),
+                   LEFlagsField("SecurityFlags",0,8,smb_flags_SecurityFlags),
                    SMBUnicodePadField("Pad",None,
                                       padlen=lambda pkt:pkt.getfieldlen("Pad1")%2),
                    SMB_UCHAR_LenField("Name","",
@@ -4079,6 +4027,7 @@ class SMB_NT_TRANSACT_CREATE2_Res(SMB_NT_TRANSACT_CREATE_Res):
     _trans_code = (0,0x0009)
 
 
+####################### SMB Information Level Structures #######################
 
 class _SMB_INFO:
     def guess_payload_class(self, payload):
@@ -4394,6 +4343,10 @@ class SMB_QUERY_FS_ATTRIBUTE_INFO(_SMB_INFO,Packet):
                    StrLenField("FileSystemName","",codec="utf-16-le",
                                length_from=lambda pkt:pkt.LengthOfFileSystemName)]
 
+
+################################################################################
+##                                   BINDS                                    ##
+################################################################################
 
 def _set_andx_overloads():
     andx_req = []
