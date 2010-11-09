@@ -4106,9 +4106,8 @@ class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
                    SMB_UCHAR_LenField("Name","",
                                       length_from=lambda pkt:pkt.NameLength),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
-                   ConditionalField(PacketLenField("SecurityDescriptor",Raw(),SECURITY_DESCRIPTOR,
-                                                   length_from=lambda pkt:pkt.SecurityDescriptorLength),
-                                    lambda pkt:pkt.SecurityDescriptorLength > 0),
+                   PacketLenField("SecurityDescriptor",Raw(),SECURITY_DESCRIPTOR,
+                                  length_from=lambda pkt:pkt.SecurityDescriptorLength),
                    PacketListField("ExtendedAttributes",[],FILE_FULL_EA_INFORMATION,
                                length_from=lambda pkt:pkt.EALength)]
 
