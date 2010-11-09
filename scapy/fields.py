@@ -580,6 +580,37 @@ class PacketListField(PacketField):
     def randval(self):
         return [packet.fuzz(self.cls())]
 
+class OffsetPacketListField(PacketListField):
+    def __init__(self, name, default, shift, offsets):
+        PacketListField.__init__(self, name, default, conf.raw_layer)
+        self.shift = shift
+        self.offsets = offsets
+    def getfield(self, pkt, s):
+        chunks = sorted([(getattr(pkt,fld),cls) for fld,cls in self.offsets
+                         if getattr(pkt,fld) != 0])
+        lst = []
+        last = 0
+        for off,cls in chunks:
+            off -= self.shift
+            if last > off: # data overlaps, cannot add structure to packet list
+                continue
+            elif last < off: # extra data before offset
+                lst.append(conf.raw_layer(s[last:off]))
+            try:
+                p = cls(s[off:])
+            except Exception: # will be added as extra data instead
+                if conf.debug_dissector:
+                    raise
+            else:
+                if 'Padding' in p:
+                    del(p['Padding'].underlayer.payload)
+                lst.append(p)
+                off += len(p)
+            last = off
+        if s[last:]: # extra data at end
+            lst.append(conf.raw_layer(s[last:]))
+        return "",lst
+
 
 class StrFixedLenField(StrField):
     def __init__(self, name, default, length=None, length_from=None, codec=None):
