@@ -1113,6 +1113,8 @@ class SIDField(StrField):
 class SID(Packet):
     name = "Security Identifier (SID) [MS-DTYP]"
     fields_desc = [SIDField("SID","S-1-0-0")]
+    def extract_padding(self, p):
+        return "",p
 
 ace_types = {0x00: "ACCESS_ALLOWED",
              0x01: "ACCESS_DENIED",
@@ -1252,6 +1254,8 @@ class ACL(Packet):
                    FieldLenField("AceCount",None,count_of="ACEs",fmt="<H"),
                    LEShortField("Sbz2",0),
                    PacketListField("ACEs",[],ACE,count_from=lambda pkt:pkt.AceCount)]
+    def extract_padding(self, p):
+        return "",p
 
 class SACL(ACL):
     name = "System Access Control List (SACL) [MS-DTYP]"
@@ -1259,44 +1263,36 @@ class SACL(ACL):
 class DACL(ACL):
     name = "Discretionary Access Control List (DACL) [MS-DTYP]"
 
-class SecurityDescriptorDataField(PacketListField):
-    def __init__(self, name, default):
+class OffsetPacketListField(PacketListField):
+    def __init__(self, name, default, shift, offsets):
         PacketListField.__init__(self, name, default, Raw)
-    def _get_chunk_list(self, pkt):
-        chunks = [{"off":pkt.OffsetOwner, "cls":SID},
-                  {"off":pkt.OffsetGroup, "cls":SID},
-                  {"off":pkt.OffsetSacl,  "cls":SACL},
-                  {"off":pkt.OffsetDacl,  "cls":DACL}]
-        chunks = [c for c in chunks if c["off"] != 0]
-        if all(c["off"] != 20 for c in chunks):
-            chunks.append({"off":20, "cls":Raw})
-        return sorted(chunks, key=operator.itemgetter("off"))
+        self.shift = shift
+        self.offsets = offsets
     def getfield(self, pkt, s):
-        chunks = self._get_chunk_list(pkt)
+        chunks = sorted([(getattr(pkt,fld),cls) for fld,cls in self.offsets
+                         if getattr(pkt,fld) != 0])
         lst = []
-        for i in range(len(chunks)):
-            cls = chunks[i]["cls"]
-            off = chunks[i]["off"]-20
-            if len(chunks) > i+1:
-                next = chunks[i+1]["off"]-20
-            else:
-                next = len(s)
+        last = 0
+        for off,cls in chunks:
+            off -= self.shift
+            if last > off: # data overlaps, cannot add structure to packet list
+                continue
+            elif last < off: # extra data before offset
+                lst.append(conf.raw_layer(load=s[last:off]))
             try:
-                p = cls(s[off:next])
-            except Exception:
+                p = cls(s[off:])
+            except Exception: # will be added as extra data instead
                 if conf.debug_dissector:
                     raise
-                p = conf.raw_layer(load=s[off:])
-            lst.append(p)
+            else:
+                if 'Padding' in p:
+                    del(p['Padding'].underlayer.payload)
+                lst.append(p)
+                off += len(p)
+            last = off
+        if s[last:]: # extra data at end
+            lst.append(conf.raw_layer(load=s[last:]))
         return "",lst
-    def addfield(self, pkt, s, val):
-        chunks = self._get_chunk_list(pkt)
-        for i in range(len(chunks)):
-            off = chunks[i]["off"]
-            if len(s) < off:
-                s += "\x00"*(off-len(s))
-            s = s[:off]+str(val[i])
-        return s
 
 class SECURITY_DESCRIPTOR(Packet):
     name = "SECURITY_DESCRIPTOR [MS-DTYP]"
@@ -1306,11 +1302,37 @@ class SECURITY_DESCRIPTOR(Packet):
                                                      "SP","SD","SS","DT",
                                                      "DC","SC","DI","SI",
                                                      "PD","PS","RM","SR"]),
-                   LEIntField("OffsetOwner",0),
-                   LEIntField("OffsetGroup",0),
-                   LEIntField("OffsetSacl",0),
-                   LEIntField("OffsetDacl",0),
-                   SecurityDescriptorDataField("Data",[])]
+                   LEIntField("OffsetOwner",None),
+                   LEIntField("OffsetGroup",None),
+                   LEIntField("OffsetSacl",None),
+                   LEIntField("OffsetDacl",None),
+                   OffsetPacketListField("Data",[],20,[("OffsetOwner",SID),
+                                                       ("OffsetGroup",SID),
+                                                       ("OffsetSacl",SACL),
+                                                       ("OffsetDacl",DACL)])]
+    def post_build(self, p, pay):
+        off = 20
+        get_owner = self.OffsetOwner is None
+        get_group = self.OffsetGroup is None
+        get_sacl = self.OffsetSacl is None
+        get_dacl = self.OffsetDacl is None
+        for d in self.Data:
+            if type(d) is SID: # assumes owner comes before group if both None
+                if get_owner and off != self.OffsetGroup:
+                    p = p[:4]+struct.pack("<I",off)+p[8:]
+                    get_owner = False
+                elif get_group and off != self.OffsetOwner:
+                    p = p[:8]+struct.pack("<I",off)+p[12:]
+                    get_group = False
+            elif get_sacl and type(d) is SACL:
+                p = p[:12]+struct.pack("<I",off)+p[16:]
+                get_sacl = False
+            elif get_dacl and type(d) is DACL:
+                p = p[:16]+struct.pack("<I",off)+p[20:]
+                get_dacl = False
+            off += len(d)
+        p += pay
+        return p
 
 
 ########################### Data Structures [MS-FSCC] ##########################
