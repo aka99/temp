@@ -7,7 +7,7 @@
 Common Microsoft data structures.
 """
 
-import datetime
+import datetime,binascii
 from scapy.fields import *
 from scapy.packet import *
 
@@ -64,6 +64,44 @@ class FILETIME_Field(LELongField):
         return x
 
 
+
+class GUIDField(StrFixedLenField):
+    def __init__(self, name, default):
+        if not default:
+            default = "{00000000-0000-0000-0000-000000000000}"
+        StrFixedLenField.__init__(self, name, default, 16)
+    def any2i(self, pkt, x):
+        if len(x) == 16: # raw byte string
+            x = self.m2i(pkt, x)
+        try:
+            self.i2m(pkt, x)
+        except:
+            raise ValueError("Invalid GUID %r" % x)
+        return x
+    def i2m(self, pkt, x):
+        if not x:
+            return "\x00"*16
+        x = [binascii.a2b_hex(s) for s in
+             str(x).lstrip("{").rstrip("}").split("-")]
+        if len(x) != 5:
+            raise
+        return "".join([s[::-1] for s in x[:3]]+x[3:])
+    def m2i(self, pkt, x):
+        x = [x[0:4][::-1],x[4:6][::-1],x[6:8][::-1],x[8:10],x[10:16]]
+        return "{%s}" % "-".join([binascii.b2a_hex(s) for s in x])
+    def randval(self):
+        return RandGUID()
+
+
+class RandGUID(RandField): #XXX: could be RandUUID?
+#    def __init__(self, template="{*-*-*-*-*}"):
+#        self.template = template #TODO: like RandMAC, RandIP6, etc.
+    def _fix(self):
+        return "{%s}" % "-".join([binascii.b2a_hex(str(RandBin(l)))
+                                  for l in [4,2,2,2,6]])
+
+
+
 class SIDField(StrField):
     def __init__(self, name, default):
         StrField.__init__(self, name, default)
@@ -72,7 +110,7 @@ class SIDField(StrField):
             return ""
         x = i.split("-")
         if len(x) < 4 or x[0] != "S":
-            raise #XXX: not sure about this
+            raise ValueError("Invalid SID %r" % x)
         m = ""
         m += struct.pack("B", int(x[1]))
         m += struct.pack("B", len(x)-3)
@@ -188,8 +226,8 @@ class ACE_ACCESS_ALLOWED_OBJECT(ACE):
     fields_desc = [_ACE_HDR,
                    LEFlagsField("Mask",0,32,ace_flags_object_Mask),
                    LEFlagsField("Flags",0,32,ace_flags_object_Flags),
-                   StrFixedLenField("ObjectType","",16), #TODO: GUID type
-                   StrFixedLenField("InheritedObjectType","",16), #TODO: GUID type
+                   GUIDField("ObjectType",""),
+                   GUIDField("InheritedObjectType",""),
                    SIDField("SID","S-1-0-0")]
 
 class ACE_ACCESS_DENIED_OBJECT(ACE_ACCESS_ALLOWED_OBJECT):

@@ -2769,7 +2769,7 @@ class SMB_COM_NEGOTIATE_ResNTLM012_ExtSec(SMB_COM_NEGOTIATE_Res):
                    ByteField("ChallengeLength",0),
                    FieldLenField("ByteCount",None,length_of="SecurityBlob",fmt="<H",
                                  adjust=lambda pkt,x:x+16),
-                   StrFixedLenField("ServerGUID","",16), #TODO: GUID type
+                   GUIDField("ServerGUID",""),
                    StrLenField("SecurityBlob","",
                                length_from=lambda pkt:pkt.ByteCount-16)]
 
@@ -3199,7 +3199,7 @@ class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
                   [ConditionalField(LEFlagsField("FileStatusFlags",0,16,smb_flags_FileStatusFlags),
                                     lambda pkt:pkt.ResourceType not in [1,2]),
                    ByteEnumField("Directory",0,smb_enum_BOOLEAN),
-                   StrFixedLenField("VolumeGUID","",16), #TODO: GUID type
+                   GUIDField("VolumeGUID",""),
                    LELongField("FileId",0),
                    LEFlagsField("MaximalAccessRights",0,32,ACCESS_MASK),
                    LEFlagsField("GuestMaximalAccessRights",0,32,ACCESS_MASK),
