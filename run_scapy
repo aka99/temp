@@ -1,4 +1,3 @@
 #! /bin/sh
 DIR=$(dirname $0)
-echo $DIR
 PYTHONPATH=$DIR exec python -m scapy.__init__
