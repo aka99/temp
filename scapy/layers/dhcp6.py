@@ -307,7 +307,7 @@ class DHCP6OptIAAddress(_DHCP6OptGuessPayload):    # RFC sect 22.6
     def guess_payload_class(self, payload):
         return Padding
 
-class _IANAOptField(PacketListField):
+class _DHCP6OptField(PacketListField):
     def i2len(self, pkt, z):
         if z is None or z == []:
             return 0
@@ -336,11 +336,8 @@ class DHCP6OptIA_NA(_DHCP6OptGuessPayload):         # RFC sect 22.4
                     XIntField("iaid", None),
                     IntField("T1", None),
                     IntField("T2", None),
-                    _IANAOptField("ianaopts", [], DHCP6OptIAAddress,
-                                  length_from = lambda pkt: pkt.optlen-12) ]
-
-class _IATAOptField(_IANAOptField):
-    pass
+                    _DHCP6OptField("ianaopts", [], DHCP6OptIAAddress,
+                                   length_from = lambda pkt: pkt.optlen-12) ]
 
 class DHCP6OptIA_TA(_DHCP6OptGuessPayload):         # RFC sect 22.5
     name = "DHCP6 Option - Identity Association for Temporary Addresses"
@@ -348,8 +345,8 @@ class DHCP6OptIA_TA(_DHCP6OptGuessPayload):         # RFC sect 22.5
                     FieldLenField("optlen", None, length_of="iataopts",
                                   fmt="!H", adjust = lambda pkt,x: x+4),
                     XIntField("iaid", None),
-                    _IATAOptField("iataopts", [], DHCP6OptIAAddress,
-                                  length_from = lambda pkt: pkt.optlen-4) ]
+                    _DHCP6OptField("iataopts", [], DHCP6OptIAAddress,
+                                   length_from = lambda pkt: pkt.optlen-4) ]
 
 
 #### DHCPv6 Option Request Option ###################################
@@ -544,28 +541,6 @@ class DHCP6OptRapidCommit(_DHCP6OptGuessPayload):   # RFC sect 22.14
 
 #### DHCPv6 User Class Option #######################################
 
-class _UserClassDataField(PacketListField):
-    def i2len(self, pkt, z):
-        if z is None or z == []:
-            return 0
-        return sum(map(lambda x: len(str(x)) ,z))
-
-    def getfield(self, pkt, s):
-        l = self.length_from(pkt)
-        lst = []
-        remain, payl = s[:l], s[l:]
-        while len(remain)>0:
-            p = self.m2i(pkt,remain)
-            if Padding in p:
-                pad = p[Padding]
-                remain = pad.load
-                del(pad.underlayer.payload)
-            else:
-                remain = ""
-            lst.append(p)
-        return payl,lst
-
-
 class USER_CLASS_DATA(Packet):
     name = "user class data"
     fields_desc = [ FieldLenField("len", None, length_of="data"),
@@ -579,14 +554,11 @@ class DHCP6OptUserClass(_DHCP6OptGuessPayload):# RFC sect 22.15
     fields_desc = [ ShortEnumField("optcode", 15, dhcp6opts), 
                     FieldLenField("optlen", None, fmt="!H",
                                   length_of="userclassdata"),
-                    _UserClassDataField("userclassdata", [], USER_CLASS_DATA,
-                                        length_from = lambda pkt: pkt.optlen) ]
+                    _DHCP6OptField("userclassdata", [], USER_CLASS_DATA,
+                                   length_from = lambda pkt: pkt.optlen) ]
 
 
 #### DHCPv6 Vendor Class Option #####################################
-
-class _VendorClassDataField(_UserClassDataField):
-    pass
 
 class VENDOR_CLASS_DATA(USER_CLASS_DATA):
     name = "vendor class data"
@@ -597,8 +569,8 @@ class DHCP6OptVendorClass(_DHCP6OptGuessPayload):# RFC sect 22.16
                     FieldLenField("optlen", None, length_of="vcdata", fmt="!H",
                                   adjust = lambda pkt,x: x+4),
                     IntEnumField("enterprisenum",None , iana_enterprise_num ),
-                    _VendorClassDataField("vcdata", [], VENDOR_CLASS_DATA,
-                                          length_from = lambda pkt: pkt.optlen-4) ]
+                    _DHCP6OptField("vcdata", [], VENDOR_CLASS_DATA,
+                                   length_from = lambda pkt: pkt.optlen-4) ]
 
 #### DHCPv6 Vendor-Specific Information Option ######################
 
@@ -618,8 +590,8 @@ class DHCP6OptVendorSpecificInfo(_DHCP6OptGuessPayload):# RFC sect 22.17
                     FieldLenField("optlen", None, length_of="vso", fmt="!H",
                                   adjust = lambda pkt,x: x+4),
                     IntEnumField("enterprisenum",None , iana_enterprise_num),
-                    _VendorClassDataField("vso", [], VENDOR_SPECIFIC_OPTION,
-                                          length_from = lambda pkt: pkt.optlen-4) ]
+                    _DHCP6OptField("vso", [], VENDOR_SPECIFIC_OPTION,
+                                   length_from = lambda pkt: pkt.optlen-4) ]
 
 #### DHCPv6 Interface-ID Option #####################################
 
