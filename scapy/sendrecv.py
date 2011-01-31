@@ -12,8 +12,8 @@ from select import select
 from data import *
 from config import conf
 from packet import Gen,Raw
-from utils import warning,get_temp_file,PcapReader,wrpcap
-from error import log_runtime,log_interactive
+from utils import get_temp_file,PcapReader,wrpcap
+from error import log_runtime,log_interactive,warning
 from base_classes import SetGen
 
 #################

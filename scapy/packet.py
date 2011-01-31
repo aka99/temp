@@ -12,8 +12,8 @@ from fields import StrField,ConditionalField,Emph,PacketListField
 from config import conf
 from base_classes import BasePacket,Gen,SetGen,Packet_metaclass
 from volatile import VolatileValue
-from utils import import_hexcap,tex_escape,colgen,get_temp_file,warning,WINDOWS
-from error import Scapy_Exception,log_runtime
+from utils import import_hexcap,tex_escape,colgen,get_temp_file,WINDOWS
+from error import Scapy_Exception,log_runtime,warning
 
 try:
     import pyx

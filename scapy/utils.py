@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore","tempnam",RuntimeWarning, __name__)
 
 from config import conf
 from data import MTU
-from error import log_runtime,log_loading,log_interactive,Scapy_Exception
+from error import log_runtime,log_loading,log_interactive,Scapy_Exception,warning
 from base_classes import BasePacketList
 
 WINDOWS=sys.platform.startswith("win32")
@@ -245,9 +245,6 @@ else:
         s = ~s
         return (((s>>8)&0xff)|s<<8) & 0xffff
 
-def warning(x):
-    log_runtime.warning(x)
-
 def mac2str(mac):
     return "".join(map(lambda x: chr(int(x,16)), mac.split(":")))
 
@@ -257,7 +254,7 @@ def str2mac(s):
 def strxor(x,y):
     return "".join(map(lambda x,y:chr(ord(x)^ord(y)),x,y))
 
-# Workarround bug 643005 : https://sourceforge.net/tracker/?func=detail&atid=105470&aid=643005&group_id=5470
+# Workaround bug 643005 : https://sourceforge.net/tracker/?func=detail&atid=105470&aid=643005&group_id=5470
 try:
     socket.inet_aton("255.255.255.255")
 except socket.error:

@@ -10,6 +10,7 @@ Cryptographic certificates.
 import os, sys, math, socket, struct, hmac, string, time
 import random, popen2, tempfile
 from scapy.utils import strxor
+from scapy.error import warning
 import hashlib
 
 from Crypto.PublicKey import *
@@ -25,9 +26,6 @@ MAX_CRL_SIZE=10*1024*1024   # some are that big
 #####################################################################
 # Some helpers
 #####################################################################
-
-def warning(m):
-    print "WARNING: %s" % m
 
 def randstring(l):
     """
