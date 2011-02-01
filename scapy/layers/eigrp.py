@@ -141,9 +141,38 @@ class _EIGRP_IP6Field(StrField, IP6Field, _EIGRP_IPField):
         return _EIGRP_IPField.getfield(self, pkt, s)
 
 
+_EIGRP_tlv_cls = {0x0001: "EIGRPParam",
+                  0x0002: "EIGRPAuthData",
+                  0x0003: "EIGRPSeq",
+                  0x0004: "EIGRPSwVer",
+                  0x0005: "EIGRPNms",
+                  0x0006: "EIGRPStub",
+                  0x0102: "EIGRPIntRoute",
+                  0x0103: "EIGRPExtRoute",
+                  0x0402: "EIGRPv6IntRoute",
+                  0x0403: "EIGRPv6ExtRoute"}
+
+
+_EIGRP_tlv_types = {0x0001: "Parameters",
+                    0x0002: "Authentication Data",
+                    0x0003: "Sequence",
+                    0x0004: "Software Version",
+                    0x0005: "Next Multicast Sequence",
+                    0x0006: "Stub Router",
+                    0x0102: "IPv4 Internal Route",
+                    0x0103: "IPv4 External Route",
+                    0x0202: "AppleTalk Internal Route",
+                    0x0203: "AppleTalk External Route",
+                    0x0204: "AppleTalk Cable Configuration",
+                    0x0302: "IPX Internal Route",
+                    0x0303: "IPX External Route",
+                    0x0402: "IPv6 Internal Route",
+                    0x0403: "IPv6 External Route"}
+
+
 class EIGRPGeneric(Packet):
     name = "EIGRP Generic TLV"
-    fields_desc = [XShortField("type", 0x0000),
+    fields_desc = [XShortEnumField("type", 0x0000, _EIGRP_tlv_types),
                    FieldLenField("len", None, "value", "!H", adjust=lambda pkt, x: x + 4),
                    StrLenField("value", "\x00", length_from=lambda pkt: pkt.len - 4)]
 
@@ -153,7 +182,7 @@ class EIGRPGeneric(Packet):
 
 class EIGRPParam(EIGRPGeneric):
     name = "EIGRP Parameters"
-    fields_desc = [XShortField("type", 0x0001),
+    fields_desc = [XShortEnumField("type", 0x0001, _EIGRP_tlv_types),
                    ShortField("len", 12),
                    # Bandwidth
                    ByteField("k1", 1),
@@ -171,7 +200,7 @@ class EIGRPParam(EIGRPGeneric):
 
 class EIGRPAuthData(EIGRPGeneric):
     name = "EIGRP Authentication Data"
-    fields_desc = [XShortField("type", 0x0002),
+    fields_desc = [XShortEnumField("type", 0x0002, _EIGRP_tlv_types),
                    FieldLenField("len", None, "authdata", "!H", adjust=lambda pkt, x: x + 24),
                    ShortEnumField("authtype", 2, {2: "MD5"}),
                    ShortField("keysize", None),
@@ -189,7 +218,7 @@ class EIGRPAuthData(EIGRPGeneric):
 
 class EIGRPSeq(EIGRPGeneric):
     name = "EIGRP Sequence"
-    fields_desc = [XShortField("type", 0x0003),
+    fields_desc = [XShortEnumField("type", 0x0003, _EIGRP_tlv_types),
                    ShortField("len", None),
                    ByteField("addrlen", 4),
                    ConditionalField(IPField("ipaddr", "192.168.0.1"), lambda pkt: pkt.addrlen == 4),
@@ -217,7 +246,7 @@ class _EIGRP_ShortVersionField(ShortField):
 
     def h2i(self, pkt, x):
         """The field accepts string values like v12.1, v1.1 or integer values.
-           String values have to start with a "v" folled by a floating point number.
+           String values have to start with a "v" followed by a floating point number.
            Valid numbers are between 0 and 255.
         """
 
@@ -242,7 +271,7 @@ class _EIGRP_ShortVersionField(ShortField):
 
 class EIGRPSwVer(EIGRPGeneric):
     name = "EIGRP Software Version"
-    fields_desc = [XShortField("type", 0x0004),
+    fields_desc = [XShortEnumField("type", 0x0004, _EIGRP_tlv_types),
                    ShortField("len", 8),
                    _EIGRP_ShortVersionField("ios", "v12.0"),
                    _EIGRP_ShortVersionField("eigrp", "v1.2")]
@@ -250,7 +279,7 @@ class EIGRPSwVer(EIGRPGeneric):
 
 class EIGRPNms(EIGRPGeneric):
     name = "EIGRP Next Multicast Sequence"
-    fields_desc = [XShortField("type", 0x0005),
+    fields_desc = [XShortEnumField("type", 0x0005, _EIGRP_tlv_types),
                    ShortField("len", 8),
                    IntField("nms", 2)]
 
@@ -261,7 +290,7 @@ _EIGRP_STUB_FLAGS = ["connected", "static", "summary", "receive-only", "redistri
 
 class EIGRPStub(EIGRPGeneric):
     name = "EIGRP Stub Router"
-    fields_desc = [XShortField("type", 0x0006),
+    fields_desc = [XShortEnumField("type", 0x0006, _EIGRP_tlv_types),
                    ShortField("len", 6),
                    FlagsField("flags", 0x000d, 16, _EIGRP_STUB_FLAGS)]
 
@@ -269,7 +298,7 @@ class EIGRPStub(EIGRPGeneric):
 # Delay 0xffffffff == Destination Unreachable
 class EIGRPIntRoute(EIGRPGeneric):
     name = "EIGRP Internal Route"
-    fields_desc = [XShortField("type", 0x0102),
+    fields_desc = [XShortEnumField("type", 0x0102, _EIGRP_tlv_types),
                    FieldLenField("len", None, "dst", "!H", adjust=lambda pkt, x: x + 25),
                    IPField("nexthop", "192.168.0.1"),
                    IntField("delay", 128000),
@@ -301,7 +330,7 @@ _EIGRP_EXTROUTE_FLAGS = ["external", "candidate-default", "res2", "res3", "res4"
 
 class EIGRPExtRoute(EIGRPGeneric):
     name = "EIGRP External Route"
-    fields_desc = [XShortField("type", 0x0103),
+    fields_desc = [XShortEnumField("type", 0x0103, _EIGRP_tlv_types),
                    FieldLenField("len", None, "dst", "!H", adjust=lambda pkt, x: x + 45),
                    IPField("nexthop", "192.168.0.1"),
                    IPField("originrouter", "192.168.0.1"),
@@ -324,7 +353,7 @@ class EIGRPExtRoute(EIGRPGeneric):
 
 class EIGRPv6IntRoute(EIGRPGeneric):
     name = "EIGRP for IPv6 Internal Route"
-    fields_desc = [XShortField("type", 0x0402),
+    fields_desc = [XShortEnumField("type", 0x0402, _EIGRP_tlv_types),
                    FieldLenField("len", None, "dst", "!H", adjust=lambda pkt, x: x + 37),
                    IP6Field("nexthop", "::"),
                    IntField("delay", 128000),
@@ -340,7 +369,7 @@ class EIGRPv6IntRoute(EIGRPGeneric):
 
 class EIGRPv6ExtRoute(EIGRPGeneric):
     name = "EIGRP for IPv6 External Route"
-    fields_desc = [XShortField("type", 0x0403),
+    fields_desc = [XShortEnumField("type", 0x0403, _EIGRP_tlv_types),
                    FieldLenField("len", None, "dst", "!H", adjust=lambda pkt, x: x + 57),
                    IP6Field("nexthop", "::"),
                    IPField("originrouter", "192.168.0.1"),
@@ -361,18 +390,6 @@ class EIGRPv6ExtRoute(EIGRPGeneric):
                    _EIGRP_IP6Field("dst", "::", length_from=lambda pkt: pkt.prefixlen)]
 
 
-_EIGRP_tlv_cls = {0x0001: "EIGRPParam",
-                  0x0002: "EIGRPAuthData",
-                  0x0003: "EIGRPSeq",
-                  0x0004: "EIGRPSwVer",
-                  0x0005: "EIGRPNms",
-                  0x0006: "EIGRPStub",
-                  0x0102: "EIGRPIntRoute",
-                  0x0103: "EIGRPExtRoute",
-                  0x0402: "EIGRPv6IntRoute",
-                  0x0403: "EIGRPv6ExtRoute"}
-
-
 def _EIGRPGuessPacketClass(p=None, **kargs):
     if p is None:
         return EIGRPGeneric(**kargs)
@@ -389,7 +406,7 @@ def _EIGRPGuessPacketClass(p=None, **kargs):
 _EIGRP_OPCODES = {1: "Update",
                   2: "Request",
                   3: "Query",
-                  4: "Replay",
+                  4: "Reply",
                   5: "Hello",
                   6: "IPX SAP",
                   10: "SIA Query",
