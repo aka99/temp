@@ -17,114 +17,152 @@ from scapy.layers.inet6 import IP6Field
 
 
 # see http://www.iana.org/assignments/ipsec-registry for details
-ISAKMPAttributeTypes= { "Encryption":    (1, { "DES-CBC"  : 1,
-                                                "IDEA-CBC" : 2,
-                                                "Blowfish-CBC" : 3,
-                                                "RC5-R16-B64-CBC" : 4,
-                                                "3DES-CBC" : 5, 
-                                                "CAST-CBC" : 6, 
-                                                "AES-CBC" : 7, 
-                                                "CAMELLIA-CBC" : 8, }, 0),
-                         "Hash":          (2, { "MD5": 1,
-                                                "SHA": 2,
-                                                "Tiger": 3,
-                                                "SHA2-256": 4,
-                                                "SHA2-384": 5,
-                                                "SHA2-512": 6,}, 0),
-                         "Authentication":(3, { "PSK": 1, 
-                                                "DSS": 2,
-                                                "RSA Sig": 3,
-                                                "RSA Encryption": 4,
-                                                "RSA Encryption Revised": 5,
-                                                "ElGamal Encryption": 6,
-                                                "ElGamal Encryption Revised": 7,
-                                                "ECDSA Sig": 8,
-                                                "HybridInitRSA": 64221,
-                                                "HybridRespRSA": 64222,
-                                                "HybridInitDSS": 64223,
-                                                "HybridRespDSS": 64224,
-                                                "XAUTHInitPreShared": 65001,
-                                                "XAUTHRespPreShared": 65002,
-                                                "XAUTHInitDSS": 65003,
-                                                "XAUTHRespDSS": 65004,
-                                                "XAUTHInitRSA": 65005,
-                                                "XAUTHRespRSA": 65006,
-                                                "XAUTHInitRSAEncryption": 65007,
-                                                "XAUTHRespRSAEncryption": 65008,
-                                                "XAUTHInitRSARevisedEncryption": 65009,
-                                                "XAUTHRespRSARevisedEncryptio": 65010, }, 0),
-                         "GroupDesc":     (4, { "768MODPgr"  : 1,
-                                                "1024MODPgr" : 2, 
-                                                "EC2Ngr155"  : 3,
-                                                "EC2Ngr185"  : 4,
-                                                "1536MODPgr" : 5, 
-                                                "2048MODPgr" : 14, 
-                                                "3072MODPgr" : 15, 
-                                                "4096MODPgr" : 16, 
-                                                "6144MODPgr" : 17, 
-                                                "8192MODPgr" : 18, }, 0),
-                         "GroupType":      (5,  {"MODP":       1,
-                                                 "ECP":        2,
-                                                 "EC2N":       3}, 0),
-                         "GroupPrime":     (6,  {}, 1),
-                         "GroupGenerator1":(7,  {}, 1),
-                         "GroupGenerator2":(8,  {}, 1),
-                         "GroupCurveA":    (9,  {}, 1),
-                         "GroupCurveB":    (10, {}, 1),
-                         "LifeType":       (11, {"Seconds":     1,
-                                                 "Kilobytes":   2,  }, 0),
-                         "LifeDuration":   (12, {}, 1),
-                         "PRF":            (13, {}, 0),
-                         "KeyLength":      (14, {}, 0),
-                         "FieldSize":      (15, {}, 0),
-                         "GroupOrder":     (16, {}, 1),
-                         }
+ISAKMPAttrPhase1Types = {  1:("Encryption", { 1:"DES-CBC",
+                                              2:"IDEA-CBC",
+                                              3:"Blowfish-CBC",
+                                              4:"RC5-R16-B64-CBC",
+                                              5:"3DES-CBC", 
+                                              6:"CAST-CBC", 
+                                              7:"AES-CBC", 
+                                              8:"CAMELLIA-CBC" }, 1),
+                           2:("Hash", { 1:"MD5",
+                                        2:"SHA",
+                                        3:"Tiger",
+                                        4:"SHA2-256",
+                                        5:"SHA2-384",
+                                        6:"SHA2-512" }, 1),
+                           3:("Authentication", {     1:"PSK", 
+                                                      2:"DSS",
+                                                      3:"RSA Sig",
+                                                      4:"RSA Encryption",
+                                                      5:"RSA Encryption Revised",
+                                                      6:"ElGamal Encryption",
+                                                      7:"ElGamal Encryption Revised",
+                                                      8:"ECDSA Sig",
+                                                      9:"ECDSA-256",
+                                                     10:"ECDSA-384",
+                                                     11:"ECDSA-521",
+                                                  64221:"HybridInitRSA",
+                                                  64222:"HybridRespRSA",
+                                                  64223:"HybridInitDSS",
+                                                  64224:"HybridRespDSS",
+                                                  65001:"XAUTHInitPreShared",
+                                                  65002:"XAUTHRespPreShared",
+                                                  65003:"XAUTHInitDSS",
+                                                  65004:"XAUTHRespDSS",
+                                                  65005:"XAUTHInitRSA",
+                                                  65006:"XAUTHRespRSA",
+                                                  65007:"XAUTHInitRSAEncryption",
+                                                  65008:"XAUTHRespRSAEncryption",
+                                                  65009:"XAUTHInitRSARevisedEncryption",
+                                                  65010:"XAUTHRespRSARevisedEncryption" }, 1),
+                           4:("GroupDesc", {  1:"768MODPgr",
+                                              2:"1024MODPgr", 
+                                              3:"EC2Ngr155",
+                                              4:"EC2Ngr185",
+                                              5:"1536MODPgr", 
+                                              6:"EC2Ngr163r1",
+                                              7:"EC2Ngr163k1",
+                                              8:"EC2Ngr283r1",
+                                              9:"EC2Ngr283k1",
+                                             10:"EC2Ngr409r1",
+                                             11:"EC2Ngr409k1",
+                                             12:"EC2Ngr571r1",
+                                             13:"EC2Ngr571k1",
+                                             14:"2048MODPgr", 
+                                             15:"3072MODPgr", 
+                                             16:"4096MODPgr", 
+                                             17:"6144MODPgr", 
+                                             18:"8192MODPgr", 
+                                             19:"256ECPgr",
+                                             20:"384ECPgr",
+                                             21:"521ECPgr",
+                                             22:"1024MODPgr160PO",
+                                             23:"2048MODPgr224PO",
+                                             24:"2048MODPgr256PO",
+                                             25:"192ECPgr",
+                                             26:"224ECPgr" }, 1),
+                           5:("GroupType", { 1:"MODP",
+                                             2:"ECP",
+                                             3:"EC2N" }, 1),
+                           6:("GroupPrime", {}, 0),
+                           7:("GroupGen1", {}, 0),
+                           8:("GroupGen2", {}, 0),
+                           9:("GroupCurveA", {}, 0),
+                          10:("GroupCurveB", {}, 0),
+                          11:("LifeType", { 1:"Seconds",
+                                            2:"Kilobytes" }, 1),
+                          12:("LifeDuration", {}, 0),
+                          13:("PRF", {}, 1),
+                          14:("KeyLength", {}, 1),
+                          15:("FieldSize", {}, 1),
+                          16:("GroupOrder", {}, 0) }
 
-# the name 'ISAKMPTransformTypes' is actually a misnomer (since the table 
-# holds info for all ISAKMP Attribute types, not just transforms, but we'll 
-# keep it for backwards compatibility... for now at least
-ISAKMPTransformTypes = ISAKMPAttributeTypes
 
-ISAKMPTransformNum = {}
-for n in ISAKMPTransformTypes:
-    val = ISAKMPTransformTypes[n]
-    tmp = {}
-    for e in val[1]:
-        tmp[val[1][e]] = e
-    ISAKMPTransformNum[val[0]] = (n,tmp, val[2])
-del(n)
-del(e)
-del(tmp)
-del(val)
-
-
-class ISAKMPTransformSetField(StrLenField):
+class ISAKMPAttributesField(StrLenField):
     islist=1
-    def type2num(self, (typ,val)):
-        type_val,enc_dict,tlv = ISAKMPTransformTypes.get(typ, (typ,{},0))
-        val = enc_dict.get(val, val)
-        s = ""
-        if (val & ~0xffff):
-            if not tlv:
-                warning("%r should not be TLV but is too big => using TLV encoding" % typ)
-            n = 0
-            while val:
-                s = chr(val&0xff)+s
-                val >>= 8
-                n += 1
-            val = n
+    def __init__(self, name, default, types, length_from=None):
+        StrLenField.__init__(self, name, default, length_from=length_from)
+        self.types = types
+        self.names = {}
+        for n in types:
+            self.names[types[n][0]] = n
+    def name2type(self, tv):
+        typ,val = tv[0],tv[1]
+        if type(typ) is str:
+            if typ in self.names:
+                typ = self.names[typ]
+            else:
+                warning("Ignoring invalid ISAKMP attribute type %r" % tv[0])
+                return None
+        if type(val) is str:
+            enc_dict = self.types.get(typ,(typ,{}))[1]
+            for k in enc_dict:
+                if enc_dict[k] == val:
+                    val = k
+                    break
+            else:
+                warning("Ignoring invalid ISAKMP attribute value %r for type %r" % (tv[1],tv[0]))
+                return None
+        if len(tv) > 2:
+            return (typ,val,tv[2])
         else:
-            type_val |= 0x8000
-        return struct.pack("!HH",type_val, val)+s
-    def num2type(self, typ, enc):
-        val = ISAKMPTransformNum.get(typ,(typ,{}))
-        enc = val[1].get(enc,enc)
+            return (typ,val)
+    def type2name(self, typ, enc):
+        val = self.types.get(typ,(typ,{}))
+        if type(enc) is str:
+            enc = repr(enc)
+        else:
+            enc = val[1].get(enc,enc)
         return (val[0],enc)
+    def h2i(self, pkt, h):
+        if not h:
+            return []
+        return filter(lambda x:x is not None, map(self.name2type, h))
     def i2m(self, pkt, i):
-        if i is None:
-            return ""
-        i = map(self.type2num, i)
-        return "".join(i)
+        m = ""
+        for tv in i:
+            typ,val = tv[0],tv[1]
+            if len(tv) > 2:
+                vlen = tv[2]
+            else:
+                vlen = 0
+            name,enc_dict,af_bit = self.types.get(typ,(typ,{},None))
+            s = ""
+            if af_bit == 0 or (val & ~0xffff):
+                if af_bit == 1:
+                    warning("%r should not be TLV but is too big => using TLV encoding" % name)
+                n = 0
+                while val or vlen > 0:
+                    s = chr(val&0xff)+s
+                    val >>= 8
+                    vlen -= 1
+                    n += 1
+                val = n
+            else:
+                typ |= 0x8000
+            m += struct.pack("!HH",typ, val)+s
+        return m
     def m2i(self, pkt, m):
         # I try to ensure that we don't read off the end of our packet based
         # on bad length fields we're provided in the packet. There are still
@@ -141,7 +179,7 @@ class ISAKMPTransformSetField(StrLenField):
                 # warning if we're given an TLV on a basic attribute.
                 value_len, = struct.unpack("!H", m[2:4])
                 if value_len+4 > len(m):
-                    warning("Bad length for ISAKMP tranform type=%#6x" % trans_type)
+                    warning("Bad length for ISAKMP attribute type=%#6x" % trans_type)
                 value = m[4:4+value_len]
                 value = reduce(lambda x,y: (x<<8L)|y, struct.unpack("!%s" % ("B"*len(value),), value),0)
             else:
@@ -149,10 +187,16 @@ class ISAKMPTransformSetField(StrLenField):
                 value_len=0
                 value, = struct.unpack("!H", m[2:4])
             m=m[4+value_len:]
-            lst.append(self.num2type(trans_type, value))
+            if value_len:
+                lst.append((trans_type, value, value_len))
+            else:
+                lst.append((trans_type, value))
         if len(m) > 0:
-            warning("Extra bytes after ISAKMP transform dissection [%r]" % m)
+            warning("Extra bytes after ISAKMP attribute dissection [%r]" % m)
         return lst
+    def i2repr(self, pkt, x):
+        lst = ["(%s: %s)" % self.type2name(tv[0],tv[1]) for tv in x]
+        return "[%s]" % ", ".join(lst)
 
 
 ISAKMP_payload_type = ["None","SA","Proposal","Transform","KE","ID","CERT","CR","Hash",
@@ -313,7 +357,8 @@ class ISAKMP_payload_Transform(ISAKMP_payload):
         ByteField("num",None),
         ByteEnumField("id",1,{1:"KEY_IKE"}),
         ShortField("res2",0),
-        ISAKMPTransformSetField("transforms",None,length_from=lambda x:x.length-8)
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+                              length_from=lambda x:x.length-8)
         ]
 
 
