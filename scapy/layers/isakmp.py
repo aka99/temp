@@ -247,6 +247,19 @@ class ISAKMPAttributesField(StrLenField):
         return "[%s]" % ", ".join(lst)
 
 
+class ISAKMPTransformsField(PacketListField): #XXX: need to set next_payload
+    def __init__(self, name, default, count_from=None, length_from=None):
+        PacketListField.__init__(self, name, default,
+                                 ISAKMP_payload_Transform, count_from, length_from)
+    def m2i(self, pkt, m):
+        if pkt.proto == 2:
+            return ISAKMP_payload_Transform_AH(m)
+        elif pkt.proto == 3:
+            return ISAKMP_payload_Transform_ESP(m)
+        else:
+            return ISAKMP_payload_Transform(m)
+
+
 ISAKMP_payload_type = ["None","SA","Proposal","Transform","KE","ID","CERT","CR","Hash",
                        "SIG","Nonce","Notification","Delete","VendorID",
                        "reserved","SAK","SAT","KD","SEQ","POP","NAT_D","NAT_OA"]
@@ -300,6 +313,47 @@ ISAKMP_proto_ID = { 1: "PROTO_ISAKMP",
                     3: "PROTO_IPSEC_ESP",
                     4: "PROTO_IPCOMP",
                     5: "PROTO_GIGABEAM_RADIO" }
+
+# http://www.iana.org/assignments/isakmp-registry
+ISAKMP_trans_ID = { 1:"KEY_IKE" }
+ISAKMP_trans_ID_AH = {  2:"AH_MD5",
+                        3:"AH_SHA",
+                        4:"AH_DES",
+                        5:"AH_SHA2-256",
+                        6:"AH_SHA2-384",
+                        7:"AH_SHA2-512",
+                        8:"AH_RIPEMD",
+                        9:"AH_AES-XCBC-MAC",
+                       10:"AH_RSA",
+                       11:"AH_AES-128-GMAC",
+                       12:"AH_AES-192-GMAC",
+                       13:"AH_AES-256-GMAC" }
+ISAKMP_trans_ID_ESP = {  1:"ESP_DES_IV64",
+                         2:"ESP_DES",
+                         3:"ESP_3DES",
+                         4:"ESP_RC5",
+                         5:"ESP_IDEA",
+                         6:"ESP_CAST",
+                         7:"ESP_BLOWFISH",
+                         8:"ESP_3IDEA",
+                         9:"ESP_DES_IV32",
+                        10:"ESP_RC4",
+                        11:"ESP_NULL",
+                        12:"ESP_AES-CBC",
+                        13:"ESP_AES-CTR",
+                        14:"ESP_AES-CCM_8",
+                        15:"ESP_AES-CCM_12",
+                        16:"ESP_AES-CCM_16",
+                        18:"ESP_AES-GCM_8",
+                        19:"ESP_AES-GCM_12",
+                        20:"ESP_AES-GCM_16",
+                        21:"ESP_SEED_CBC",
+                        22:"ESP_CAMELLIA",
+                        23:"ESP_NULL_AUTH_AES-GMAC" }
+ISAKMP_trans_ID_IPCOMP = {  1:"IPCOMP_OUI",
+                            2:"IPCOMP_DEFLATE",
+                            3:"IPCOMP_LZS",
+                            4:"IPCOMP_LZJH" }
 
 # http://www.iana.org/assignments/isakmp-registry
 ISAKMP_ID_type = {  1: "IPV4_ADDR",
@@ -403,12 +457,45 @@ class ISAKMP_payload_Transform(ISAKMP_payload):
     fields_desc = [
         _ISAKMP_payload_HDR,
         ByteField("num",None),
-        ByteEnumField("id",1,{1:"KEY_IKE"}),
+        ByteEnumField("id",1,ISAKMP_trans_ID),
         ShortField("res2",0),
         ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
                               length_from=lambda x:x.length-8)
         ]
 
+class ISAKMP_payload_Transform_AH(ISAKMP_payload_Transform):
+    name = "ISAKMP Transform (AH)"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteField("num",None),
+        ByteEnumField("id",1,ISAKMP_trans_ID_AH),
+        ShortField("res2",0),
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+                              length_from=lambda x:x.length-8)
+        ]
+
+class ISAKMP_payload_Transform_ESP(ISAKMP_payload_Transform):
+    name = "ISAKMP Transform (ESP)"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteField("num",None),
+        ByteEnumField("id",1,ISAKMP_trans_ID_ESP),
+        ShortField("res2",0),
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+                              length_from=lambda x:x.length-8)
+        ]
+
+class ISAKMP_payload_Transform_IPCOMP(ISAKMP_payload_Transform):
+    name = "ISAKMP Transform (IPCOMP)"
+    fields_desc = [
+        _ISAKMP_payload_HDR,
+        ByteField("num",None),
+        ByteEnumField("id",1,ISAKMP_trans_ID_IPCOMP),
+        ShortField("res2",0),
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+                              length_from=lambda x:x.length-8)
+        ]
+            
 
         
 class ISAKMP_payload_Proposal(ISAKMP_payload):
@@ -418,21 +505,14 @@ class ISAKMP_payload_Proposal(ISAKMP_payload):
         ByteField("proposal",1),
         ByteEnumField("proto",1,ISAKMP_proto_ID),
         FieldLenField("SPIsize",None,"SPI","B"),
-        ByteField("trans_nb",None),
+        FieldLenField("trans_nb",None,count_of="trans",fmt="B"),
         StrLenField("SPI","",length_from=lambda x:x.SPIsize),
-        PacketLenField("trans",Raw(),ISAKMP_payload_Transform,length_from=lambda x:x.length-8),
+        ISAKMPTransformsField("trans",[],length_from=lambda x:x.length-8),
         ]
     def post_build(self, p, pay):
         if self.length is None:
             l = len(p)
             p = p[:2]+chr((l>>8)&0xff)+chr(l&0xff)+p[4:]
-        if self.trans_nb is None:
-            num = 0
-            t = self.trans
-            while t:
-                num += 1
-                t = t.payload
-            p = p[:7]+chr(num&0xff)+p[8:]
         p += pay
         return p
 
