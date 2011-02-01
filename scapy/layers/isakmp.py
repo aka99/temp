@@ -98,6 +98,54 @@ ISAKMPAttrPhase1Types = {  1:("Encryption", { 1:"DES-CBC",
                           15:("FieldSize", {}, 1),
                           16:("GroupOrder", {}, 0) }
 
+# http://www.iana.org/assignments/isakmp-registry
+ISAKMPAttrIPSECTypes = {  1:("SALifeType", { 1:"Seconds",
+                                             2:"Kilobytes" }, 1),
+                          2:("SALifeDuration", {}, 0),
+                          3:("GroupDesc", {}, 1),
+                          4:("Encapsulation", { 1:"Tunnel",
+                                                2:"Transport",
+                                                3:"UDP-Encapsulated-Tunnel",
+                                                4:"UDP-Encapsulated-Transport" }, 1),
+                          5:("Authentication", {  1:"HMAC-MD5",
+                                                  2:"HMAC-SHA",
+                                                  3:"DES-MAC",
+                                                  4:"KPDK",
+                                                  5:"HMAC-SHA2-256",
+                                                  6:"HMAC-SHA2-384",
+                                                  7:"HMAC-SHA2-512",
+                                                  8:"HMAC-RIPEMD",
+                                                  9:"AES-XCBC-MAC",
+                                                 10:"SIG-RSA",
+                                                 11:"AES-128-GMAC",
+                                                 12:"AES-192-GMAC",
+                                                 13:"AES-256-GMAC" }, 1),
+                          6:("KeyLength", {}, 1),
+                          7:("KeyRounds", {}, 1),
+                          8:("CompressDictSize", {}, 1),
+                          9:("CompressPrivateAlgorithm", {}, 0),
+                         10:("ECNTunnel", { 1:"Allowed" ,
+                                            2:"Forbidden" }, 1),
+                         11:("ExtendedSeqNum", { 1:"64-bit" }, 1),
+                         12:("AuthKeyLength", {}, 0),
+                         13:("SigEncoding", { 1:"RSASSA-PKCS1-v1_5",
+                                              2:"RSASSA-PSS" }, 1) }
+
+# RFC3547
+ISAKMPAttrKEKClasses = { 1:("KEK_MANAGEMENT_ALGORITHM", { 1:"LKH" }, 1),
+                         2:("KEK_ALGORITHM", { 1:"KEK_ALG_DES",
+                                               2:"KEK_ALG_3DES",
+                                               3:"UDP-KEK_ALG_AES-Tunnel" }, 1),
+                         3:("KEK_KEY_LENGTH", {}, 1),
+                         4:("KEK_KEY_LIFETIME", {}, 0),
+                         5:("SIG_HASH_ALGORITHM", { 1:"SIG_HASH_MD5",
+                                                    2:"SIG_HASH_SHA1", }, 1),
+                         6:("SIG_ALGORITHM", { 1:"SIG_ALG_RSA",
+                                               2:"SIG_ALG_DSS",
+                                               3:"SIG_ALG_ECDSS" }, 1),
+                         7:("SIG_KEY_LENGTH", {}, 1),
+                         8:("KE_OAKLEY_GROUP", {}, 1) }
+
 
 class ISAKMPAttributesField(StrLenField):
     islist=1
@@ -513,7 +561,8 @@ class ISAKMP_payload_SAK(ISAKMP_payload):
         StrFixedLenField("SPI","\x00"*16,16),
         ShortEnumField("pop_algo",0,{1:"RSA",2:"DSS",3:"ECDSS"}),
         ShortField("pop_key_len",0), #XXX: FieldLenField?
-        StrLenField("kek","",length_from=lambda x:x.length-33),
+        ISAKMPAttributesField("kek",[],ISAKMPAttrKEKClasses,
+                              length_from=lambda x:x.length-33),
         ]
 
 class ISAKMP_payload_SAT(ISAKMP_payload):
@@ -532,7 +581,8 @@ class ISAKMP_payload_SAT(ISAKMP_payload):
         StrLenField("ddata","",length_from=lambda x:x.dlen),
         ByteEnumField("trans_id",1,{1:"KEY_IKE"}),
         StrFixedLenField("SPI","\x00"*4,4),
-        StrLenField("attrs","",length_from=lambda x:x.length-19),
+        ISAKMPAttributesField("attrs",[],ISAKMPAttrIPSECTypes,
+                              length_from=lambda x:x.length-19),
         ]
 
 class ISAKMP_key(Packet):
