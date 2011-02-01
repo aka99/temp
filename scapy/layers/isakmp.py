@@ -147,6 +147,35 @@ ISAKMPAttrKEKClasses = { 1:("KEK_MANAGEMENT_ALGORITHM", { 1:"LKH" }, 1),
                          8:("KE_OAKLEY_GROUP", {}, 1) }
 
 
+class RandISAKMPAttributes(RandField):
+    def __init__(self, types, size=None, all=False):
+        self.types = types
+        if size is None:
+            size = RandNumExpo(0.1)
+        self.size = size
+        self.all = all
+    def _fix(self):
+        trans = []
+        if self.all:
+            keys = self.types.keys()
+            random.shuffle(keys)
+        else:
+            keys = [random.choice(self.types.keys())
+                    for _ in range(self.size)]
+        for typ in keys:
+            type_val,enc_dict,af_bit = self.types.get(typ)
+            is_tlv = not af_bit
+            if len(enc_dict) > 0:
+                val = random.choice(enc_dict.keys())
+            else:
+                if is_tlv:
+                    val = RandNum(0,2**128-1)
+                else:
+                    val = RandNum(0,2**16-1)
+            trans.append((typ, val))
+        return trans
+
+
 class ISAKMPAttributesField(StrLenField):
     islist=1
     def __init__(self, name, default, types, length_from=None):
@@ -245,6 +274,8 @@ class ISAKMPAttributesField(StrLenField):
     def i2repr(self, pkt, x):
         lst = ["(%s: %s)" % self.type2name(tv[0],tv[1]) for tv in x]
         return "[%s]" % ", ".join(lst)
+    def randval(self):
+        return RandISAKMPAttributes(self.types)
 
 
 class ISAKMPTransformsField(PacketListField): #XXX: need to set next_payload
