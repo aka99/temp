@@ -390,7 +390,7 @@ smb_error_codes = {0x00000000:"SUCCESS",
                    0x00110002:"ERRSRV/ERRworking",
                    0x00120002:"ERRSRV/ERRnotme",
                    0x00160002:"ERRSRV/ERRbadcmd",
-                   #0x001f0002:"ERRSRV/ERRgeneral", #XXX:confirm
+                   #0x001f0002:"ERRSRV/ERRgeneral", #XXX: unconfirmed
                    0x00310002:"ERRSRV/ERRqfull",
                    0x00320002:"ERRSRV/ERRqtoobig",
                    0x00330002:"ERRSRV/ERRqeof",
@@ -844,7 +844,7 @@ class SMB_STRING_Field(StrNullField):
 
 class OEM_STRING_Field(StrNullField):
     def __init__(self, name, default, fmt="H", remain=0):
-        StrNullField.__init__(self,name,default,fmt,remain,codec=None)
+        StrNullField.__init__(self, name, default, fmt, remain, codec=None)
 
 class SMB_DATE_Field(LEShortField):
     re_ymd = re.compile("^([0-9]+)[-/]([0-9]+)[-/]([0-9]+)$")
@@ -1180,7 +1180,7 @@ class _smb_fields_NT_TRANSACT_Req_count_offset(Packet):
                    LEIntField("DataOffset",None)]
 
 class _smb_fields_NT_TRANSACT_Res_count_offset(Packet):
-    fields_desc = [BitField("Reserved1",0,8*3),
+    fields_desc = [LEBitField("Reserved1",0,8*3),
                    LEIntField("TotalParameterCount",None),
                    LEIntField("TotalDataCount",None),
                    LEIntField("ParameterCount",None),
@@ -1232,8 +1232,8 @@ class _smb_fields_FILE_DIRECTORY_INFO(Packet):
                    FILETIME_Field("LastAccessTime",None),
                    FILETIME_Field("LastWriteTime",None),
                    FILETIME_Field("ChangeTime",None),
-                   LELongField("EndOfFile",0),
-                   LELongField("AllocationSize",0),
+                   LESignedLongField("EndOfFile",0),
+                   LESignedLongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I")]
 
@@ -1689,7 +1689,7 @@ class SMB_COM_QUERY_INFORMATION_Res(SMB_COM):
                    LEFlagsField("FileAttributes",0,16,SMB_FILE_ATTRIBUTES),
                    LETimeField("LastWriteTime",0),
                    LEIntField("FileSize",0),
-                   BitField("Reserved",0,16*5),
+                   LEBitField("Reserved",0,16*5),
                    LEShortField("ByteCount",0)]
 
 
@@ -1699,7 +1699,7 @@ class SMB_COM_SET_INFORMATION_Req(SMB_COM):
     fields_desc = [ByteField("WordCount",8),
                    LEFlagsField("FileAttributes",0,16,SMB_FILE_ATTRIBUTES),
                    LETimeField("LastWriteTime",0),
-                   BitField("Reserved",0,16*5),
+                   LEBitField("Reserved",0,16*5),
                    FieldLenField("ByteCount",None,length_of="FileName",fmt="<H",
                                  adjust=lambda pkt,x:x+1),
                    ByteField("BufferFormat",4),
@@ -1725,7 +1725,7 @@ class SMB_COM_READ_Res(SMB_COM):
     overload_fields = {SMB_Header:{"Command":0x0A,"Flags":0x80}}
     fields_desc = [ByteField("WordCount",5),
                    FieldLenField("CountOfBytesReturned",None,length_of="Bytes",fmt="<H"),
-                   BitField("Reserved",0,16*4),
+                   LEBitField("Reserved",0,16*4),
                    FieldLenField("ByteCount",None,length_of="Bytes",fmt="<H",
                                  adjust=lambda pkt,x:x+3),
                    ByteField("BufferFormat",1),
@@ -2343,7 +2343,7 @@ class SMB_COM_WRITE_AND_CLOSE_Req(SMB_COM):
                    FieldLenField("CountOfBytesToWrite",None,length_of="Data",fmt="<H"),
                    LEIntField("WriteOffsetInBytes",0),
                    LETimeField("LastWriteTime",0),
-                   ConditionalField(BitField("Reserved",0,32*3),
+                   ConditionalField(LEBitField("Reserved",0,32*3),
                                     lambda pkt:pkt.WordCount >= 12),
                    FieldLenField("ByteCount",None,length_of="Data",fmt="<H",
                                  adjust=lambda pkt,x:x+1),
@@ -2388,7 +2388,7 @@ class SMB_COM_OPEN_ANDX_Res(SMB_ANDX):
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
                    _smb_fields_SMB_NMPIPE_STATUS,
                    _smb_fields_OpenResults,
-                   BitField("Reserved",0,16*3),
+                   LEBitField("Reserved",0,16*3),
                    LEShortField("ByteCount",0)]
 
 class SMB_COM_OPEN_ANDX_ResExtend(SMB_COM_OPEN_ANDX_Res):
@@ -2438,7 +2438,7 @@ class SMB_COM_READ_ANDX_Res(SMB_ANDX):
                    LEShortField("DataOffset",None),
                    FieldLenField("DataLengthHigh",None,length_of="Data",fmt="<H",
                                  adjust=lambda pkt,x:(x>>16)&0xFFFF),
-                   BitField("Reserved2",0,16*4),
+                   LEBitField("Reserved2",0,16*4),
                    LEShortField("ByteCount",None),
                    StrLenField("Padding","",
                                length_from=lambda pkt:pkt.ByteCount-pkt.DataLength-(pkt.DataLengthHigh<<16)),
@@ -3018,7 +3018,7 @@ class SMB_COM_SEARCH_Res(SMB_COM):
                    ByteField("BufferFormat",5),
                    FieldLenField("DataLength",None,length_of="DirectoryInformationData",fmt="<H"),
                    PacketListField("DirectoryInformationData",[],SMB_Directory_Information,
-                               count_from=lambda pkt:pkt.Count)]
+                                   count_from=lambda pkt:pkt.Count)]
 
 
 class SMB_COM_FIND_Req(SMB_COM_SEARCH_Req):
@@ -3156,7 +3156,7 @@ class SMB_COM_NT_CREATE_ANDX_Req(SMB_ANDX):
                    LEFlagsField("Flags",0,32,smb_flags_NT_CREATE_Flags),
                    LEIntField("RootDirectoryFID",0),
                    LEFlagsField("DesiredAccess",0,32,ACCESS_MASK),
-                   LELongField("AllocationSize",0),
+                   LESignedLongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEFlagsField("ShareAccess",0,32,smb_flags_ShareAccess),
                    LEIntEnumField("CreateDisposition",0,smb_enum_CreateDisposition),
@@ -3176,8 +3176,8 @@ class SMB_COM_NT_CREATE_ANDX_Res(SMB_ANDX):
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
                    _smb_fields_FILE_BASIC_INFO,
-                   LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
+                   LESignedLongField("AllocationSize",0),
+                   LESignedLongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
                    _smb_fields_SMB_NMPIPE_STATUS,
                    ByteEnumField("Directory",0,smb_enum_BOOLEAN),
@@ -3185,14 +3185,14 @@ class SMB_COM_NT_CREATE_ANDX_Res(SMB_ANDX):
 
 class SMB_COM_NT_CREATE_ANDX_ResExtend(SMB_COM_NT_CREATE_ANDX_Res):
     name="SMB Command - NT_CREATE_ANDX - Extended Response"
-    fields_desc =([ByteField("WordCount",50),
+    fields_desc =([ByteField("WordCount",50), #NOTE: Windows incorrectly sets this to 42
                    _smb_fields_AndX,
                    ByteEnumField("OpLockLevel",0,smb_enum_OpLockLevel),
                    LEShortField("FID",0),
                    LEIntEnumField("CreationAction",0,smb_enum_CreateDisposition),
                    _smb_fields_FILE_BASIC_INFO,
-                   LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
+                   LESignedLongField("AllocationSize",0),
+                   LESignedLongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType)] +
                   [ConditionalField(fld,lambda pkt:pkt.ResourceType in [1,2])
                    for fld in _smb_fields_SMB_NMPIPE_STATUS.fields_desc] +
@@ -3485,7 +3485,7 @@ class SMB_TRANS2_OPEN2_Req(SMB_COM_TRANSACTION2_Req):
                    LETimeField("CreationTime",0), #XXX: right format?
                    _smb_fields_OpenMode,
                    LEIntField("AllocationSize",0),
-                   BitField("Param_Reserved",0,16*5),
+                   LEBitField("Param_Reserved",0,16*5),
                    SMB_STRING_Field("FileName",""),
                    SMBUnicodePadField("Pad2",None,padtype=2,padlen=0),
                    _smb_fields_SMB_FEA_LIST]
@@ -3750,7 +3750,7 @@ class SMB_NT_TRANSACT_CREATE_Req(SMB_COM_NT_TRANSACT_Req):
                    LEFlagsField("Flags",0,32,smb_flags_NT_CREATE_Flags),
                    LEIntField("RootDirectoryFID",0),
                    LEFlagsField("DesiredAccess",0,32,ACCESS_MASK),
-                   LELongField("AllocationSize",0),
+                   LESignedLongField("AllocationSize",0),
                    LEFlagsField("ExtFileAttributes",0,32,SMB_EXT_FILE_ATTR),
                    LEFlagsField("ShareAccess",0,32,smb_flags_ShareAccess),
                    LEIntEnumField("CreateDisposition",0,smb_enum_CreateDisposition),
@@ -3782,8 +3782,8 @@ class SMB_NT_TRANSACT_CREATE_Res(SMB_COM_NT_TRANSACT_Res):
                                                     2:"CREATE",3:"OVERWRITE"}),
                    LEIntField("EAErrorOffset",0),
                    _smb_fields_FILE_BASIC_INFO,
-                   LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
+                   LESignedLongField("AllocationSize",0),
+                   LESignedLongField("EndOfFile",0),
                    LEShortEnumField("ResourceType",0,smb_enum_ResourceType),
                    _smb_fields_SMB_NMPIPE_STATUS,
                    ByteEnumField("Directory",0,smb_enum_BOOLEAN)]
@@ -3953,7 +3953,7 @@ class _SMB_INFO:
 class SMB_SET_INFO_STANDARD(_SMB_INFO,Packet):
     name="SMB Info (SET) - SMB_INFO_STANDARD"
     fields_desc = [_smb_fields_date_time,
-                   BitField("Reserved",0,8*10)]
+                   LEBitField("Reserved",0,8*10)]
 #XXX: smbtorture missing Reserved bytes
 
 class SMB_SET_INFO_SET_EAS(_SMB_INFO,Packet):
@@ -4007,8 +4007,8 @@ class SMB_QUERY_FILE_BASIC_INFO(SMB_SET_FILE_BASIC_INFO):
 class SMB_QUERY_FILE_STANDARD_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_STANDARD_INFO"
     _info_code = 0x0102
-    fields_desc = [LELongField("AllocationSize",0),
-                   LELongField("EndOfFile",0),
+    fields_desc = [LESignedLongField("AllocationSize",0),
+                   LESignedLongField("EndOfFile",0),
                    LEIntField("NumberOfLinks",0),
                    ByteEnumField("DeletePending",0,smb_enum_BOOLEAN),
                    ByteEnumField("Directory",0,smb_enum_BOOLEAN)]
@@ -4046,20 +4046,20 @@ class SMB_QUERY_FILE_STREAM_INFO(_SMB_INFO,Packet):
     _info_code = 0x0109
     fields_desc = [LEIntField("NextEntryOffset",None),
                    FieldLenField("StreamNameLength",None,length_of="StreamName",fmt="<I"),
-                   LELongField("StreamSize",0),
-                   LELongField("StreamAllocationSize",0),
+                   LESignedLongField("StreamSize",0),
+                   LESignedLongField("StreamAllocationSize",0),
                    StrLenField("StreamName","",codec="utf-16-le",
                                length_from=lambda pkt:pkt.StreamNameLength)]
 
 class SMB_QUERY_FILE_COMPRESSION_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_COMPRESSION_INFO"
     _info_code = 0x010B
-    fields_desc = [LELongField("CompressedFileSize",0),
+    fields_desc = [LESignedLongField("CompressedFileSize",0),
                    LEShortEnumField("CompressionFormat",0,{0:"NONE",1:"DEFAULT",2:"LZNT1"}),
                    ByteField("CompressionUnitShift",0),
                    ByteField("ChunkShift",0),
                    ByteField("ClusterShift",0),
-                   BitField("Reserved",0,8*3)]
+                   LEBitField("Reserved",0,8*3)]
 
 
 class SMB_FIND_INFO_STANDARD(_SMB_INFO,Packet):
@@ -4171,12 +4171,12 @@ class SMB_FIND_FILE_ID_FULL_DIRECTORY_INFO(_SMB_INFO,Packet):
     _info_code = 0x0105
     fields_desc = [_smb_fields_FILE_DIRECTORY_INFO,
                    LEIntField("EaSize",0),
-                   LELongField("FileID",0),
+                   LEIntField("Reserved",0), #XXX: not in spec
+                   LELongField("FileId",0),
                    SMB_UCHAR_LenField("FileName","",
                                       length_from=lambda pkt:pkt.FileNameLength),
                    StrLenField("Pad","",
                                length_from=lambda pkt:pkt.NextEntryOffset-pkt.FileNameLength-76)]
-#XXX: smbtorture seems to have 4 extra bytes before filename starts?
 
 class SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
     name="SMB Info (FIND) - SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO"
@@ -4187,7 +4187,7 @@ class SMB_FIND_FILE_ID_BOTH_DIRECTORY_INFO(_SMB_INFO,Packet):
                    ByteField("Reserved",0),
                    StrFixedLenField("ShortName","",24,codec="utf-16-le"),
                    LEShortField("Reserved2",0),
-                   LELongField("FileID",0),
+                   LELongField("FileId",0),
                    SMB_UCHAR_LenField("FileName","",
                                       length_from=lambda pkt:pkt.FileNameLength),
                    StrLenField("Pad","",
@@ -4224,8 +4224,8 @@ class SMB_QUERY_FS_VOLUME_INFO(_SMB_INFO,Packet):
 class SMB_QUERY_FS_SIZE_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY_FS) - SMB_QUERY_FS_SIZE_INFO"
     _info_code = 0x0103
-    fields_desc = [LELongField("TotalAllocationUnits",0),
-                   LELongField("TotalFreeAllocationUnits",0),
+    fields_desc = [LESignedLongField("TotalAllocationUnits",0),
+                   LESignedLongField("TotalFreeAllocationUnits",0),
                    LEIntField("SectorsPerAllocationUnit",0),
                    LEIntField("BytesPerSector",0)]
 
