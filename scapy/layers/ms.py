@@ -42,6 +42,12 @@ FEA_flags = _reserved_flags[0:7]+["FILE_NEED_EA"]
 
 
 
+class UCHAR_LenField(StrLenField):
+    def __init__(self, name, default, fld=None, length_from=None):
+        StrLenField.__init__(self, name, default, "utf-16-le", fld, length_from)
+
+
+
 class FILETIME_Field(LELongField):
     epoch = datetime.datetime(1601,1,1)
     strfmt = "%a, %d %b %Y %H:%M:%S +0000"

@@ -830,15 +830,21 @@ smb_flags_FileSystemAttributes = ["CASE_SENSITIVE_SEARCH","CASE_PRESERVED_NAMES"
 
 #################################### Fields ####################################
 
-class SMB_STRING_Field(StrNullField):
-    def __init__(self, name, default, fmt="H", remain=0):
-        StrNullField.__init__(self,name,default,fmt,remain)
+class SMB_UCHAR_LenField(UCHAR_LenField):
     def i2m(self, pkt, x):
         self.codec = "utf-16-le" if (pkt and pkt.is_unicode()) else "ascii"
-        return StrNullField.i2m(self, pkt, x)
+        return StrField.i2m(self, pkt, x)
     def m2i(self, pkt, x):
         self.codec = "utf-16-le" if (pkt and pkt.is_unicode()) else "ascii"
-        return StrNullField.m2i(self, pkt, x)
+        return StrField.m2i(self, pkt, x)
+
+class SMB_STRING_Field(StrNullField,SMB_UCHAR_LenField):
+    def __init__(self, name, default, fmt="H", remain=0):
+        StrNullField.__init__(self, name, default, fmt, remain)
+    def i2m(self, pkt, x):
+        return SMB_UCHAR_LenField.i2m(self, pkt, x)
+    def m2i(self, pkt, x):
+        return SMB_UCHAR_LenField.m2i(self, pkt, x)
 
 class OEM_STRING_Field(StrNullField):
     def __init__(self, name, default, fmt="H", remain=0):
@@ -973,12 +979,6 @@ class SMBUnicodePadField(StrLenField):
         return s[l:], self.m2i(pkt,s[:l])
     def randval(self):
         return self.default
-
-class SMB_UCHAR_LenField(StrLenField,SMB_STRING_Field):
-    def i2m(self, pkt, x):
-        return SMB_STRING_Field.i2m(self, pkt, x)
-    def m2i(self, pkt, x):
-        return SMB_STRING_Field.m2i(self, pkt, x)
 
 
 ################################ Data Structures ###############################
@@ -4020,8 +4020,8 @@ class SMB_QUERY_FILE_NAME_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_NAME_INFO"
     _level_code = 0x0104
     fields_desc = [FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
+                   UCHAR_LenField("FileName","",
+                                  length_from=lambda pkt:pkt.FileNameLength)]
 
 class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_ALL_INFO"
@@ -4032,8 +4032,8 @@ class SMB_QUERY_FILE_ALL_INFO(_SMB_INFO,Packet):
                    LEShortField("Reserved2",0),
                    LEIntField("EaSize",0),
                    FieldLenField("FileNameLength",None,length_of="FileName",fmt="<I"),
-                   StrLenField("FileName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.FileNameLength)]
+                   UCHAR_LenField("FileName","",
+                                  length_from=lambda pkt:pkt.FileNameLength)]
 
 class SMB_QUERY_FILE_ALT_NAME_INFO(SMB_QUERY_FILE_NAME_INFO):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_ALT_NAME_INFO"
@@ -4046,8 +4046,8 @@ class SMB_QUERY_FILE_STREAM_INFO(_SMB_INFO,Packet):
                    FieldLenField("StreamNameLength",None,length_of="StreamName",fmt="<I"),
                    LESignedLongField("StreamSize",0),
                    LESignedLongField("StreamAllocationSize",0),
-                   StrLenField("StreamName","",codec="utf-16-le",
-                               length_from=lambda pkt:pkt.StreamNameLength)]
+                   UCHAR_LenField("StreamName","::$DATA",
+                                  length_from=lambda pkt:pkt.StreamNameLength)]
 
 class SMB_QUERY_FILE_COMPRESSION_INFO(_SMB_INFO,Packet):
     name="SMB Info (QUERY) - SMB_QUERY_FILE_COMPRESSION_INFO"
