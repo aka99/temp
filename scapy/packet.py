@@ -1242,9 +1242,9 @@ def ls(obj=None):
 
 
     
-#############
-## Fuzzing ##
-#############
+##############################
+## Transformation functions ##
+##############################
 
 @conf.commands.register
 def fuzz(p, _inplace=0):
@@ -1264,3 +1264,12 @@ def fuzz(p, _inplace=0):
                     q.default_fields[f.name] = rnd
         q = q.payload
     return p
+
+
+@conf.commands.register
+def solidify(pkt):
+    """Reconstruct the given packet by building and dissecting it"""
+    if isinstance(pkt, Packet):
+        return pkt.__class__(str(pkt))
+    else:
+        return None
