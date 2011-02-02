@@ -70,7 +70,7 @@ class Field:
         return s+struct.pack(self.fmt, self.i2m(pkt,val))
     def getfield(self, pkt, s):
         """Extract an internal value from a string"""
-        return  s[self.sz:], self.m2i(pkt, struct.unpack(self.fmt, s[:self.sz])[0])
+        return s[self.sz:], self.m2i(pkt, struct.unpack(self.fmt, s[:self.sz])[0])
     def do_copy(self, x):
         if hasattr(x, "copy"):
             return x.copy()
@@ -216,6 +216,7 @@ class IPField(Field):
             x = [self.h2i(pkt, n) for n in x] 
         return x
     def resolve(self, x):
+        x = str(x)
         if self in conf.resolve:
             try:
                 ret = socket.gethostbyaddr(x)[0]
@@ -226,7 +227,7 @@ class IPField(Field):
                     return ret
         return x
     def i2m(self, pkt, x):
-        return inet_aton(x)
+        return inet_aton(str(x))
     def m2i(self, pkt, x):
         return inet_ntoa(x)
     def any2i(self, pkt, x):
@@ -714,7 +715,7 @@ class FieldListField(Field):
             return len(val)
         return 1
     def i2len(self, pkt, val):
-        return sum( self.field.i2len(pkt,v) for v in val )
+        return len(self.addfield(pkt, "", val)) # in case of bad value
     
     def i2m(self, pkt, val):
         if val is None:
@@ -728,7 +729,10 @@ class FieldListField(Field):
     def addfield(self, pkt, s, val):
         val = self.i2m(pkt, val)
         for v in val:
-            s = self.field.addfield(pkt, s, v)
+            try:
+                s = self.field.addfield(pkt, s, v)
+            except:
+                s += str(v)
         return s
     def getfield(self, pkt, s):
         c = l = None
@@ -749,7 +753,10 @@ class FieldListField(Field):
                 if c <= 0:
                     break
                 c -= 1
-            s,v = self.field.getfield(pkt, s)
+            try:
+                s,v = self.field.getfield(pkt, s)
+            except:
+                s,v = "",s
             val.append(v)
         return s+ret, val
     def randval(self):
@@ -965,7 +972,7 @@ class BitField(Field):
 
 class LEBitField(BitField):
     """
-    BitField variation for byte-aligned fields in LE packets (thanks, MS).
+    BitField variation for byte-aligned fields in LE packets.
     Do not use this on partial-byte fields, multiples of 8 bits only!
     """
     def i2m(self, pkt, x):
@@ -1227,6 +1234,8 @@ class UTCTimeField(IntField):
         self.epoch = epoch
         self.delta = time.mktime(epoch) - time.mktime(time.gmtime(0))
     def i2repr(self, pkt, x):
+        if x is None:
+            x = 0
         x = int(x) + self.delta
         t = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(x))
         return "%s (%d)" % (t, x)
