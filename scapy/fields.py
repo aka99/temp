@@ -1244,10 +1244,11 @@ class UTCTimeField(IntField):
         return "%s (%d)" % (t, x)
 
 class LETimeField(UTCTimeField,LEIntField):
-    def __init__(self, name, default, epoch=time.gmtime(0)):
+    def __init__(self, name, default, epoch=time.gmtime(0), strf="%a, %d %b %Y %H:%M:%S +0000"):
         LEIntField.__init__(self, name, default)
         self.epoch = epoch
         self.delta = time.mktime(epoch) - time.mktime(time.gmtime(0))
+        self.strf = strf
 
 
 
