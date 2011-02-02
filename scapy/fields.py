@@ -1231,15 +1231,16 @@ class FixedPointField(BitField):
 
 
 class UTCTimeField(IntField):
-    def __init__(self, name, default, epoch=time.gmtime(0)):
+    def __init__(self, name, default, epoch=time.gmtime(0), strf="%a, %d %b %Y %H:%M:%S +0000"):
         IntField.__init__(self, name, default)
         self.epoch = epoch
         self.delta = time.mktime(epoch) - time.mktime(time.gmtime(0))
+        self.strf = strf
     def i2repr(self, pkt, x):
         if x is None:
             x = 0
         x = int(x) + self.delta
-        t = time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(x))
+        t = time.strftime(self.strf, time.gmtime(x))
         return "%s (%d)" % (t, x)
 
 class LETimeField(UTCTimeField,LEIntField):
