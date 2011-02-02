@@ -732,6 +732,7 @@ class FieldListField(Field):
             try:
                 s = self.field.addfield(pkt, s, v)
             except:
+                warning("%s: Invalid list entry %r" % (self.name, v))
                 s += str(v)
         return s
     def getfield(self, pkt, s):
@@ -756,6 +757,7 @@ class FieldListField(Field):
             try:
                 s,v = self.field.getfield(pkt, s)
             except:
+                warning("%s: Invalid or truncated data %r" % (self.name, s))
                 s,v = "",s
             val.append(v)
         return s+ret, val
