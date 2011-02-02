@@ -194,8 +194,11 @@ class RandChoice(RandField):
             raise TypeError("RandChoice needs at least one choice")
         self._choice = args
     def _fix(self):
-        return random.choice(self._choice)
-    
+        r = random.choice(self._choice)
+        if isinstance(r, VolatileValue):
+            r = r._fix()
+        return r
+
 class RandString(RandField):
     def __init__(self, size=None, chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"):
         if size is None:
