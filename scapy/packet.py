@@ -151,6 +151,10 @@ class Packet(BasePacket):
         clone.__dict__["payload"] = self.payload.copy()
         clone.payload.add_underlayer(clone)
         return clone
+    def __copy__(self):
+        return self.copy()
+    def __deepcopy__(self, memo):
+        return self.copy()
 
     def getfieldval(self, attr):
         if attr in self.fields:
