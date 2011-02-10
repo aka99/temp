@@ -296,7 +296,7 @@ class EAP(Packet):
     fields_desc = [ ByteEnumField("code", 4, {1:"REQUEST",2:"RESPONSE",3:"SUCCESS",4:"FAILURE"}),
                     ByteField("id", 0),
                     ShortField("len",None),
-                    ConditionalField(ByteEnumField("type",0, {1:"ID",4:"MD5"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE])
+                    ConditionalField(ByteEnumField("type",0, {1:"ID", 3:"LEGACY NAK", 4:"MD5", 17:"LEAP", 25:"PEAP", 43:"EAP-FAST"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE])
 
                                      ]
     
