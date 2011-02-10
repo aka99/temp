@@ -476,10 +476,10 @@ endianness: "<" or ">", force endianness"""
     PcapWriter(filename, *args, **kargs).write(pkt)
 
 @conf.commands.register
-def rdpcap(filename, count=-1):
+def rdpcap(filename, count=-1, skip=0):
     """Read a pcap file and return a packet list
 count: read only <count> packets"""
-    return PcapReader(filename).read_all(count=count)
+    return PcapReader(filename).read_all(count=count, skip=skip)
 
 
 
@@ -531,7 +531,15 @@ class RawPcapReader:
         sec,usec,caplen,wirelen = struct.unpack(self.endian+"IIII", hdr)
         s = self.f.read(caplen)[:MTU]
         return s,(sec,usec,wirelen) # caplen = len(s)
-
+        
+    def skip_packets(self, skip):
+        while skip:
+            hdr = self.f.read(16)
+            if len(hdr) < 16:
+                return None
+            sec,usec,caplen,wirelen = struct.unpack(self.endian+"IIII", hdr)
+            self.f.seek(caplen, 1) # 1 is os.SEEK_CUR
+            skip -= 1
 
     def dispatch(self, callback):
         """call the specified callback routine for each packet read
@@ -543,10 +551,11 @@ class RawPcapReader:
         for p in self:
             callback(p)
 
-    def read_all(self,count=-1):
+    def read_all(self,count=-1,skip=0):
         """return a list of all packets in the pcap file
         """
         res=[]
+        self.skip_packets(skip)
         while count != 0:
             count -= 1
             p = self.read_packet()
@@ -592,8 +601,8 @@ class PcapReader(RawPcapReader):
             p = conf.raw_layer(s)
         p.time = sec+0.000001*usec
         return p
-    def read_all(self,count=-1):
-        res = RawPcapReader.read_all(self, count)
+    def read_all(self,count=-1,skip=0):
+        res = RawPcapReader.read_all(self, count, skip)
         import plist
         return plist.PacketList(res,name = os.path.basename(self.filename))
     def recv(self, size=MTU):
