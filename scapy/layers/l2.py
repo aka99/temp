@@ -360,28 +360,37 @@ class EAPOLKeyDot11(Packet):
 class LEAP(Packet): # eap type 17
     name = "LEAP"
     fields_desc = [ ByteField("version", 1),
-                ByteField("reserved", 0),
-                FieldLenField("length", None, length_of="data", fmt="B"),
-                StrLenField("data", "", length_from=lambda pkt:pkt.length),
-                StrField("name", ""),
-            ]
+                    ByteField("reserved", 0),
+                    FieldLenField("length", None, length_of="data", fmt="B"),
+                    StrLenField("data", "", length_from=lambda pkt:pkt.length),
+                    StrField("name", "")
+                ]
             
             
 class PEAP(Packet): # eap type 25
     name = "PEAP"
     fields_desc = [ FlagsField("flags", 0, 6, ['reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
-                BitField("version", 0, 2),
-                ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
-                #StrLenField("data", "", length_from=lambda pkt:pkt.length) #TLS is a different layer
-            ]
+                    BitField("version", 0, 2),
+                    ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                ]
+    
+    def guess_payload_class(self, payload):
+        if self.flags > 15:
+            return TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
+    
            
 class EAP_Fast(Packet): # eap type 43
     name = "EAP-Fast"
     fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
-                BitField("version", 0, 3),
-                ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
-                # tls is a different layer
-            ]
+                    BitField("version", 0, 3),
+                    ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                ]
+                
+    def guess_payload_class(self, payload):
+        return TLSv1RecordLayer
+                
 
 # Hardware types - RFC 826 - Extracted from 
 # http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
@@ -547,6 +556,7 @@ bind_layers( EAPOL,         EAP,           type=0)
 bind_layers( EAPOL,         EAPOLKey,      type=3)
 bind_layers( EAP,           LEAP,          type=17)
 bind_layers( EAP,           PEAP,          type=25)
+bind_layers( EAP,           EAP_Fast,      type=43)
 bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard is this defined?
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
