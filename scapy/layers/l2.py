@@ -296,8 +296,8 @@ class EAP(Packet):
     fields_desc = [ ByteEnumField("code", 4, {1:"REQUEST",2:"RESPONSE",3:"SUCCESS",4:"FAILURE"}),
                     ByteField("id", 0),
                     ShortField("len",None),
-                    ConditionalField(ByteEnumField("type",0, {1:"ID", 2:"NOTIFICATION", 3:"LEGACY NAK", 4:"MD5", 5:"ONE TIME PASSWORD", 6:"GENERIC TOKEN CARD", 17:"LEAP", 25:"PEAP", 43:"EAP-FAST"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE])
-
+                    ConditionalField(ByteEnumField("type",0, {1:"ID", 2:"NOTIFICATION", 3:"LEGACY NAK", 4:"MD5", 5:"ONE TIME PASSWORD", 6:"GENERIC TOKEN CARD", 17:"LEAP", 25:"PEAP", 43:"EAP-FAST"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE]),
+                    ConditionalField(StrLenField("identity", "", length_from=lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 1)
                                      ]
     
     REQUEST = 1
@@ -355,7 +355,33 @@ class EAPOLKeyDot11(Packet):
                     StrFixedLenField("mic", "\x00"*16, 16),
                     FieldLenField("keydatalen", None, length_of="keydata", fmt="H"),
                     StrLenField("keydata", "", length_from=lambda x:x.keydatalen) ]
+                    
 
+class LEAP(Packet): # eap type 17
+    name = "LEAP"
+    fields_desc = [ ByteField("version", 1),
+                ByteField("reserved", 0),
+                FieldLenField("length", None, length_of="data", fmt="B"),
+                StrLenField("data", "", length_from=lambda pkt:pkt.length),
+                StrField("name", ""),
+            ]
+            
+            
+class PEAP(Packet): # eap type 25
+    name = "PEAP"
+    fields_desc = [ FlagsField("flags", 0, 6, ['reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                BitField("version", 0, 2),
+                ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                #StrLenField("data", "", length_from=lambda pkt:pkt.length) #TLS is a different layer
+            ]
+           
+class EAP_Fast(Packet): # eap type 43
+    name = "EAP-Fast"
+    fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                BitField("version", 0, 3),
+                ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                # tls is a different layer
+            ]
 
 # Hardware types - RFC 826 - Extracted from 
 # http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
@@ -519,6 +545,8 @@ bind_layers( GRErouting,    Raw,           { "address_family" : 0, "SRE_len" : 0
 bind_layers( GRErouting,    GRErouting,    { } )
 bind_layers( EAPOL,         EAP,           type=0)
 bind_layers( EAPOL,         EAPOLKey,      type=3)
+bind_layers( EAP,           LEAP,          type=17)
+bind_layers( EAP,           PEAP,          type=25)
 bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard is this defined?
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
