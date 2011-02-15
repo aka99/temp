@@ -265,6 +265,19 @@ class STP(Packet):
                     BCDFloatField("fwddelay", 15) ]
 
 
+eap_types = {	1:"ID",
+				2:"NOTIFICATION",
+				3:"LEGACY NAK",
+				4:"MD5",
+				5:"ONE TIME PASSWORD",
+				6:"GENERIC TOKEN CARD",
+				13:"EAP-TLS",
+				17:"LEAP",
+				21:"EAP-TTLS",
+				25:"PEAP",
+				43:"EAP-FAST"
+			}
+
 class EAPOL(Packet):
     name = "EAPOL"
     fields_desc = [ ByteField("version", 1),
@@ -293,10 +306,10 @@ class EAPOL(Packet):
 
 class EAP(Packet):
     name = "EAP"
-    fields_desc = [ ByteEnumField("code", 4, {1:"REQUEST",2:"RESPONSE",3:"SUCCESS",4:"FAILURE"}),
+    fields_desc = [ ByteEnumField("code", 4, { 1:"REQUEST", 2:"RESPONSE", 3:"SUCCESS", 4:"FAILURE" }),
                     ByteField("id", 0),
                     ShortField("len",None),
-                    ConditionalField(ByteEnumField("type",0, {1:"ID", 2:"NOTIFICATION", 3:"LEGACY NAK", 4:"MD5", 5:"ONE TIME PASSWORD", 6:"GENERIC TOKEN CARD", 17:"LEAP", 25:"PEAP", 43:"EAP-FAST"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE]),
+                    ConditionalField(ByteEnumField("type",0, eap_types), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE]),
                     ConditionalField(StrLenField("identity", "", length_from=lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 1)
                                      ]
     
