@@ -22,7 +22,7 @@ from scapy.automaton import Automaton,ATMT
 
 import scapy.as_resolvers
 
-from scapy.arch import GNUPLOT
+import scapy.arch
 if scapy.arch.GNUPLOT:
     Gnuplot=scapy.arch.Gnuplot
 

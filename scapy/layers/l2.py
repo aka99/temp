@@ -389,7 +389,7 @@ class PEAP(Packet): # eap type 25
     
     def guess_payload_class(self, payload):
         if self.flags > 15:
-            return TLSv1RecordLayer
+            return scapy.layers.ssl.TLSv1RecordLayer
         else:
             return Packet.guess_payload_class(self, payload)
     
@@ -402,7 +402,7 @@ class EAP_Fast(Packet): # eap type 43
                 ]
                 
     def guess_payload_class(self, payload):
-        return TLSv1RecordLayer
+        return scapy.layers.ssl.TLSv1RecordLayer
                 
 
 # Hardware types - RFC 826 - Extracted from 
@@ -703,3 +703,4 @@ def etherleak(target, **kargs):
                     filter="arp", **kargs)
 
 
+import scapy.layers.ssl
