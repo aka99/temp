@@ -313,7 +313,7 @@ class ISAKMP(Packet): # rfc2408
         ByteEnumField("next_payload",0,ISAKMP_payload_type),
         XByteField("version",0x10),
         ByteEnumField("exch_type",0,ISAKMP_exchange_type),
-        FlagsField("flags",0, 8, ["encryption","commit","auth_only","res3","res4","res5","res6","res7"]),
+        FlagsField("flags",0, 8, ["encryption","commit","auth_only"]),
         IntField("id",0),
         IntField("length",None)
         ]
