@@ -14,31 +14,23 @@ from scapy.packet import *
 
 enum_BOOLEAN = {0:"False",1:"True"}
 
-_reserved_flags = ["res0","res1","res2","res3",
-                   "res4","res5","res6","res7",
-                   "res8","res9","res10","res11",
-                   "res12","res13","res14","res15",
-                   "res16","res17","res18","res19",
-                   "res20","res21","res22","res23",
-                   "res24","res25","res26","res27",
-                   "res28","res29","res30","res31"]
-
 _ACCESS_MASK_common = ["DELETE","READ_CONTROL","WRITE_DAC","WRITE_OWNER",
-                       "SYNCHRONIZE","res21","res22","res23",
-                       "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","res26","res27",
+                       "SYNCHRONIZE","","","",
+                       "ACCESS_SYSTEM_SECURITY","MAXIMUM_ALLOWED","","",
                        "GENERIC_ALL","GENERIC_EXECUTE","GENERIC_WRITE","GENERIC_READ"]
 
 ACCESS_MASK = ["READ_DATA","WRITE_DATA","APPEND_DATA","READ_EA",
                "WRITE_EA","EXECUTE","DELETE_CHILD","READ_ATTRIBUTES",
-               "WRITE_ATTRIBUTES"]+\
-              _reserved_flags[9:16]+_ACCESS_MASK_common
+               "WRITE_ATTRIBUTES","","","",
+               "","","",""]+_ACCESS_MASK_common
 
 ACCESS_MASK_directory = ["LIST_DIRECTORY","ADD_FILE","ADD_SUBDIRECTORY","READ_EA",
                          "WRITE_EA","TRAVERSE","DELETE_CHILD","READ_ATTRIBUTES",
-                         "WRITE_ATTRIBUTES"]+\
-                        _reserved_flags[9:16]+_ACCESS_MASK_common
+                         "WRITE_ATTRIBUTES","","","",
+                         "","","",""]+_ACCESS_MASK_common
 
-FEA_flags = _reserved_flags[0:7]+["FILE_NEED_EA"]
+FEA_flags = ["","","","",
+             "","","","FILE_NEED_EA"]
 
 
 
@@ -171,23 +163,24 @@ ace_types = {0x00: "ACCESS_ALLOWED",
              0x10: "SYSTEM_ALARM_CALLBACK_OBJECT",   # reserved
              0x11: "SYSTEM_MANDATORY_LABEL" }
 
-ace_flags_object_Mask = ["RIGHT_DS_CREATE_CHILD","RIGHT_DS_DELETE_CHILD","res2","RIGHT_DS_SELF",
-                         "RIGHT_DS_READ_PROP","RIGHT_DS_WRITE_PROP","res6","res7",
-                         "RIGHT_DS_CONTROL_ACCESS"]+\
-                        _reserved_flags[9:16]+_ACCESS_MASK_common
+ace_flags_object_Mask = ["RIGHT_DS_CREATE_CHILD","RIGHT_DS_DELETE_CHILD","","RIGHT_DS_SELF",
+                         "RIGHT_DS_READ_PROP","RIGHT_DS_WRITE_PROP","","",
+                         "RIGHT_DS_CONTROL_ACCESS","","","",
+                         "","","",""]+_ACCESS_MASK_common
 
-ace_flags_object_Flags = ["OBJECT_TYPE_PRESENT","INHERITED_OBJECT_TYPE_PRESENT"]+\
-                         _reserved_flags[2:32]
+ace_flags_object_Flags = ["OBJECT_TYPE_PRESENT","INHERITED_OBJECT_TYPE_PRESENT"]
 
-ace_flags_sml_Mask = ["NO_WRITE_UP","NO_READ_UP","NO_EXECUTE_UP"]+\
-                     _reserved_flags[3:16]+_ACCESS_MASK_common
+ace_flags_sml_Mask = ["NO_WRITE_UP","NO_READ_UP","NO_EXECUTE_UP","",
+                      "","","","",
+                      "","","","",
+                      "","","",""]+_ACCESS_MASK_common
 
 
 class _ACE_HDR(Packet):
     name = "Abstract ACE Header"
     fields_desc = [ByteEnumField("AceType",0xFF,ace_types),
                    LEFlagsField("AceFlags",0,8,["OI","CI","NP","IO",
-                                                "ID","res5","SA","FA"]),
+                                                "ID","","SA","FA"]),
                    LEShortField("AceSize",None)]
 
 

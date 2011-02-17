@@ -697,131 +697,104 @@ smb_enum_DeviceType = {0x0001:"BEEP",
 
 ################################# Flag Values ##################################
 
-_reserved_flags = ["res0","res1","res2","res3",
-                   "res4","res5","res6","res7",
-                   "res8","res9","res10","res11",
-                   "res12","res13","res14","res15",
-                   "res16","res17","res18","res19",
-                   "res20","res21","res22","res23",
-                   "res24","res25","res26","res27",
-                   "res28","res29","res30","res31"]
-
 SMB_FILE_ATTRIBUTES = ["READONLY","HIDDEN","SYSTEM","VOLUME",
-                       "DIRECTORY","ARCHIVE"]+\
-                      _reserved_flags[6:16]
+                       "DIRECTORY","ARCHIVE"]
 
-SMB_FILE_ATTRIBUTES_SEARCH = SMB_FILE_ATTRIBUTES[0:8]+\
-                             ["SEARCH_READONLY","SEARCH_HIDDEN","SEARCH_SYSTEM","res11",
-                              "SEARCH_DIRECTORY","SEARCH_ARCHIVE","res14","res15"]
+SMB_FILE_ATTRIBUTES_SEARCH = SMB_FILE_ATTRIBUTES+["","",
+                              "SEARCH_READONLY","SEARCH_HIDDEN","SEARCH_SYSTEM","",
+                              "SEARCH_DIRECTORY","SEARCH_ARCHIVE"]
 
-SMB_EXT_FILE_ATTR = SMB_FILE_ATTRIBUTES[0:7]+["NORMAL",
+SMB_EXT_FILE_ATTR = SMB_FILE_ATTRIBUTES+["","NORMAL",
                      "TEMPORARY","SPARSE","REPARSE_POINT","COMPRESSED",
-                     "OFFLINE","NOT_CONTENT_INDEXED","ENCRYPTED"]+\
-                    _reserved_flags[15:24]+\
-                    ["POSIX_SEMANTICS","BACKUP_SEMANTICS","DELETE_ON_CLOSE","SEQUENTIAL_SCAN",
-                     "RANDOM_ACCESS","NO_BUFFERING","res30","WRITE_THROUGH"]
+                     "OFFLINE","NOT_CONTENT_INDEXED","ENCRYPTED","",
+                     "","","","",
+                     "","","","",
+                     "POSIX_SEMANTICS","BACKUP_SEMANTICS","DELETE_ON_CLOSE","SEQUENTIAL_SCAN",
+                     "RANDOM_ACCESS","NO_BUFFERING","","WRITE_THROUGH"]
 
-smb_flags_TRANSACTION_Flags = ["DISCONNECT_TID","NO_RESPONSE","EXTENDED_SIGNATURES","EXTENDED_RESPONSE"]+\
-                              _reserved_flags[4:16]
+smb_flags_TRANSACTION_Flags = ["DISCONNECT_TID","NO_RESPONSE","EXTENDED_SIGNATURES","EXTENDED_RESPONSE"]
 
-smb_flags_header_Flags = ["LOCK_AND_READ_OK","BUF_AVAIL","res2","CASE_INSENSITIVE",
+smb_flags_header_Flags = ["LOCK_AND_READ_OK","BUF_AVAIL","","CASE_INSENSITIVE",
                           "CANONICALIZED_PATHS","OPLOCK","OPBATCH","REPLY"]
 
 smb_flags_header_Flags2 = ["LONG_NAMES","EAS","SMB_SECURITY_SIGNATURE","COMPRESSED",
-                           "SMB_SECURITY_SIGNATURE_REQUIRED","res5","IS_LONG_NAME","res7",
-                           "res8","res9","REPARSE_PATH","EXTENDED_SECURITY",
+                           "SMB_SECURITY_SIGNATURE_REQUIRED","","IS_LONG_NAME","",
+                           "","","REPARSE_PATH","EXTENDED_SECURITY",
                            "DFS","PAGING_IO","NT_STATUS","UNICODE"]
 
 smb_flags_WriteMode = ["WritethroughMode","ReadBytesAvailable","NamedPipeRaw","NamedPipeStart",
-                       "res4","res5","res6","ConnectionlessMode"]+\
-                      _reserved_flags[8:16]
+                       "","","","ConnectionlessMode"]
 
 smb_flags_TypeOfLock =["SHARED_LOCK","OPLOCK_RELEASE","CHANGE_LOCKTYPE","CANCEL_LOCK",
-                       "LARGE_FILES","res5","res6","res7"]
+                       "LARGE_FILES"]
 
 smb_flags_COPY_Flags = ["DEST_FILE","DEST_DIRECTORY","COPY_DEST_MODE","COPY_SOURCE_MODE",
-                        "VERIFY_ALL","TREE"]+\
-                       _reserved_flags[6:16]
+                        "VERIFY_ALL","TREE"]
 
-smb_flags_OPEN_ANDX_Flags = ["QUERY_INFORMATION","OPLOCK","OPBATCH","EXTENDED_RESPONSE"]+\
-                            _reserved_flags[4:16]
+smb_flags_OPEN_ANDX_Flags = ["QUERY_INFORMATION","OPLOCK","OPBATCH","EXTENDED_RESPONSE"]
 
-smb_flags_SecurityMode = ["user level","encrypt passwords"]+\
-                         _reserved_flags[2:16]
+smb_flags_SecurityMode = ["user level","encrypt passwords"]
 
-smb_flags_BlockMode = ["Read Block Raw","Write Block Raw"]+\
-                      _reserved_flags[2:16]
+smb_flags_BlockMode = ["Read Block Raw","Write Block Raw"]
 
-smb_flags_SecurityMode_NT = ["USER_SECURITY","ENCRYPT_PASSWORDS","SECURITY_SIGNATURES_ENABLED","SECURITY_SIGNATURES_REQUIRED"]+\
-                            _reserved_flags[4:8]
+smb_flags_SecurityMode_NT = ["USER_SECURITY","ENCRYPT_PASSWORDS",
+                             "SECURITY_SIGNATURES_ENABLED","SECURITY_SIGNATURES_REQUIRED"]
 
 smb_flags_Capabilities = ["RAW_MODE","MPX_MODE","UNICODE","LARGE_FILES",
                           "NT_SMBS","RPC_REMOTE_APIS","STATUS32","LEVEL_II_OPLOCKS",
                           "LOCK_AND_READ","NT_FIND","BULK_TRANSFER","COMPRESSED",
                           "DFS","INFOLEVEL_PASSTHRU","LARGE_READX","LARGE_WRITEX",
-                          "LWIO","res17","res18","res19",
-                          "res20","res21","res22","UNIX",
-                          "res24","COMPRESSED_DATA","res26","res27",
-                          "res28","DYNAMIC_REAUTH","PERSISTENT_HANDLES","EXTENDED_SECURITY"]
+                          "LWIO","","","",
+                          "","","","UNIX",
+                          "","COMPRESSED_DATA","","",
+                          "","DYNAMIC_REAUTH","PERSISTENT_HANDLES","EXTENDED_SECURITY"]
 
-smb_flags_Action = ["GUEST","USE_LANMAN_KEY"]+\
-                   _reserved_flags[2:16]
+smb_flags_Action = ["GUEST","USE_LANMAN_KEY"]
 
-smb_flags_OptionalSupport = ["SUPPORT_SEARCH_BITS","SHARE_IS_IN_DFS"]+\
-                            _reserved_flags[2:16]
+smb_flags_OptionalSupport = ["SUPPORT_SEARCH_BITS","SHARE_IS_IN_DFS"]
 
-smb_flags_NT_CREATE_Flags = ["res0","REQUEST_OPLOCK","REQUEST_OPBATCH","OPEN_TARGET_DIR",
-                             "REQUEST_EXTENDED_RESPONSE"]+\
-                            _reserved_flags[5:32]
+smb_flags_NT_CREATE_Flags = ["","REQUEST_OPLOCK","REQUEST_OPBATCH","OPEN_TARGET_DIR",
+                             "REQUEST_EXTENDED_RESPONSE"]
 
-smb_flags_ShareAccess = ["SHARE_READ","SHARE_WRITE","SHARE_DELETE"]+\
-                        _reserved_flags[3:32]
+smb_flags_ShareAccess = ["SHARE_READ","SHARE_WRITE","SHARE_DELETE"]
 
 smb_flags_CreateOptions = ["DIRECTORY_FILE","WRITE_THROUGH","SEQUENTIAL_ONLY","NO_INTERMEDIATE_BUFFERING",
                            "SYNCHRONOUS_IO_ALERT","SYNCHRONOUS_IO_NONALERT","NON_DIRECTORY_FILE","CREATE_TREE_CONNECTION",
                            "COMPLETE_IF_OPLOCKED","NO_EA_KNOWLEDGE","OPEN_FOR_RECOVERY","RANDOM_ACCESS",
                            "DELETE_ON_CLOSE","OPEN_BY_FILE_ID","OPEN_FOR_BACKUP_INTENT","NO_COMPRESSION",
-                           "res16","res17","res18","res19",
-                           "RESERVE_OPFILTER","res21","OPEN_NO_RECALL","OPEN_FOR_FREE_SPACE_QUERY"]+\
-                          _reserved_flags[24:32]
+                           "","","","",
+                           "RESERVE_OPFILTER","","OPEN_NO_RECALL","OPEN_FOR_FREE_SPACE_QUERY"]
 
-smb_flags_SecurityFlags = ["CONTEXT_TRACKING","EFFECTIVE_ONLY"]+\
-                          _reserved_flags[2:8]
+smb_flags_SecurityFlags = ["CONTEXT_TRACKING","EFFECTIVE_ONLY"]
 
-smb_flags_FileStatusFlags = ["NO_EAS","NO_SUBSTREAMS","NO_REPARSETAG"]+\
-                            _reserved_flags[3:16]
+smb_flags_FileStatusFlags = ["NO_EAS","NO_SUBSTREAMS","NO_REPARSETAG"]
 
-smb_flags_PipeState = _reserved_flags[0:8]+\
-                      ["ReadMode","res9","res10","res11",
-                       "res12","res13","res14","Blocking"]
+smb_flags_PipeState = ["","","","",
+                       "","","","",
+                       "ReadMode","","","",
+                       "","","","Blocking"]
 
-smb_flags_TRANS2_OPEN2_Flags = ["REQ_ATTRIB","REQ_OPLOCK","REQ_OPBATCH","REQ_EASIZE"]+\
-                               _reserved_flags[4:16]
+smb_flags_TRANS2_OPEN2_Flags = ["REQ_ATTRIB","REQ_OPLOCK","REQ_OPBATCH","REQ_EASIZE"]
 
 smb_flags_TRANS2_FIND_Flags = ["CLOSE_AFTER_REQUEST","CLOSE_AT_EOS","RETURN_RESUME_KEYS","CONTINUE_FROM_LAST",
-                               "WITH_BACKUP_INTENT"]+\
-                              _reserved_flags[5:16]
+                               "WITH_BACKUP_INTENT"]
 
-smb_flags_SecurityInformation = ["OWNER","GROUP","DACL","SACL"]+\
-                                _reserved_flags[4:32]
+smb_flags_SecurityInformation = ["OWNER","GROUP","DACL","SACL"]
 
 smb_flags_CompletionFilter = ["FILE_NAME","DIR_NAME","ATTRIBUTES","SIZE",
                               "LAST_WRITE","LAST_ACCESS","CREATION","EA",
-                              "SECURITY","STREAM_NAME","STREAM_SIZE","STREAM_WRITE"]+\
-                             _reserved_flags[12:32]
+                              "SECURITY","STREAM_NAME","STREAM_SIZE","STREAM_WRITE"]
 
 smb_flags_DeviceCharacteristics = ["REMOVABLE_MEDIA","READ_ONLY_DEVICE","FLOPPY_DISKETTE","WRITE_ONCE_MEDIA",
-                                   "REMOTE_DEVICE","DEVICE_IS_MOUNTED","VIRTUAL_VOLUME"]+\
-                                  _reserved_flags[7:32]
+                                   "REMOTE_DEVICE","DEVICE_IS_MOUNTED","VIRTUAL_VOLUME"]
 
 smb_flags_FileSystemAttributes = ["CASE_SENSITIVE_SEARCH","CASE_PRESERVED_NAMES","UNICODE_ON_DISK","PERSISTENT_ACLS",
                                   "FILE_COMPRESSION","VOLUME_QUOTAS","SUPPORTS_SPARSE_FILES","SUPPORTS_REPARSE_POINTS",
-                                  "SUPPORTS_REMOTE_STORAGE","res9","res10","res11",
-                                  "res12","res13","res14","VOLUME_IS_COMPRESSED",
+                                  "SUPPORTS_REMOTE_STORAGE","","","",
+                                  "","","","VOLUME_IS_COMPRESSED",
                                   "SUPPORTS_OBJECT_IDS","SUPPORTS_ENCRYPTION","NAMED_STREAMS","READ_ONLY_VOLUME",
                                   "SEQUENTIAL_WRITE_ONCE","SUPPORTS_TRANSACTIONS","SUPPORTS_HARD_LINKS","SUPPORTS_EXTENDED_ATTRIBUTES",
-                                  "SUPPORTS_OPEN_BY_FILE_ID","SUPPORTS_USN_JOURNAL"]+\
-                                 _reserved_flags[26:32]
+                                  "SUPPORTS_OPEN_BY_FILE_ID","SUPPORTS_USN_JOURNAL"]
 
 
 ################################################################################
@@ -988,7 +961,7 @@ class SMB_Directory_Information(Packet):
     fields_desc = [ByteField("ResumeKey_Reserved",0),
                    StrFixedLenField("ResumeKey_ServerState","",16),
                    StrFixedLenField("ResumeKey_ClientState","",4),
-                   LEFlagsField("FileAttributes",0,8,SMB_FILE_ATTRIBUTES[0:8]),
+                   LEFlagsField("FileAttributes",0,8,SMB_FILE_ATTRIBUTES),
                    SMB_TIME_Field("LastWriteTime",None),
                    SMB_DATE_Field("LastWriteDate",None),
                    LEIntField("FileSize",0),
