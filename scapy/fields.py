@@ -1169,10 +1169,16 @@ class LEFieldLenField(FieldLenField):
 
 class FlagsField(BitField):
     def __init__(self, name, default, size, names):
+        names = names[:size]
         self.multi = type(names) is list
         if self.multi:
+            names += [""]*(size-len(names))
+            for i in range(len(names)):
+                if not names[i]:
+                    names[i] = "res%i"%i
             self.names = map(lambda x:[x], names)
         else:
+            names += "?"*(size-len(names))
             self.names = names
         BitField.__init__(self, name, default, size)
     def any2i(self, pkt, x):
