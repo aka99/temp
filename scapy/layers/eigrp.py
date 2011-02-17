@@ -284,8 +284,7 @@ class EIGRPNms(EIGRPGeneric):
                    IntField("nms", 2)]
 
 
-_EIGRP_STUB_FLAGS = ["connected", "static", "summary", "receive-only", "redistributed", "leak-map",
-                     "res6", "res7", "res8", "res9", "res10", "res11", "res12", "res13", "res14", "res15"]
+_EIGRP_STUB_FLAGS = ["connected", "static", "summary", "receive-only", "redistributed", "leak-map"]
 
 
 class EIGRPStub(EIGRPGeneric):
@@ -324,8 +323,7 @@ _EIGRP_EXTERNAL_PROTOCOL_ID = {0x01: "IGRP",
                                0x0A: "IDRP",
                                0x0B: "Connected Link"}
 
-_EIGRP_EXTROUTE_FLAGS = ["external", "candidate-default", "res2", "res3", "res4",
-                         "res5", "res6", "res7"]
+_EIGRP_EXTROUTE_FLAGS = ["external", "candidate-default"]
 
 
 class EIGRPExtRoute(EIGRPGeneric):
@@ -412,11 +410,7 @@ _EIGRP_OPCODES = {1: "Update",
                   10: "SIA Query",
                   11: "SIA Reply"}
 
-_EIGRP_FLAGS = ["init", "cond-recv", "res2", "update", "res4", "res5", "res6",
-                "res7", "res8", "res9", "res10", "res11", "res12", "res13",
-                "res14", "res15", "res16", "res17", "res18", "res19", "res20",
-                "res21", "res22", "res23", "res24", "res25", "res26", "res27",
-                "res28", "res29", "res30", "res31"]
+_EIGRP_FLAGS = ["init", "cond-recv", "", "update"]
 
 
 class EIGRP(Packet):

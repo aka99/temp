@@ -114,10 +114,7 @@ class LLS_Generic_TLV(Packet):
         return Padding
 
 
-_LLS_ext_options = ["LR","RS","I","F","res4","res5","res6","res7",
-                    "res8","res9","res10","res11","res12","res13","res14","res15",
-                    "res16","res17","res18","res19","res20","res21","res22","res23",
-                    "res24","res25","res26","res27","res28","res29","res30","res31"]
+_LLS_ext_options = ["LR","RS","I","F"]
 
 
 class LLS_Extended_Options(LLS_Generic_TLV):
@@ -292,7 +289,7 @@ class OSPF_Router_LSA(_OSPF_BaseLSA):
     type = 1
     id = "1.1.1.1"
     fields_desc = [OSPF_LSA_Hdr,
-                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
+                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt"]),
                    ByteField("reserved", 0),
                    FieldLenField("linkcount", None, count_of="linklist"),
                    PacketListField("linklist", [], OSPF_Link,
@@ -348,7 +345,7 @@ class OSPF_DBDesc(Packet):
     name = "OSPF Database Description"
     fields_desc = [ShortField("mtu", 1500),
                    FlagsField("options", 0, 8, _OSPF_options),
-                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
+                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6"]),
                    IntField("ddseq", 1),
                    PacketListField("lsaheaders", None, OSPF_LSA_Hdr,
                                     count_from = lambda pkt: None,
@@ -495,9 +492,8 @@ class OSPFv3_Hdr(Packet):
         return p
 
 
-_OSPFv3_options = ["V6","E","MC","N","R","DC","res6","res7",
-                   "AF","L","I","F","res12","res13","res14","res15",
-                   "res16","res17","res18","res19","res20","res21","res22","res23"]
+_OSPFv3_options = ["V6","E","MC","N","R","DC","","",
+                   "AF","L","I","F"]
 
 
 class OSPFv3_Hello(Packet):
@@ -568,7 +564,7 @@ _OSPFv3_Router_LSA_types = {1: "p2p",
 class OSPFv3_Link(Packet):
     name = "OSPFv3 Link"
     fields_desc = [ByteEnumField("type", 1, _OSPFv3_Router_LSA_types),
-                   FlagsField("ldoptions", 0, 8, ["U","res1","res2","res3","res4","res5","res6","res7"]),
+                   FlagsField("ldoptions", 0, 8, ["U"]),
                    ShortField("metric", 10),
                    IntField("intid", 0),
                    IntField("neighintid", 0),
@@ -582,7 +578,7 @@ class OSPFv3_Router_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 Router LSA"
     type = 0x2001
     fields_desc = [OSPFv3_LSA_Hdr,
-                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt","res5","res6","res7"]),
+                   FlagsField("flags", 0, 8, ["B","E","V","W","Nt"]),
                    FlagsField("options", 0, 24, _OSPFv3_options),
                    PacketListField("linklist", [], OSPFv3_Link,
                                    length_from=lambda pkt:pkt.len - 24)]
@@ -598,7 +594,7 @@ class OSPFv3_Network_LSA(_OSPF_BaseLSA):
                                   length_from=lambda pkt: pkt.len - 24)]
 
 
-_OSPFv3_prefix_options = ["NU","LA","MC","P","DN","res5","res6","res7"]
+_OSPFv3_prefix_options = ["NU","LA","MC","P","DN"]
 
 
 class OSPFv3_Inter_Area_Prefix_LSA(_OSPF_BaseLSA):
@@ -627,7 +623,7 @@ class OSPFv3_AS_External_LSA(_OSPF_BaseLSA):
     name = "OSPFv3 AS External LSA"
     type = 0x4005
     fields_desc = [OSPFv3_LSA_Hdr,
-                   FlagsField("flags", 0, 8, ["T","F","E","res3","res4","res5","res6","res7"]),
+                   FlagsField("flags", 0, 8, ["T","F","E"]),
                    XThreeBytesField("metric", 20),
                    ByteField("prefixlen", 64),
                    FlagsField("prefixoptions", 0, 8, _OSPFv3_prefix_options),
@@ -689,7 +685,7 @@ class OSPFv3_DBDesc(Packet):
                    FlagsField("options", 0, 24, _OSPFv3_options),
                    ShortField("mtu", 1500),
                    ByteField("reserved2", 0),
-                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6","res5","res6","res7"]),
+                   FlagsField("dbdescr", 0, 8, ["MS","M","I","R","M6"]),
                    IntField("ddseq", 1),
                    PacketListField("lsaheaders", None, OSPFv3_LSA_Hdr,
                                     count_from = lambda pkt:None,

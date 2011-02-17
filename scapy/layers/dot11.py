@@ -119,11 +119,14 @@ class RadioTap(Packet):
     fields_desc = [ ByteField('version', 0),
                     ByteField('pad', 0),
                     FieldLenField('len', None, 'notdecoded', '<H', adjust=lambda pkt,x:x+8),
-                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','Channel','FHSS','dBm_AntSignal',
-                                                     'dBm_AntNoise','Lock_Quality','TX_Attenuation','dB_TX_Attenuation',
-                                                      'dBm_TX_Power', 'Antenna', 'dB_AntSignal', 'dB_AntNoise',
-                                                     'b14', 'b15','b16','b17','b18','b19','b20','b21','b22','b23',
-                                                     'b24','b25','b26','b27','b28','b29','b30','Ext']),
+                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','Channel',
+                                                      'FHSS','dBm_AntSignal','dBm_AntNoise','Lock_Quality',
+                                                      'TX_Attenuation','dB_TX_Attenuation','dBm_TX_Power','Antenna',
+                                                      'dB_AntSignal','dB_AntNoise','RX_Flags', '',
+                                                      '','','','MCS',
+                                                      '','','','',
+                                                      '','','','',
+                                                      '','Radiotap_Namespace','Vendor_Namespace','Ext']),
                     StrLenField('notdecoded', "", length_from= lambda pkt:pkt.len-8) ]
 
 
@@ -248,10 +251,10 @@ class Dot11QoS(Packet):
         return Packet.guess_payload_class(self, payload)
 
 
-capability_list = [ "res8", "res9", "short-slot", "res11",
-                    "res12", "DSSS-OFDM", "res14", "res15",
-                   "ESS", "IBSS", "CFP", "CFP-req",
-                   "privacy", "short-preamble", "PBCC", "agility"]
+capability_list = [ "ESS", "IBSS", "CFP", "CFP-req",
+                    "privacy", "short-preamble", "PBCC", "agility",
+                    "", "", "short-slot", "",
+                    "", "DSSS-OFDM", "", ""]
 
 reason_code = {0:"reserved",1:"unspec", 2:"auth-expired",
                3:"deauth-ST-leaving",
@@ -268,7 +271,7 @@ class Dot11Beacon(Packet):
     name = "802.11 Beacon"
     fields_desc = [ LELongField("timestamp", 0),
                     LEShortField("beacon_interval", 0x0064),
-                    FlagsField("cap", 0, 16, capability_list) ]
+                    FlagsField("cap", 0, -16, capability_list) ]
     
 
 class Dot11Elt(Packet):
@@ -292,19 +295,19 @@ class Dot11Disas(Packet):
 
 class Dot11AssoReq(Packet):
     name = "802.11 Association Request"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("listen_interval", 0x00c8) ]
 
 
 class Dot11AssoResp(Packet):
     name = "802.11 Association Response"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("status", 0),
                     LEShortField("AID", 0) ]
 
 class Dot11ReassoReq(Packet):
     name = "802.11 Reassociation Request"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("listen_interval", 0x00c8),
                     MACField("current_AP", ETHER_ANY) ]
 
@@ -319,7 +322,7 @@ class Dot11ProbeResp(Packet):
     name = "802.11 Probe Response"
     fields_desc = [ LELongField("timestamp", 0),
                     LEShortField("beacon_interval", 0x0064),
-                    FlagsField("cap", 0, 16, capability_list) ]
+                    FlagsField("cap", 0, -16, capability_list) ]
     
 class Dot11Auth(Packet):
     name = "802.11 Authentication"
