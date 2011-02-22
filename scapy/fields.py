@@ -1170,12 +1170,12 @@ class LEFieldLenField(FieldLenField):
 class FlagsField(BitField):
     def __init__(self, name, default, size, names):
         s = abs(size)
-        l = len(names)
         names = names[:s]
+        l = len(names)
         self.multi = type(names) is list
         if self.multi:
             names += [""]*(s-l)
-            for i in range(l):
+            for i in range(s):
                 if not names[i]:
                     names[i] = "res%i"%i
             self.names = map(lambda x:[x], names)
