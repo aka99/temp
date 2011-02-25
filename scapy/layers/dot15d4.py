@@ -11,22 +11,9 @@ import re, struct
 
 from scapy.packet import *
 from scapy.fields import *
-from scapy.plist import PacketList
 from scapy.layers.l2 import *
 
 ### Fields ###
-
-class LEXIntField(Field):
-    def __init__(self, name, defaultx):
-        Field.__init__(self, name, defaultx, "<I")
-    def i2repr(self, pkt, x):
-        return lhex(self.i2h(pkt, x))
-
-class LEXShortField(Field):
-    def __init__(self, name, defaultx):
-        Field.__init__(self, name, defaultx, "<H")
-    def i2repr(self, pkt, x):
-        return lhex(self.i2h(pkt, x))
 
 class dot15d4AddressField(Field):
     def __init__(self, name, default, length_of=None, fmt="<H", adjust=None):
@@ -94,7 +81,7 @@ class Dot15d4(Packet):
 class Dot15d4Ack(Packet):
     name = "802.15.4 Ack"
     fields_desc = [
-                    LEXShortField("fcs", 0)
+                    XLEShortField("fcs", 0)
                     ]
 
 class Dot15d4AuxSecurityHeader(Packet):
@@ -103,19 +90,19 @@ class Dot15d4AuxSecurityHeader(Packet):
                     BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32"}),
                     BitEnumField("sec_sc_keyidmode", 0, 2, {0:"Implicit", 1:"KeyIndex"}),
                     BitField("sec_sc_reserved", 0, 3),
-                    LEXIntField("sec_framecounter", 0x00000000),
+                    XLEIntField("sec_framecounter", 0x00000000),
                     #TODO KeyId field only appears if sec_sc_keyidmode != 0
                     #TODO length of sec_keyid_keysource varies btwn 0, 4, and 8 bytes depending on sec_sc_keyidmode
-                    #LEXIntField("sec_keyid_keysource", 0x00000000),
+                    #XLEIntField("sec_keyid_keysource", 0x00000000),
                     ConditionalField(XByteField("sec_keyid_keyindex", 0xFF), lambda pkt:pkt.getfieldval("sec_sc_keyidmode") != 0),
                     ]
 
 class Dot15d4Data(Packet):
     name = "802.15.4 Data"
     fields_desc = [
-                    LEXShortField("dest_panid", 0xFFFF),
+                    XLEShortField("dest_panid", 0xFFFF),
                     dot15d4AddressField("dest_addr", 0xFFFF, length_of="fcf_destaddrmode"),
-                    ConditionalField(LEXShortField("src_panid", 0x0), \
+                    ConditionalField(XLEShortField("src_panid", 0x0), \
                                         lambda pkt:util_srcpanid_present(pkt)),
                     ConditionalField(dot15d4AddressField("src_addr", None, length_of="fcf_srcaddrmode"), \
                                         lambda pkt:pkt.underlayer.getfieldval("fcf_srcaddrmode") != 0),
@@ -130,7 +117,7 @@ class Dot15d4Data(Packet):
 class Dot15d4Beacon(Packet):
     name = "802.15.4 Beacon"
     fields_desc = [
-                    LEXShortField("src_panid", 0x0),
+                    XLEShortField("src_panid", 0x0),
                     dot15d4AddressField("src_addr", None, length_of="fcf_srcaddrmode"),
 
                     # Superframe spec field:
@@ -171,9 +158,9 @@ class Dot15d4Beacon(Packet):
 class Dot15d4Cmd(Packet):
     name = "802.15.4 Command"
     fields_desc = [
-                    LEXShortField("dest_panid", 0xFFFF),
+                    XLEShortField("dest_panid", 0xFFFF),
                     dot15d4AddressField("dest_addr", None, length_of="fcf_destaddrmode"),
-                    ConditionalField(LEXShortField("src_panid", 0x0), \
+                    ConditionalField(XLEShortField("src_panid", 0x0), \
                                         lambda pkt:util_srcpanid_present(pkt)),
                     ConditionalField(dot15d4AddressField("src_addr", None, length_of="fcf_srcaddrmode"), \
                                         lambda pkt:pkt.underlayer.getfieldval("fcf_srcaddrmode") != 0),
@@ -190,10 +177,10 @@ class Dot15d4Cmd(Packet):
 class Dot15d4CmdCoordRealign(Packet):
     name = "802.15.4 Coordinator Realign Payload"
     fields_desc = [
-                    LEXShortField("pan_id", 0xFFFF),
-                    LEXShortField("coord_addr", None),
+                    XLEShortField("pan_id", 0xFFFF),
+                    XLEShortField("coord_addr", None),
                     ByteField("channel", 11),
-                    LEXShortField("dev_addr", None),
+                    XLEShortField("dev_addr", None),
                     #ConditionalField(XShortField("channel_page", 0), lambda pkt:pkt.underlayer.getfieldval("fcf_srcaddrmode") != 0),
                     ]
     def mysummary(self):
