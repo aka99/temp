@@ -14,19 +14,23 @@ from scapy.fields import *
 from scapy.packet import *
 from scapy.layers.l2 import *
 
+# http://www.iana.org/assignments/tls-parameters/tls-parameters.xml#tls-parameters-3
 cipher_suites = {
-        0x0003:"TLS RSA EXPORT WITH RC4 40 MD5",
-        0x0004:"TLS RSA WITH RC4 128 MD5",
-        0x0005:"TLS RSA WITH RC4 128 SHA",
-        0x0006:"TLS RSA EXPORT WITH RC2 CBC 40 MD5",
-        0x0009:"TLS RSA WITH DES CBC SHA",
-        0x000a:"TLS RSA WITH 3DES EDE CBC SHA",
-        0x0012:"TLS DHE DSS WITH DES CBC SHA",
-        0x0013:"TLS DHE DSS WITH 3DES EDE CBC SHA",
-        0x0034:"TLS DH anon WITH AES 128 CBC SHA",
-        0x0062:"TLS RSA EXPORT1024 WITH DES CBC SHA",
-        0x0063:"TLS DHE DSS EXPORT1024 WITH DES CBC SHA",
-        0x0064:"TLS RSA EXPORT1024 WITH RC4 56 SHA"
+		0x0000:"TLS_NULL_WITH_NULL_NULL",
+		0x0001:"TLS_RSA_WITH_NULL_MD5",
+		0x0002:"TLS_RSA_WITH_NULL_SHA",
+		0x0003:"TLS_RSA_EXPORT_WITH_RC4_40_MD5",
+		0x0004:"TLS_RSA_WITH_RC4_128_MD5",
+		0x0005:"TLS_RSA_WITH_RC4_128_SHA",
+		0x0006:"TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5",
+		0x0009:"TLS_RSA_WITH_DES_CBC_SHA",
+		0x000a:"TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+		0x0012:"TLS_DHE_DSS_WITH_DES_CBC_SHA",
+		0x0013:"TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
+		0x0034:"TLS_DH_anon_WITH_AES_128_CBC_SHA",
+		0x0062:"TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA",
+		0x0063:"TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA",
+		0x0064:"TLS_RSA_EXPORT1024_WITH_RC4_56_SHA"
     }
 
 tls_handshake_types = {
@@ -41,6 +45,12 @@ tls_handshake_types = {
         16:"CLIENT KEY EXCHANGE",
         20:"FINISHED"
     }
+    
+tls_compression_methods = {
+		0:"NONE",
+		1:"DEFLATE",
+		64:"LZS"
+	}
 
 class TLSv1RecordLayer(Packet):
     name = "TLS v1.0 Record Layer"
@@ -70,14 +80,15 @@ class TLSv1ClientHello(Packet):
                     
                     UTCTimeField("unix_time", None),
                     StrFixedLenField("random_bytes", 0x00, length=28),
-                    FieldLenField("session_id_length", 0, length_of="session_id", fmt="B"),
+                    
+                    FieldLenField("session_id_length", None, length_of="session_id", fmt="B"),
                     StrLenField("session_id", "", length_from=lambda pkt:pkt.session_id_length),
                     
                     FieldLenField("cipher_suites_length", 2, length_of="cipher_suites", fmt="H"),
-                    FieldListField("cipher_suites", ["\x00\x34"], ShortEnumField("cipher_suite", 0x0000, cipher_suites), count_from = lambda pkt:pkt.cipher_suites_length / 2),
+                    FieldListField("cipher_suites", [0x0000], ShortEnumField("cipher_suite", 0x0000, cipher_suites), count_from = lambda pkt:pkt.cipher_suites_length / 2),
                     
                     FieldLenField("compression_methods_length", 1, length_of="compression_methods", fmt="B"),
-                    FieldListField("compression_methods", ["\x00"], ByteEnumField("compression_method", 0x00, {0x00:"NONE"}), count_from = lambda pkt:pkt.compression_methods_length)
+                    FieldListField("compression_methods", [0x00], ByteEnumField("compression_method", 0x00, tls_compression_methods), count_from = lambda pkt:pkt.compression_methods_length)
                 ]
                 
     def guess_payload_class(self, payload):
