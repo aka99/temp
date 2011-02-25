@@ -810,6 +810,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         for f in self.fields_desc:
             if isinstance(f, ConditionalField) and not f._evalcond(self):
                 continue
+            elif isinstance(f, HiddenField) and f.to_show(self)==False:
+                continue
             if isinstance(f, Emph) or f in conf.emph:
                 ncol = ct.emph_field_name
                 vcol = ct.emph_field_value

@@ -46,17 +46,17 @@ class dot15d4AddressField(Field):
 class Dot15d4(Packet):
     name = "802.15.4"
     fields_desc = [
-                    BitField("fcf_reserved_1", 0, 1), #fcf p1 b1
+                    HiddenField(BitField("fcf_reserved_1", 0, 1), True), #fcf p1 b1
                     BitEnumField("fcf_panidcompress", 0, 1, [False, True]),
                     BitEnumField("fcf_ackreq", 0, 1, [False, True]),
                     BitEnumField("fcf_pending", 0, 1, [False, True]),
                     BitEnumField("fcf_security", 0, 1, [False, True]), #fcf p1 b2
-                    BitEnumField("fcf_frametype", 0, 3, {0:"Beacon", 1:"Data", 2:"Ack", 3:"Command"}),
+                    Emph(BitEnumField("fcf_frametype", 0, 3, {0:"Beacon", 1:"Data", 2:"Ack", 3:"Command"})),
                     BitEnumField("fcf_srcaddrmode", 0, 2, {0:"None", 2:"Short", 1:"Long"}),  #fcf p2 b1
                     BitField("fcf_framever", 0, 2),
                     BitEnumField("fcf_destaddrmode", 2, 2, {0:"None", 2:"Short", 1:"Long"}), #fcf p2 b2
-                    BitField("fcf_reserved_2", 0, 2),
-                    ByteField("seqnum", 1) #sequence number
+                    HiddenField(BitField("fcf_reserved_2", 0, 2), True),
+                    Emph(ByteField("seqnum", 1)) #sequence number
                     ]
 
     def mysummary(self):

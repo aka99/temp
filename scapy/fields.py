@@ -99,8 +99,6 @@ class Field:
             warning("no random class for [%s] (fmt=%s)." % (self.name, self.fmt))
             
 
-
-
 class Emph:
     fld = ""
     def __init__(self, fld):
@@ -111,7 +109,27 @@ class Emph:
         return hash(self.fld)
     def __eq__(self, other):
         return self.fld == other
-    
+
+class HiddenField:
+    '''
+    Takes a field fld (like Emph does), and does not display it in pkt.show().
+    If defaultonly==True, it will show the field in pkt.show() only if it differs from the defined default value.
+    Useful for hidding reserved fields in packets, and generally decluttering output, without reducing functionality.
+    '''
+    fld = ""
+    def __init__(self, fld, defaultonly=False):
+        self.fld = fld
+        self.defaultonly = defaultonly
+    def to_show(self,pkt):
+        if (self.defaultonly == True) and (pkt.getfieldval(self.fld.name) != self.fld.default):
+            return True
+        return False
+    def __getattr__(self, attr):
+        return getattr(self.fld,attr)
+    def __hash__(self):
+        return hash(self.fld)
+    def __eq__(self, other):
+        return self.fld == other
 
 class ActionField:
     _fld = None
@@ -125,7 +143,6 @@ class ActionField:
     def __getattr__(self, attr):
         return getattr(self._fld,attr)
 
-
 class ConditionalField:
     fld = None
     def __init__(self, fld, cond):
@@ -138,13 +155,11 @@ class ConditionalField:
             return self.fld.i2len(pkt,val)
         else:
             return 0
-        
     def getfield(self, pkt, s):
         if self._evalcond(pkt):
             return self.fld.getfield(pkt,s)
         else:
             return s,self.fld.default
-        
     def addfield(self, pkt, s, val):
         if self._evalcond(pkt):
             return self.fld.addfield(pkt,s,val)
