@@ -15,26 +15,31 @@ from scapy.packet import *
 from scapy.layers.l2 import *
 
 cipher_suites = {
-        0x0003:"TLS_RSA_EXPORT_WITH_RC4_40_MD5",
-        0x0004:"TLS_RSA_WITH_RC4_128_MD5",
-        0x0005:"TLS_RSA_WITH_RC4_128_SHA",
-        0x0006:"TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5",
-        0x0009:"TLS_RSA_WITH_DES_CBC_SHA",
-        0x000a:"TLS_RSA_WITH_3DES_EDE_CBC_SHA",
-        0x0012:"TLS_DHE_DSS_WITH_DES_CBC_SHA",
-        0x0013:"TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA",
-        0x0034:"TLS_DH_anon_WITH_AES_128_CBC_SHA",
-        0x0062:"TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA",
-        0x0063:"TLS_DHE_DSS_EXPORT1024_WITH_DES_CBC_SHA",
-        0x0064:"TLS_RSA_EXPORT1024_WITH_RC4_56_SHA"
+        0x0003:"TLS RSA EXPORT WITH RC4 40 MD5",
+        0x0004:"TLS RSA WITH RC4 128 MD5",
+        0x0005:"TLS RSA WITH RC4 128 SHA",
+        0x0006:"TLS RSA EXPORT WITH RC2 CBC 40 MD5",
+        0x0009:"TLS RSA WITH DES CBC SHA",
+        0x000a:"TLS RSA WITH 3DES EDE CBC SHA",
+        0x0012:"TLS DHE DSS WITH DES CBC SHA",
+        0x0013:"TLS DHE DSS WITH 3DES EDE CBC SHA",
+        0x0034:"TLS DH anon WITH AES 128 CBC SHA",
+        0x0062:"TLS RSA EXPORT1024 WITH DES CBC SHA",
+        0x0063:"TLS DHE DSS EXPORT1024 WITH DES CBC SHA",
+        0x0064:"TLS RSA EXPORT1024 WITH RC4 56 SHA"
     }
 
 tls_handshake_types = {
+		0:"HELLO REQUEST",
         1:"CLIENT HELLO",
         2:"SERVER HELLO",
+        11:"CERTIFICATE",
         12:"SERVER KEY EXCHANGE",
+        13:"CERTIFICATE REQUEST",
         14:"SERVER HELLO DONE",
-        16:"CLIENT KEY EXCHANGE"
+        15:"CERTIFICATE VERIFY",
+        16:"CLIENT KEY EXCHANGE",
+        20:"FINISHED"
     }
 
 class TLSv1RecordLayer(Packet):
@@ -51,30 +56,22 @@ class TLSv1RecordLayer(Packet):
     def guess_payload_class(self, payload):
         if self.code != 22:
             return TLSv1RecordLayer
-        elif self.hs_type == 1:
-            return TLSv1ClientHello
-        elif self.hs_type == 2:
-            return TLSv1ServerHello
-        elif self.hs_type == 12:
-            return TLSv1KeyExchange
-        elif self.hs_type == 14:
-            return TLSv1ServerHelloDone
-        elif self.hs_type == 16:
-            return TLSv1KeyExchange
+        elif self.hs_type in [1, 2, 12, 14, 16]:
+			return {1:TLSv1ClientHello, 2:TLSv1ServerHello, 12:TLSv1KeyExchange, 14:TLSv1ServerHelloDone, 16:TLSv1KeyExchange}[self.hs_type]
         else:
             return TLSv1RecordLayer
 
 class TLSv1ClientHello(Packet):
     name = "TLSv1 Client Hello"
     fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", None, fmt="H", length_of=lambda pkt:session_id_length + pkt.cipher_suite_length + pkt.compression_methods_length + 36),
+                    FieldLenField("length", 36, fmt="H", length_of=lambda pkt:pkt.session_id_length + pkt.cipher_suites_length + pkt.compression_methods_length + 36),
                     ByteField("major_version", 3),
                     ByteField("minor_version", 1),
                     
                     UTCTimeField("unix_time", None),
                     StrFixedLenField("random_bytes", 0x00, length=28),
                     FieldLenField("session_id_length", 0, length_of="session_id", fmt="B"),
-                    ConditionalField(StrLenField("session_id", "", length_from=lambda pkt:pkt.session_id_length), lambda pkt:pkt.session_id_length),
+                    StrLenField("session_id", "", length_from=lambda pkt:pkt.session_id_length),
                     
                     FieldLenField("cipher_suites_length", 2, length_of="cipher_suites", fmt="H"),
                     FieldListField("cipher_suites", ["\x00\x34"], ShortEnumField("cipher_suite", 0x0000, cipher_suites), count_from = lambda pkt:pkt.cipher_suites_length / 2),
