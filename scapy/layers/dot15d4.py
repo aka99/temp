@@ -11,7 +11,6 @@ import re, struct
 
 from scapy.packet import *
 from scapy.fields import *
-from scapy.layers.l2 import *
 
 ### Fields ###
 
@@ -40,6 +39,16 @@ class dot15d4AddressField(Field):
         if addrmode == 2: return 2
         elif addrmode == 3: return 8
         else: return 0
+
+
+#class dot15d4Checksum(LEShortField,XShortField):
+#    def i2repr(self, pkt, x):
+#        return XShortField.i2repr(self, pkt, x)
+#    def addfield(self, pkt, s, val):
+#        return s
+#    def getfield(self, pkt, s):
+#        return s
+
 
 ### Layers ###
 
@@ -78,11 +87,27 @@ class Dot15d4(Packet):
                     return 1
         return 0
 
+class Dot15d4FCS(Dot15d4, Packet):
+    '''
+    This class is a drop-in replacement for the Dot15d4 class above, except
+    it expects a FCS/checksum in the input, and produces one in the output.
+    This provides the user flexibility, as many 802.15.4 interfaces will have an AUTO_CRC setting
+    that will validate the FCS/CRC in firmware, and add it automatically when transmitting.
+    '''
+    def pre_dissect(self, s):
+        """Called right before the current layer is dissected"""
+        if (makeFCS(s[:-2]) != s[-2:]): #validate the FCS given
+            warning("FCS on this packet is invalid or is not present in provided bytes.")
+            return s                    #if not valid, pretend there was no FCS present
+        return s[:-2]                   #otherwise just disect the non-FCS section of the pkt
+
+    def post_build(self, p, pay):
+        return p + pay + makeFCS(p+pay) #construct the packet with the FCS at the end
+
+
 class Dot15d4Ack(Packet):
     name = "802.15.4 Ack"
-    fields_desc = [
-                    XLEShortField("fcs", 0)
-                    ]
+    fields_desc = [ ]
 
 class Dot15d4AuxSecurityHeader(Packet):
     name = "802.15.4 Auxillary Security Header"
@@ -148,7 +173,6 @@ class Dot15d4Beacon(Packet):
                     BitField("pa_reserved_2", 0, 1),
                     #  Address List (var length)
                     #TODO add a FieldListField of the pending short addresses, followed by the pending long addresses, with max 7 addresses
-
                     #TODO beacon payload
                     ]
 
@@ -165,11 +189,13 @@ class Dot15d4Cmd(Packet):
                     ConditionalField(dot15d4AddressField("src_addr", None, length_of="fcf_srcaddrmode"), \
                                         lambda pkt:pkt.underlayer.getfieldval("fcf_srcaddrmode") != 0),
                     ByteEnumField("cmd_id", 0, {1:"AssocReq", 2:"AssocResp", 4:"DataReq", 5:"PANIDConflictNotify", 6:"OrphanNotify", 7:"BeaconReq", 8:"CoordRealgin"}),
+                    #TODO command payload
                     ]
 
     def mysummary(self):
         return self.sprintf("802.15.4 Command %Dot15d4Cmd.commandid% ( %Dot15dCmd.src_panid%:%Dot15d4Cmd.src_addr% -> %Dot15d4Cmd.dest_panid%:%Dot15d4Cmd.dest_addr% )")
 
+    #TODO implement more command frame payloads
     def guess_payload_class(self, payload):
         if self.cmd_id == "CoordRealign":   return Dot15d4CmdCoordRealign
         else:                               return Packet.guess_payload_class(self, payload)
@@ -186,15 +212,35 @@ class Dot15d4CmdCoordRealign(Packet):
     def mysummary(self):
         return self.sprintf("802.15.4 Coordinator Realign Payload ( %Dot15dCmdCoordRealign.pan_id% : chan %Dot15d4CmdCoordRealign.channel% )")
 
+
 ### Utility Functions ###
 def util_srcpanid_present(pkt):
     '''A source PAN ID is included if and only if both src addr mode != 0 and PAN ID Compression in FCF == 0'''
     if (pkt.underlayer.getfieldval("fcf_srcaddrmode") != 0) and (pkt.underlayer.getfieldval("fcf_panidcompress") == 0): return True
     else: return False
 
+# Do a CRC-CCITT Kermit 16bit on the data given
+# Returns a CRC that is the FCS for the frame
+#  Implemented using pseudocode from: June 1986, Kermit Protocol Manual
+#  See also: http://regregex.bbcmicro.net/crc-catalogue.htm#crc.cat.kermit
+def makeFCS(data):
+    crc = 0
+    for i in range(0, len(data)):
+        c = ord(data[i])
+		#if (A PARITY BIT EXISTS): c = c & 127	#Mask off any parity bit
+        q = (crc ^ c) & 15				#Do low-order 4 bits
+        crc = (crc // 16) ^ (q * 4225)
+        q = (crc ^ (c // 16)) & 15		#And high 4 bits
+        crc = (crc // 16) ^ (q * 4225)
+    return struct.pack('<H', crc) #return as bytes in little endian order
+
+
 ### Bindings ###
 bind_layers( Dot15d4, Dot15d4Beacon, fcf_frametype=0)
 bind_layers( Dot15d4, Dot15d4Data, fcf_frametype=1)
 bind_layers( Dot15d4, Dot15d4Ack,  fcf_frametype=2)
 bind_layers( Dot15d4, Dot15d4Cmd,  fcf_frametype=3)
-
+bind_layers( Dot15d4FCS, Dot15d4Beacon, fcf_frametype=0)
+bind_layers( Dot15d4FCS, Dot15d4Data, fcf_frametype=1)
+bind_layers( Dot15d4FCS, Dot15d4Ack,  fcf_frametype=2)
+bind_layers( Dot15d4FCS, Dot15d4Cmd,  fcf_frametype=3)
