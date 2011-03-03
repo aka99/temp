@@ -342,7 +342,6 @@ class XLEShortField(LEShortField,XShortField):
     def i2repr(self, pkt, x):
         return XShortField.i2repr(self, pkt, x)
 
-
 class IntField(Field):
     def __init__(self, name, default):
         Field.__init__(self, name, default, "I")
