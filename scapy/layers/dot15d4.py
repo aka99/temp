@@ -11,7 +11,6 @@ import re, struct
 
 from scapy.packet import *
 from scapy.fields import *
-#from scapy.layers.l2 import *
 
 ### Fields ###
 
@@ -42,13 +41,13 @@ class dot15d4AddressField(Field):
         else: return 0
 
 
-class dot15d4Checksum(LEShortField,XShortField):
-    def i2repr(self, pkt, x):
-        return XShortField.i2repr(self, pkt, x)
-    def addfield(self, pkt, s, val):
-        return s
-    def getfield(self, pkt, s):
-        return s
+#class dot15d4Checksum(LEShortField,XShortField):
+#    def i2repr(self, pkt, x):
+#        return XShortField.i2repr(self, pkt, x)
+#    def addfield(self, pkt, s, val):
+#        return s
+#    def getfield(self, pkt, s):
+#        return s
 
 
 ### Layers ###
