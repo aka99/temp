@@ -310,7 +310,8 @@ class EAP(Packet):
                     ByteField("id", 0),
                     ShortField("len",None),
                     ConditionalField(ByteEnumField("type",0, eap_types), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE]),
-                    ConditionalField(StrLenField("identity", "", length_from=lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 1)
+                    ConditionalField(StrLenField("identity", "", length_from=lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 1),
+                    ConditionalField(FieldListField("eap_types", [0x00], ByteEnumField("eap_type", 0x00, eap_types), count_from = lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 3)
                                      ]
     
     REQUEST = 1
@@ -369,6 +370,18 @@ class EAPOLKeyDot11(Packet):
                     FieldLenField("keydatalen", None, length_of="keydata", fmt="H"),
                     StrLenField("keydata", "", length_from=lambda x:x.keydatalen) ]
                     
+class EAP_TLS(Packet): # eap type 13
+    name = "EAP-TLS"
+    fields_desc = [ FlagsField("flags", 0, 8, ['reserved5', 'reserved4', 'reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 127),
+				]
+				
+    def guess_payload_class(self, payload):
+        if self.flags > 127:
+            return scapy.layers.ssl.TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
+                    
 
 class LEAP(Packet): # eap type 17
     name = "LEAP"
@@ -378,17 +391,31 @@ class LEAP(Packet): # eap type 17
                     StrLenField("data", "", length_from=lambda pkt:pkt.length),
                     StrField("name", "")
                 ]
+
+
+class EAP_TTLS(Packet): # eap type 21
+    name = "EAP-TTLS"
+    fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    BitField("version", 0, 3),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 15),
+				]
+				
+    def guess_payload_class(self, payload):
+        if self.flags >> 2 in [1, 3, 7]:	# if start bit is set
+			return Packet.guess_payload_class(self, payload)
+        else:
+            return scapy.layers.ssl.TLSv1RecordLayer
             
             
 class PEAP(Packet): # eap type 25
     name = "PEAP"
     fields_desc = [ FlagsField("flags", 0, 6, ['reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
                     BitField("version", 0, 2),
-                    ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 31),
                 ]
     
     def guess_payload_class(self, payload):
-        if self.flags > 15:
+        if self.flags > 31:
             return scapy.layers.ssl.TLSv1RecordLayer
         else:
             return Packet.guess_payload_class(self, payload)
@@ -398,11 +425,14 @@ class EAP_Fast(Packet): # eap type 43
     name = "EAP-Fast"
     fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
                     BitField("version", 0, 3),
-                    ConditionalField(FieldLenField("length", None, length_of="data", fmt="I"), lambda pkt:pkt.flags > 15),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 15),
                 ]
                 
     def guess_payload_class(self, payload):
-        return scapy.layers.ssl.TLSv1RecordLayer
+        if self.flags > 15:
+            return scapy.layers.ssl.TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
                 
 
 # Hardware types - RFC 826 - Extracted from 
@@ -567,7 +597,9 @@ bind_layers( GRErouting,    Raw,           { "address_family" : 0, "SRE_len" : 0
 bind_layers( GRErouting,    GRErouting,    { } )
 bind_layers( EAPOL,         EAP,           type=0)
 bind_layers( EAPOL,         EAPOLKey,      type=3)
+bind_layers( EAP,           EAP_TLS,       type=13)
 bind_layers( EAP,           LEAP,          type=17)
+bind_layers( EAP,           EAP_TTLS,      type=21)
 bind_layers( EAP,           PEAP,          type=25)
 bind_layers( EAP,           EAP_Fast,      type=43)
 bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
