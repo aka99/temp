@@ -501,7 +501,7 @@ class ISAKMP_payload_Transform_AH(ISAKMP_payload_Transform):
         ByteField("num",None),
         ByteEnumField("id",1,ISAKMP_trans_ID_AH),
         ShortField("res2",0),
-        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrIPSECTypes,
                               length_from=lambda x:x.length-8)
         ]
 
@@ -512,7 +512,7 @@ class ISAKMP_payload_Transform_ESP(ISAKMP_payload_Transform):
         ByteField("num",None),
         ByteEnumField("id",1,ISAKMP_trans_ID_ESP),
         ShortField("res2",0),
-        ISAKMPAttributesField("transforms",[],ISAKMPAttrPhase1Types,
+        ISAKMPAttributesField("transforms",[],ISAKMPAttrIPSECTypes,
                               length_from=lambda x:x.length-8)
         ]
 
