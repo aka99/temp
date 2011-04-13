@@ -204,7 +204,7 @@ class RDataField(StrLenField):
         elif pkt.type == 28:
             if s:
                 s = inet_pton(socket.AF_INET6, s)
-        elif pkt.type in [2,3,4,5]:
+        elif pkt.type in [2,3,4,5,12]:
             s = "".join(map(lambda x: chr(len(x))+x, s.split(".")))
             if ord(s[-1]):
                 s += "\x00"
