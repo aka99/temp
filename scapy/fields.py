@@ -795,6 +795,29 @@ class FieldLenField(Field):
                 f = pkt.getfieldcount(self.count_of)
             x = self.adjust(pkt,f)
         return x
+        
+class FieldThreeBytesLenField(ByteField):
+    def __init__(self, name, default, length_of=None, count_of=None, adjust=lambda pkt,x:x, fld=None):
+        Field.__init__(self, name, default, "!I")
+        self.sz = 3
+        self.length_of=length_of
+        self.count_of=count_of
+        self.adjust=adjust
+        if fld is not None:
+#            FIELD_LENGTH_MANAGEMENT_DEPRECATION(self.__class__.__name__)
+            self.length_of = fld
+    def addfield(self, pkt, s, val):
+        return s+struct.pack(self.fmt, self.i2m(pkt,val))[1:4]
+    def getfield(self, pkt, s):
+        return  s[3:], self.m2i(pkt, struct.unpack(self.fmt, "\x00"+s[:3])[0])
+    def i2m(self, pkt, x):
+        if x is None:
+            if self.length_of is not None:
+                f = pkt.getfieldlen(self.length_of)
+            else:
+                f = pkt.getfieldcount(self.count_of)
+            x = self.adjust(pkt,f)
+        return x
 
 class StrNullField(StrField):
     def i2len(self, pkt, i):

@@ -97,8 +97,7 @@ class TLSv1RecordLayer(Packet):
 
 class TLSv1ClientHello(Packet):
     name = "TLSv1 Client Hello"
-    fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", 36, fmt="H", adjust=lambda pkt, x:pkt.session_id_length + pkt.cipher_suites_length + pkt.compression_methods_length + 36),
+    fields_desc = [ FieldThreeBytesLenField("length", 36, adjust=lambda pkt, x:pkt.session_id_length + pkt.cipher_suites_length + pkt.compression_methods_length + 36),
                     ByteField("major_version", 3),
                     ByteField("minor_version", 1),
                     
@@ -123,8 +122,7 @@ class TLSv1ClientHello(Packet):
         
 class TLSv1ServerHello(Packet):
     name = "TLSv1 Server Hello"
-    fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", None, fmt="H", length_of=lambda pkt:pkt.session_id_length + 40),
+    fields_desc = [ FieldThreeBytesLenField("length", None, length_of=lambda pkt:pkt.session_id_length + 40),
                     ByteField("major_version", 3),
                     ByteField("minor_version", 1),
                     
@@ -135,7 +133,7 @@ class TLSv1ServerHello(Packet):
                     ShortEnumField("cipher_suite", 0x0000, cipher_suites),
                     ByteEnumField("compression_method", 0x00, {0x00:"NONE"}),
                     
-                    ConditionalField(FieldLenField("extensions_length", 2, length_of="extensions", fmt="H"), lambda pkt:pkt.length > pkt.session_id_length + 36),
+                    ConditionalField(FieldLenField("extensions_length", 0, length_of="extensions", fmt="H"), lambda pkt:pkt.length > pkt.session_id_length + 38),
                     ConditionalField(StrLenField("extensions", "", length_from=lambda pkt:pkt.extensions_length), lambda pkt:pkt.extensions_length),
                 ]
                 
@@ -144,8 +142,7 @@ class TLSv1ServerHello(Packet):
         
 class TLSv1ServerHelloDone(Packet):
     name = "TLSv1 Server Hello Done"
-    fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", None, length_of="server_cert", fmt="H", adjust=lambda pkt,x:len(pkt.data) + 2),
+    fields_desc = [ FieldThreeBytesLenField("length", None, length_of="server_cert", adjust=lambda pkt,x:len(pkt.data) + 2),
                     StrLenField("data", "", length_from=lambda pkt: pkt.length)
                 ]
 
@@ -154,8 +151,7 @@ class TLSv1ServerHelloDone(Packet):
 
 class TLSv1KeyExchange(Packet):
     name = "TLSv1 Key Exchange"
-    fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", None, fmt="H", length_of="server_cert"),
+    fields_desc = [ FieldThreeBytesLenField("length", None, length_of="server_cert"),
                     StrLenField("server_cert", "", length_from=lambda pkt:pkt.length),
                 ]
 
@@ -164,7 +160,9 @@ class TLSv1KeyExchange(Packet):
         
 class TLSv1Certificate(Packet):
     name = "TLSv1 Certificate"
-    fields_desc = [ ByteField("nop", 0),
-                    FieldLenField("length", None, fmt="H", length_of="server_cert"),
+    fields_desc = [ FieldThreeBytesLenField("length", None, length_of="certificate"),
                     StrLenField("certificate", "", length_from=lambda pkt:pkt.length),
                 ]
+
+    def guess_payload_class(self, payload):
+        return TLSv1RecordLayer
