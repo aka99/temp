@@ -27,7 +27,8 @@ class dot15d4AddressField(Field):
         """Add an internal value to a string"""
         if self.adjust(pkt, self.length_of) == 2:
             return s + struct.pack(self.fmt[0]+"H", int(val, 16) if type(val)==str else val)
-        elif self.adjust(pkt,self.length_of) == 8:
+        elif self.adjust(pkt, self.length_of) == 8:
+            print "Seeing length of 8", val
             return s + struct.pack(self.fmt[0]+"Q", int(val, 16) if type(val)==str else val)
         else:
             return s
@@ -61,9 +62,9 @@ class Dot15d4(Packet):
                     BitEnumField("fcf_pending", 0, 1, [False, True]),
                     BitEnumField("fcf_security", 0, 1, [False, True]), #fcf p1 b2
                     Emph(BitEnumField("fcf_frametype", 0, 3, {0:"Beacon", 1:"Data", 2:"Ack", 3:"Command"})),
-                    BitEnumField("fcf_srcaddrmode", 0, 2, {0:"None", 2:"Short", 1:"Long"}),  #fcf p2 b1
+                    BitEnumField("fcf_srcaddrmode", 0, 2, {0:"None", 2:"Short", 3:"Long"}),  #fcf p2 b1
                     BitField("fcf_framever", 0, 2),
-                    BitEnumField("fcf_destaddrmode", 2, 2, {0:"None", 2:"Short", 1:"Long"}), #fcf p2 b2
+                    BitEnumField("fcf_destaddrmode", 2, 2, {0:"None", 2:"Short", 3:"Long"}), #fcf p2 b2
                     HiddenField(BitField("fcf_reserved_2", 0, 2), True),
                     Emph(ByteField("seqnum", 1)) #sequence number
                     ]
@@ -87,6 +88,16 @@ class Dot15d4(Packet):
                     return 1
         return 0
 
+    def post_build(self, p, pay):
+        #This just forces destaddrmode to None for Ack frames.
+        #TODO find a more elegant way to do this
+        if self.fcf_frametype == 2 and self.fcf_destaddrmode != 0:
+            self.fcf_destaddrmode = 0
+            return str(self)
+        else:
+            return p + pay
+
+
 class Dot15d4FCS(Dot15d4, Packet):
     '''
     This class is a drop-in replacement for the Dot15d4 class above, except
@@ -102,12 +113,19 @@ class Dot15d4FCS(Dot15d4, Packet):
         return s[:-2]                   #otherwise just disect the non-FCS section of the pkt
 
     def post_build(self, p, pay):
-        return p + pay + makeFCS(p+pay) #construct the packet with the FCS at the end
+        #This just forces destaddrmode to None for Ack frames.
+        #TODO find a more elegant way to do this
+        if self.fcf_frametype == 2 and self.fcf_destaddrmode != 0:
+            self.fcf_destaddrmode = 0
+            return str(self)
+        else:
+            return p + pay + makeFCS(p+pay) #construct the packet with the FCS at the end
 
 
 class Dot15d4Ack(Packet):
     name = "802.15.4 Ack"
     fields_desc = [ ]
+
 
 class Dot15d4AuxSecurityHeader(Packet):
     name = "802.15.4 Auxillary Security Header"
@@ -134,7 +152,6 @@ class Dot15d4Data(Packet):
                     # Security field present if fcf_security == True
                     ConditionalField(PacketField("aux_sec_header", Dot15d4AuxSecurityHeader(), Dot15d4AuxSecurityHeader),
                                         lambda pkt:pkt.underlayer.getfieldval("fcf_security") == True),
-                    #TODO data payload
                     ]
     def mysummary(self):
         return self.sprintf("802.15.4 Data ( %Dot15d4Data.src_panid%:%Dot15d4Data.src_addr% -> %Dot15d4Data.dest_panid%:%Dot15d4Data.dest_addr% )")
@@ -227,7 +244,6 @@ def makeFCS(data):
     crc = 0
     for i in range(0, len(data)):
         c = ord(data[i])
-		#if (A PARITY BIT EXISTS): c = c & 127	#Mask off any parity bit
         q = (crc ^ c) & 15				#Do low-order 4 bits
         crc = (crc // 16) ^ (q * 4225)
         q = (crc ^ (c // 16)) & 15		#And high 4 bits
