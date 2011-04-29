@@ -26,12 +26,18 @@ class dot15d4AddressField(Field):
     def addfield(self, pkt, s, val):
         """Add an internal value to a string"""
         if self.adjust(pkt, self.length_of) == 2:
-            return s + struct.pack(self.fmt[0]+"H", int(val, 16) if type(val)==str else val)
+            return s + struct.pack(self.fmt[0]+"H", val)
         elif self.adjust(pkt, self.length_of) == 8:
-            print "Seeing length of 8", val
-            return s + struct.pack(self.fmt[0]+"Q", int(val, 16) if type(val)==str else val)
+            return s + struct.pack(self.fmt[0]+"Q", val)
         else:
             return s
+    def getfield(self, pkt, s):
+        if self.adjust(pkt, self.length_of) == 2:
+            return s[2:], self.m2i(pkt, struct.unpack(self.fmt[0]+"H", s[:2])[0])
+        elif self.adjust(pkt, self.length_of) == 8:
+            return s[8:], self.m2i(pkt, struct.unpack(self.fmt[0]+"Q", s[:8])[0])
+        else:
+            raise Exception('impossible case')
     def lengthFromAddrMode(self, pkt, x):
         pkttop = pkt
         while pkttop.underlayer != None: pkttop = pkttop.underlayer
@@ -62,9 +68,9 @@ class Dot15d4(Packet):
                     BitEnumField("fcf_pending", 0, 1, [False, True]),
                     BitEnumField("fcf_security", 0, 1, [False, True]), #fcf p1 b2
                     Emph(BitEnumField("fcf_frametype", 0, 3, {0:"Beacon", 1:"Data", 2:"Ack", 3:"Command"})),
-                    BitEnumField("fcf_srcaddrmode", 0, 2, {0:"None", 2:"Short", 3:"Long"}),  #fcf p2 b1
+                    BitEnumField("fcf_srcaddrmode", 0, 2, {0:"None", 1:"Reserved", 2:"Short", 3:"Long"}),  #fcf p2 b1
                     BitField("fcf_framever", 0, 2),
-                    BitEnumField("fcf_destaddrmode", 2, 2, {0:"None", 2:"Short", 3:"Long"}), #fcf p2 b2
+                    BitEnumField("fcf_destaddrmode", 2, 2, {0:"None", 1:"Reserved", 2:"Short", 3:"Long"}), #fcf p2 b2
                     HiddenField(BitField("fcf_reserved_2", 0, 2), True),
                     Emph(ByteField("seqnum", 1)) #sequence number
                     ]
