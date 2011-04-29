@@ -109,7 +109,13 @@ class Packet(BasePacket):
 
     def get_field(self, fld):
         """DEV: returns the field instance from the name of the field"""
-        return self.fieldtype[fld]
+        try:
+            return self.fieldtype[fld]
+        except KeyError, e:
+            if self.payload:
+                return self.payload.get_field(fld)
+            else:
+                raise e
         
     def add_payload(self, payload):
         if payload is None:
