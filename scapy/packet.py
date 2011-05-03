@@ -109,13 +109,9 @@ class Packet(BasePacket):
 
     def get_field(self, fld):
         """DEV: returns the field instance from the name of the field"""
-        try:
+        if fld in self.fieldtype:
             return self.fieldtype[fld]
-        except KeyError, e:
-            if self.payload:
-                return self.payload.get_field(fld)
-            else:
-                raise e
+        return self.payload.get_field(fld)
         
     def add_payload(self, payload):
         if payload is None:
@@ -737,7 +733,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
             ccls,fld = cls.split(".",1)
         else:
             ccls,fld = cls,None
-        if cls is None or self.__class__ == cls or self.__class__.name == ccls:
+        if (cls is None or self.__class__ == cls or self.__class__.name == ccls or
+                self.__class__.__name__ == ccls):
             if nb == 1:
                 if fld is None:
                     return self
@@ -1043,6 +1040,8 @@ class NoPayload(Packet):
         pass
     def dissection_done(self,pkt):
         return
+    def get_field(self, fld):
+        raise AttributeError(fld)
     def add_payload(self, payload):
         raise Scapy_Exception("Can't add payload to NoPayload instance")
     def remove_payload(self):
