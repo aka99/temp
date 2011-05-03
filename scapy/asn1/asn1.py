@@ -205,6 +205,14 @@ class ASN1_Object:
         return self.val == other
     def __cmp__(self, other):
         return cmp(self.val, other)
+    def __getitem__(self, cls):
+        return self.val.__getitem__(cls)
+    def __delitem__(self, cls):
+        self.val.__delitem__(cls)
+    def __setitem__(self, cls):
+        self.val.__setitem__(cls)
+    def __contains__(self, cls):
+        self.val.__contains__(cls)
 
 class ASN1_DECODING_ERROR(ASN1_Object):
     tag = ASN1_Class_UNIVERSAL.ERROR

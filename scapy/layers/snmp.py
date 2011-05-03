@@ -28,6 +28,7 @@ class ASN1_Class_SNMP(ASN1_Class_UNIVERSAL):
     PDU_BULK = 0xa5
     PDU_INFORM = 0xa6
     PDU_TRAPv2 = 0xa7
+    PDU_REPORT = 0xa8
 
 
 class ASN1_SNMP_PDU_GET(ASN1_SEQUENCE):
@@ -53,6 +54,9 @@ class ASN1_SNMP_PDU_INFORM(ASN1_SEQUENCE):
 
 class ASN1_SNMP_PDU_TRAPv2(ASN1_SEQUENCE):
     tag = ASN1_Class_SNMP.PDU_TRAPv2
+
+class ASN1_SNMP_PDU_REPORT(ASN1_SEQUENCE):
+    tag = ASN1_Class_SNMP.PDU_REPORT
 
 
 ######[ BER codecs ]#######
@@ -81,6 +85,9 @@ class BERcodec_SNMP_PDU_INFORM(BERcodec_SEQUENCE):
 class BERcodec_SNMP_PDU_TRAPv2(BERcodec_SEQUENCE):
     tag = ASN1_Class_SNMP.PDU_TRAPv2
 
+class BERcodec_SNMP_PDU_REPORT(BERcodec_SEQUENCE):
+    tag = ASN1_Class_SNMP.PDU_REPORT
+
 
 
 ######[ ASN1 fields ]######
@@ -108,6 +115,9 @@ class ASN1F_SNMP_PDU_INFORM(ASN1F_SEQUENCE):
 
 class ASN1F_SNMP_PDU_TRAPv2(ASN1F_SEQUENCE):
     ASN1_tag = ASN1_Class_SNMP.PDU_TRAPv2
+
+class ASN1F_SNMP_PDU_REPORT(ASN1F_SEQUENCE):
+    ASN1_tag = ASN1_Class_SNMP.PDU_REPORT
 
 
 
@@ -144,6 +154,14 @@ SNMP_trap_types = { 0: "cold_start",
                     5: "egp_neigh_loss",
                     6: "enterprise_specific",
                     }
+
+# http://www.iana.org/assignments/snmp-number-spaces/snmp-number-spaces.xml
+SNMP_security_models = { 0: "reserved_any",
+                         1: "reserved_v1",
+                         2: "reserved_v2c",
+                         3: "usm",
+                         4: "tsm",
+                         }
 
 class SNMPvarbind(ASN1_Packet):
     ASN1_codec = ASN1_Codecs.BER
@@ -218,6 +236,14 @@ class SNMPtrapv2(ASN1_Packet):
                                        ASN1F_SEQUENCE_OF("varbindlist", [], SNMPvarbind)
                                        )
     
+class SNMPreport(ASN1_Packet):
+    ASN1_codec = ASN1_Codecs.BER
+    ASN1_root = ASN1F_SNMP_PDU_REPORT( ASN1F_INTEGER("id",0),
+                                       ASN1F_enum_INTEGER("error",0, SNMP_error),
+                                       ASN1F_INTEGER("error_index",0),
+                                       ASN1F_SEQUENCE_OF("varbindlist", [], SNMPvarbind)
+                                       )
+    
 
 class SNMP(ASN1_Packet):
     ASN1_codec = ASN1_Codecs.BER
@@ -235,10 +261,67 @@ class SNMP(ASN1_Packet):
                    isinstance(other.PDU, SNMPset)    ) and
                  self.PDU.id == other.PDU.id )
 
-bind_layers( UDP,           SNMP,          sport=161)
-bind_layers( UDP,           SNMP,          dport=161)
-bind_layers( UDP,           SNMP,          sport=162) 
-bind_layers( UDP,           SNMP,          dport=162) 
+
+class ASN1F_SNMP_SECURITY(ASN1F_PACKET):
+    ASN1_tag = ASN1_Class_UNIVERSAL.STRING
+    #TODO: break down security params in separate packet
+
+class SNMPscopedPDU(ASN1_Packet):
+    ASN1_codec = ASN1_Codecs.BER
+    ASN1_root = ASN1F_SEQUENCE(
+        ASN1F_STRING("context_engine_id", ""),
+        ASN1F_STRING("context_name",""),
+        ASN1F_CHOICE("PDU", SNMPget(),
+                     SNMPget, SNMPnext, SNMPresponse, SNMPset,
+                     SNMPtrapv1, SNMPbulk, SNMPinform, SNMPtrapv2,
+                     SNMPreport)
+        )
+    def answers(self, other):
+        return ( isinstance(self.PDU, SNMPresponse)    and
+                 ( isinstance(other.PDU, SNMPget) or
+                   isinstance(other.PDU, SNMPnext) or
+                   isinstance(other.PDU, SNMPset) or
+                   isinstance(other.PDU, SNMPreport)    ) and
+                 self.PDU.id == other.PDU.id )
+    
+class SNMPencryptedPDU(ASN1_Packet):
+    ASN1_codec = ASN1_Codecs.BER
+    ASN1_root = ASN1F_STRING("encrypted_pdu","")
+    
+class SNMPv3(ASN1_Packet):
+    ASN1_codec = ASN1_Codecs.BER
+    ASN1_root = ASN1F_SEQUENCE(
+        ASN1F_enum_INTEGER("version", 3, {0:"v1", 1:"v2c", 2:"v2", 3:"v3"}),
+        ASN1F_SEQUENCE(ASN1F_INTEGER("id", 0),
+                       ASN1F_INTEGER("max_size", 2048),
+                       ASN1F_STRING("flags", "\x00"),
+                       ASN1F_enum_INTEGER("security_model", 3, SNMP_security_models)),
+        ASN1F_STRING("security_params", ""),
+        ASN1F_CHOICE("data", SNMPscopedPDU(),
+                     SNMPscopedPDU, SNMPencryptedPDU)
+        )
+
+
+
+def _snmp_dispatcher(x, *args, **kargs):
+    cls = Raw
+    try:
+        ver = BERcodec_SEQUENCE.safedec(x)[0][0]
+        if ver >= 3:
+            cls = SNMPv3
+        else:
+            cls = SNMP
+        pkt = cls(x, *args, **kargs)
+    except:
+        pkt = Raw(x)
+    return pkt
+
+bind_bottom_up(UDP, _snmp_dispatcher, { "dport": 161 })
+bind_bottom_up(UDP, _snmp_dispatcher, { "sport": 161 })
+bind_bottom_up(UDP, _snmp_dispatcher, { "dport": 162 })
+bind_bottom_up(UDP, _snmp_dispatcher, { "sport": 162 })
+
+
 
 def snmpwalk(dst, oid="1", community="public"):
     try:
