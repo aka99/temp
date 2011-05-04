@@ -264,10 +264,19 @@ class SNMP(ASN1_Packet):
 
 class ASN1F_SNMP_SECURITY(ASN1F_PACKET):
     ASN1_tag = ASN1_Class_UNIVERSAL.STRING
+    def __init__(self, name, default):
+        ASN1F_field.__init__(self, name, default)
+        self.cls = Raw
     def i2m(self, pkt, x):
         x = ASN1F_PACKET.i2m(self, pkt, x)
         return ASN1F_field.i2m(self, pkt, x)
     def m2i(self, pkt, x):
+        if pkt.security_model == 3:
+            self.cls = SNMPsecurityUSM
+#        elif pkt.security_model == 4:
+#            self.cls = SNMPsecurityTSM
+        else:
+            self.cls = Raw
         x,remain = ASN1F_field.m2i(self, pkt, x)
         i,r =  ASN1F_PACKET.m2i(self, pkt, x.val)
         if r:
@@ -315,7 +324,7 @@ class SNMPv3(ASN1_Packet):
                        ASN1F_INTEGER("max_size", 2048),
                        ASN1F_STRING("flags", "\x00"),
                        ASN1F_enum_INTEGER("security_model", 3, SNMP_security_models)),
-        ASN1F_SNMP_SECURITY("security", SNMPsecurityUSM(), SNMPsecurityUSM),
+        ASN1F_SNMP_SECURITY("security", SNMPsecurityUSM()),
         ASN1F_CHOICE("data", SNMPscopedPDU(),
                      SNMPscopedPDU, SNMPencryptedPDU)
         )
