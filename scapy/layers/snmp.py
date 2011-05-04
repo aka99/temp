@@ -264,8 +264,27 @@ class SNMP(ASN1_Packet):
 
 class ASN1F_SNMP_SECURITY(ASN1F_PACKET):
     ASN1_tag = ASN1_Class_UNIVERSAL.STRING
-    #TODO: break down security params in separate packet
-
+    def i2m(self, pkt, x):
+        x = ASN1F_PACKET.i2m(self, pkt, x)
+        return ASN1F_field.i2m(self, pkt, x)
+    def m2i(self, pkt, x):
+        x,remain = ASN1F_field.m2i(self, pkt, x)
+        i,r =  ASN1F_PACKET.m2i(self, pkt, x.val)
+        if r:
+            i.payload = Raw(r)
+        return i,remain
+    
+class SNMPsecurityUSM(ASN1_Packet):
+    ASN1_codec = ASN1_Codecs.BER
+    ASN1_root = ASN1F_SEQUENCE(
+        ASN1F_STRING("auth_engine_id", ""),
+        ASN1F_INTEGER("auth_engine_boots", 0),
+        ASN1F_INTEGER("auth_engine_time", 0),
+        ASN1F_STRING("user_name",""),
+        ASN1F_STRING("authentication",""),
+        ASN1F_STRING("privacy","")
+        )
+    
 class SNMPscopedPDU(ASN1_Packet):
     ASN1_codec = ASN1_Codecs.BER
     ASN1_root = ASN1F_SEQUENCE(
@@ -296,7 +315,7 @@ class SNMPv3(ASN1_Packet):
                        ASN1F_INTEGER("max_size", 2048),
                        ASN1F_STRING("flags", "\x00"),
                        ASN1F_enum_INTEGER("security_model", 3, SNMP_security_models)),
-        ASN1F_STRING("security_params", ""),
+        ASN1F_SNMP_SECURITY("security", SNMPsecurityUSM(), SNMPsecurityUSM),
         ASN1F_CHOICE("data", SNMPscopedPDU(),
                      SNMPscopedPDU, SNMPencryptedPDU)
         )
