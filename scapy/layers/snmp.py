@@ -7,6 +7,7 @@
 SNMP (Simple Network Management Protocol).
 """
 
+import hashlib
 from scapy.asn1packet import *
 from scapy.asn1fields import *
 from scapy.layers.inet import IP,UDP,ICMP
@@ -366,4 +367,41 @@ def snmpwalk(dst, oid="1", community="public"):
             
     except KeyboardInterrupt:
         pass
+
+
+def snmpauth(pkt, password, protocol):
+    if not isinstance(pkt, SNMPv3):
+        pkt = pkt["SNMPv3"]
+#    pkt = pkt.copy()
+    if pkt.security_model != 3:
+        raise Scapy_Exception("Unsupported security model")
+        return False
+    
+    auth = pkt.security.authentication.val
+    
+    if protocol == "MD5": # RFC3414
+        raise Scapy_Exception("MD5 not yet supported") #TODO: implement
+    elif protocol == "SHA": # RFC3414
+        if len(auth) != 12:
+            raise Scapy_Exception("Invalid authentication parameter")
+            return False
+        
+        engine = pkt.security.auth_engine_id.val
+        key = hashlib.sha1((password*(2**20/len(password)+1))[:2**20]).digest()
+        key = hashlib.sha1(key+engine+key).digest()
+        
+        pkt.security.authentication.val = "\x00"*12
+        try:
+            ext_key = key+"\x00"*44
+            k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
+            k2 = "".join(chr(ord(e)^ord(o)) for e,o in zip(ext_key,"\x5C"*64))
+            hash1 = hashlib.sha1(k1+str(pkt)).digest()
+            hash2 = hashlib.sha1(k2+hash1).digest()
+            mac = hash2[:12]
+        finally:
+            pkt.security.authentication.val = auth
+        
+        return mac == auth
+    else:
+        raise Scapy_Exception("Unknown protocol %r" % protocol)
 
