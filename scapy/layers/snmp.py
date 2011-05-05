@@ -370,14 +370,19 @@ def snmpwalk(dst, oid="1", community="public"):
         pass
 
 
-def snmpgeneratekey(password, engine, protocol):
+def __gethashfunc(protocol):
     if protocol == "MD5": # RFC3414
-        raise Scapy_Exception("MD5 not yet supported") #TODO: implement
+        return hashlib.md5
     elif protocol == "SHA": # RFC3414
-        key = hashlib.sha1((password*(2**20/len(password)+1))[:2**20]).digest()
-        return hashlib.sha1(key+engine+key).digest()
+        return hashlib.sha1
     else:
         raise Scapy_Exception("Unknown protocol %r" % protocol)
+
+def snmpgeneratekey(password, engine, protocol):
+    hash_func = __gethashfunc(protocol)
+    
+    key = hash_func((password*(2**20/len(password)+1))[:2**20]).digest()
+    return hash_func(key+engine+key).digest()
 
 
 def snmpauth(pkt, password, protocol):
@@ -387,32 +392,28 @@ def snmpauth(pkt, password, protocol):
     if snmpv3.security_model != 3:
         raise Scapy_Exception("Unsupported security model")
     
+    hash_func = __gethashfunc(protocol)
+    
     auth_asn1 = snmpv3.security.authentication
     auth = auth_asn1.val
+    if len(auth) != 12:
+        raise Scapy_Exception("Invalid authentication parameter")
     
-    if protocol == "MD5": # RFC3414
-        raise Scapy_Exception("MD5 not yet supported") #TODO: implement
-    elif protocol == "SHA": # RFC3414
-        if len(auth) != 12:
-            raise Scapy_Exception("Invalid authentication parameter")
-        
-        engine = snmpv3.security.auth_engine_id.val
-        key = snmpgeneratekey(password, engine, protocol)
-        
-        snmpv3.security.authentication = "\x00"*12
-        
-        ext_key = key+"\x00"*44
-        k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
-        k2 = "".join(chr(ord(e)^ord(o)) for e,o in zip(ext_key,"\x5C"*64))
-        hash1 = hashlib.sha1(k1+str(snmpv3)).digest()
-        hash2 = hashlib.sha1(k2+hash1).digest()
-        mac = hash2[:12]
-        
-        snmpv3.security.authentication = auth_asn1
-        
-        return mac == auth
-    else:
-        raise Scapy_Exception("Unknown protocol %r" % protocol)
+    engine = snmpv3.security.auth_engine_id.val
+    key = snmpgeneratekey(password, engine, protocol)
+    
+    snmpv3.security.authentication = "\x00"*12
+    
+    ext_key = key+"\x00"*(64-len(key))
+    k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
+    k2 = "".join(chr(ord(e)^ord(o)) for e,o in zip(ext_key,"\x5C"*64))
+    hash1 = hash_func(k1+str(snmpv3)).digest()
+    hash2 = hash_func(k2+hash1).digest()
+    mac = hash2[:12]
+    
+    snmpv3.security.authentication = auth_asn1
+    
+    return mac == auth
 
 
 def snmpdecrypt(pkt, password, protocol, auth_protocol):
