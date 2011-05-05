@@ -7,11 +7,12 @@
 SNMP (Simple Network Management Protocol).
 """
 
-import hashlib
+import struct,hashlib
 from scapy.asn1packet import *
 from scapy.asn1fields import *
 from scapy.layers.inet import IP,UDP,ICMP
 from scapy.sendrecv import sr1
+from Crypto.Cipher import AES
 
 ##########
 ## SNMP ##
@@ -369,39 +370,81 @@ def snmpwalk(dst, oid="1", community="public"):
         pass
 
 
+def snmpgeneratekey(password, engine, protocol):
+    if protocol == "MD5": # RFC3414
+        raise Scapy_Exception("MD5 not yet supported") #TODO: implement
+    elif protocol == "SHA": # RFC3414
+        key = hashlib.sha1((password*(2**20/len(password)+1))[:2**20]).digest()
+        return hashlib.sha1(key+engine+key).digest()
+    else:
+        raise Scapy_Exception("Unknown protocol %r" % protocol)
+
+
 def snmpauth(pkt, password, protocol):
-    if not isinstance(pkt, SNMPv3):
-        pkt = pkt["SNMPv3"]
-#    pkt = pkt.copy()
-    if pkt.security_model != 3:
-        raise Scapy_Exception("Unsupported security model")
-        return False
+    pkt = pkt.copy()
+    snmpv3 = pkt["SNMPv3"]
     
-    auth = pkt.security.authentication.val
+    if snmpv3.security_model != 3:
+        raise Scapy_Exception("Unsupported security model")
+    
+    auth_asn1 = snmpv3.security.authentication
+    auth = auth_asn1.val
     
     if protocol == "MD5": # RFC3414
         raise Scapy_Exception("MD5 not yet supported") #TODO: implement
     elif protocol == "SHA": # RFC3414
         if len(auth) != 12:
             raise Scapy_Exception("Invalid authentication parameter")
-            return False
         
-        engine = pkt.security.auth_engine_id.val
-        key = hashlib.sha1((password*(2**20/len(password)+1))[:2**20]).digest()
-        key = hashlib.sha1(key+engine+key).digest()
+        engine = snmpv3.security.auth_engine_id.val
+        key = snmpgeneratekey(password, engine, protocol)
         
-        pkt.security.authentication.val = "\x00"*12
-        try:
-            ext_key = key+"\x00"*44
-            k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
-            k2 = "".join(chr(ord(e)^ord(o)) for e,o in zip(ext_key,"\x5C"*64))
-            hash1 = hashlib.sha1(k1+str(pkt)).digest()
-            hash2 = hashlib.sha1(k2+hash1).digest()
-            mac = hash2[:12]
-        finally:
-            pkt.security.authentication.val = auth
+        snmpv3.security.authentication = "\x00"*12
+        
+        ext_key = key+"\x00"*44
+        k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
+        k2 = "".join(chr(ord(e)^ord(o)) for e,o in zip(ext_key,"\x5C"*64))
+        hash1 = hashlib.sha1(k1+str(snmpv3)).digest()
+        hash2 = hashlib.sha1(k2+hash1).digest()
+        mac = hash2[:12]
+        
+        snmpv3.security.authentication = auth_asn1
         
         return mac == auth
+    else:
+        raise Scapy_Exception("Unknown protocol %r" % protocol)
+
+
+def snmpdecrypt(pkt, password, protocol, auth_protocol):
+    pkt = pkt.copy()
+    snmpv3 = pkt["SNMPv3"]
+    
+    if snmpv3.security_model != 3:
+        raise Scapy_Exception("Unsupported security model")
+        return False
+    
+    priv = snmpv3.security.privacy.val
+    data = snmpv3.data.encrypted_pdu.val
+    
+    if protocol == "DES": # RFC3414
+        raise Scapy_Exception("DES not yet supported") #TODO: implement
+    elif protocol == "AES": # RFC3826
+        if len(priv) != 8:
+            raise Scapy_Exception("Invalid privacy parameter")
+        
+        engine = snmpv3.security.auth_engine_id.val
+        key = snmpgeneratekey(password, engine, auth_protocol)[:16]
+        
+        engine_boots = struct.pack(">l", snmpv3.security.auth_engine_boots.val)
+        engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
+        iv = engine_boots + engine_time + priv
+        
+        data = AES.new(key, AES.MODE_CFB, iv, segment_size=128).decrypt(data)
+        
+        snmpv3.data = SNMPscopedPDU(data)
+        snmpv3.security.authentication = ""
+        snmpv3.security.privacy = ""
+        return pkt
     else:
         raise Scapy_Exception("Unknown protocol %r" % protocol)
 
