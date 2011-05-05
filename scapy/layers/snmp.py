@@ -439,7 +439,10 @@ def snmpdecrypt(pkt, password, protocol, auth_protocol):
         engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
         iv = engine_boots + engine_time + priv
         
+        pad_len = 16-len(data)%16
+        data += "\x00"*pad_len
         data = AES.new(key, AES.MODE_CFB, iv, segment_size=128).decrypt(data)
+        data = data[:-pad_len]
         
         snmpv3.data = SNMPscopedPDU(data)
         snmpv3.security.authentication = ""
