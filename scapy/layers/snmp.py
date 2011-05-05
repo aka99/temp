@@ -12,7 +12,10 @@ from scapy.asn1packet import *
 from scapy.asn1fields import *
 from scapy.layers.inet import IP,UDP,ICMP
 from scapy.sendrecv import sr1
-from Crypto.Cipher import AES
+try:
+    from Crypto.Cipher import DES,AES
+except ImportError:
+    pass
 
 ##########
 ## SNMP ##
@@ -313,6 +316,8 @@ class SNMPscopedPDU(ASN1_Packet):
                    isinstance(other.PDU, SNMPset) or
                    isinstance(other.PDU, SNMPreport)    ) and
                  self.PDU.id == other.PDU.id )
+    def extract_padding(self, p):
+        return "",p
     
 class SNMPencryptedPDU(ASN1_Packet):
     ASN1_codec = ASN1_Codecs.BER
@@ -425,30 +430,27 @@ def snmpdecrypt(pkt, password, protocol, auth_protocol):
         return False
     
     priv = snmpv3.security.privacy.val
+    if len(priv) != 8:
+        raise Scapy_Exception("Invalid privacy parameter")
     data = snmpv3.data.encrypted_pdu.val
+    engine = snmpv3.security.auth_engine_id.val
+    engine_boots = struct.pack(">l", snmpv3.security.auth_engine_boots.val)
+    engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
+    key = snmpgeneratekey(password, engine, auth_protocol)
     
     if protocol == "DES": # RFC3414
-        raise Scapy_Exception("DES not yet supported") #TODO: implement
+        iv = "".join(chr(ord(s)^ord(p)) for s,p in zip(key[8:16], priv))
+        data = DES.new(key[:8], DES.MODE_CBC, iv).decrypt(data)
     elif protocol == "AES": # RFC3826
-        if len(priv) != 8:
-            raise Scapy_Exception("Invalid privacy parameter")
-        
-        engine = snmpv3.security.auth_engine_id.val
-        key = snmpgeneratekey(password, engine, auth_protocol)[:16]
-        
-        engine_boots = struct.pack(">l", snmpv3.security.auth_engine_boots.val)
-        engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
         iv = engine_boots + engine_time + priv
-        
         pad_len = 16-len(data)%16
         data += "\x00"*pad_len
-        data = AES.new(key, AES.MODE_CFB, iv, segment_size=128).decrypt(data)
+        data = AES.new(key[:16], AES.MODE_CFB, iv, segment_size=128).decrypt(data)
         data = data[:-pad_len]
-        
-        snmpv3.data = SNMPscopedPDU(data)
-        snmpv3.security.authentication = ""
-        snmpv3.security.privacy = ""
-        return pkt
     else:
         raise Scapy_Exception("Unknown protocol %r" % protocol)
-
+    
+    snmpv3.data = SNMPscopedPDU(data)
+    snmpv3.security.authentication = ""
+    snmpv3.security.privacy = ""
+    return pkt
