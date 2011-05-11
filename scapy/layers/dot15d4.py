@@ -136,11 +136,11 @@ class Dot15d4Ack(Packet):
 class Dot15d4AuxSecurityHeader(Packet):
     name = "802.15.4 Auxillary Security Header"
     fields_desc = [
-                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32"}),
+                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32", 2:"MIC-64", 3:"MIC-128",          \
+                                                           4:"ENC", 5:"ENC-MIC-32", 6:"ENC-MIC-64", 7:"ENC-MIC-128"}),
                     BitEnumField("sec_sc_keyidmode", 0, 2, {0:"Implicit", 1:"KeyIndex"}),
-                    BitField("sec_sc_reserved", 0, 3),
+                    HiddenField(BitField("sec_sc_reserved", 0, 3), True),
                     XLEIntField("sec_framecounter", 0x00000000),
-                    #TODO KeyId field only appears if sec_sc_keyidmode != 0
                     #TODO length of sec_keyid_keysource varies btwn 0, 4, and 8 bytes depending on sec_sc_keyidmode
                     #XLEIntField("sec_keyid_keysource", 0x00000000),
                     ConditionalField(XByteField("sec_keyid_keyindex", 0xFF), lambda pkt:pkt.getfieldval("sec_sc_keyidmode") != 0),
