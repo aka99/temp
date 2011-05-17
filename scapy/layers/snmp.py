@@ -390,7 +390,7 @@ def snmpgeneratekey(password, engine, protocol):
     return hash_func(key+engine+key).digest()
 
 
-def snmpauth(pkt, password, protocol):
+def snmphash(pkt, password, protocol):
     pkt = pkt.copy()
     snmpv3 = pkt["SNMPv3"]
     
@@ -400,14 +400,11 @@ def snmpauth(pkt, password, protocol):
     hash_func = __gethashfunc(protocol)
     
     auth_asn1 = snmpv3.security.authentication
-    auth = auth_asn1.val
-    if len(auth) != 12:
-        raise Scapy_Exception("Invalid authentication parameter")
     
     engine = snmpv3.security.auth_engine_id.val
     key = snmpgeneratekey(password, engine, protocol)
     
-    snmpv3.security.authentication = "\x00"*12
+    snmpv3.security.authentication = ASN1_STRING("\x00"*12)
     
     ext_key = key+"\x00"*(64-len(key))
     k1 = "".join(chr(ord(e)^ord(i)) for e,i in zip(ext_key,"\x36"*64))
@@ -418,10 +415,20 @@ def snmpauth(pkt, password, protocol):
     
     snmpv3.security.authentication = auth_asn1
     
-    return mac == auth
+    return mac
+
+def snmpauthenticate(pkt, password, protocol):
+    pkt = pkt.copy()
+    snmpv3 = pkt["SNMPv3"]
+    
+    auth = snmpv3.security.authentication.val
+    if len(auth) != 12:
+        raise Scapy_Exception("Invalid authentication parameter")
+    
+    return snmphash(pkt, password, protocol) == auth
 
 
-def snmpdecrypt(pkt, password, protocol, auth_protocol):
+def snmpdecrypt(pkt, password, protocol, hash_protocol):
     pkt = pkt.copy()
     snmpv3 = pkt["SNMPv3"]
     
@@ -436,7 +443,7 @@ def snmpdecrypt(pkt, password, protocol, auth_protocol):
     engine = snmpv3.security.auth_engine_id.val
     engine_boots = struct.pack(">l", snmpv3.security.auth_engine_boots.val)
     engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
-    key = snmpgeneratekey(password, engine, auth_protocol)
+    key = snmpgeneratekey(password, engine, hash_protocol)
     
     if protocol == "DES": # RFC3414
         iv = "".join(chr(ord(s)^ord(p)) for s,p in zip(key[8:16], priv))
@@ -446,11 +453,54 @@ def snmpdecrypt(pkt, password, protocol, auth_protocol):
         pad_len = 16-len(data)%16
         data += "\x00"*pad_len
         data = AES.new(key[:16], AES.MODE_CFB, iv, segment_size=128).decrypt(data)
-        data = data[:-pad_len]
     else:
         raise Scapy_Exception("Unknown protocol %r" % protocol)
     
     snmpv3.data = SNMPscopedPDU(data)
-    snmpv3.security.authentication = ""
-    snmpv3.security.privacy = ""
+    if snmpv3.data.payload:
+        del(snmpv3.data.payload)
+    snmpv3.security.privacy = ASN1_STRING("")
+    snmpv3.security.authentication = ASN1_STRING(snmphash(pkt, password, hash_protocol))
+    return pkt
+
+def snmpencrypt(pkt, password, priv, protocol, hash_protocol):
+    pkt = pkt.copy()
+    snmpv3 = pkt["SNMPv3"]
+    
+    if snmpv3.security_model != 3:
+        raise Scapy_Exception("Unsupported security model")
+        return False
+    
+    if not isinstance(priv, basestring):
+        if isinstance(priv, ASN1_STRING):
+            priv = priv.val
+        else:
+            try:
+                priv = struct.pack(">q", priv)
+            except:
+                priv = str(priv)
+    
+    data = str(snmpv3.data)
+    engine = snmpv3.security.auth_engine_id.val
+    engine_boots = struct.pack(">l", snmpv3.security.auth_engine_boots.val)
+    engine_time = struct.pack(">l", snmpv3.security.auth_engine_time.val)
+    key = snmpgeneratekey(password, engine, hash_protocol)
+    
+    if protocol == "DES": # RFC3414
+        iv = "".join(chr(ord(s)^ord(p)) for s,p in zip(key[8:16], priv))
+        pad_len = 8-len(data)%8
+        data += "\x00"*pad_len
+        data = DES.new(key[:8], DES.MODE_CBC, iv).encrypt(data)
+    elif protocol == "AES": # RFC3826
+        iv = engine_boots + engine_time + priv
+        pad_len = 16-len(data)%16
+        data += "\x00"*pad_len
+        data = AES.new(key[:16], AES.MODE_CFB, iv, segment_size=128).encrypt(data)
+        data = data[:-pad_len]
+    else:
+        raise Scapy_Exception("Unknown protocol %r" % protocol)
+    
+    snmpv3.data = SNMPencryptedPDU(encrypted_pdu=ASN1_STRING(data))
+    snmpv3.security.privacy = ASN1_STRING(priv)
+    snmpv3.security.authentication = ASN1_STRING(snmphash(pkt, password, hash_protocol))
     return pkt
