@@ -64,6 +64,23 @@ class ASN1_SNMP_PDU_REPORT(ASN1_SEQUENCE):
     tag = ASN1_Class_SNMP.PDU_REPORT
 
 
+# RFC1448
+class ASN1_Class_SNMP_VARBIND(ASN1_Class_UNIVERSAL):
+    name="SNMP VarBind Exceptions"
+    EXC_NOSUCHOBJECT = 0x80
+    EXC_NOSUCHINSTANCE = 0x81
+    EXC_ENDOFMIBVIEW = 0x82
+
+class ASN1_SNMP_EXC_NOSUCHOBJECT(ASN1_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_NOSUCHOBJECT
+
+class ASN1_SNMP_EXC_NOSUCHINSTANCE(ASN1_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_NOSUCHINSTANCE
+
+class ASN1_SNMP_EXC_ENDOFMIBVIEW(ASN1_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_ENDOFMIBVIEW
+
+
 ######[ BER codecs ]#######
 
 class BERcodec_SNMP_PDU_GET(BERcodec_SEQUENCE):
@@ -92,6 +109,16 @@ class BERcodec_SNMP_PDU_TRAPv2(BERcodec_SEQUENCE):
 
 class BERcodec_SNMP_PDU_REPORT(BERcodec_SEQUENCE):
     tag = ASN1_Class_SNMP.PDU_REPORT
+
+
+class BERcodec_SNMP_EXC_NOSUCHOBJECT(BERcodec_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_NOSUCHOBJECT
+
+class BERcodec_SNMP_EXC_NOSUCHINSTANCE(BERcodec_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_NOSUCHINSTANCE
+
+class BERcodec_SNMP_EXC_ENDOFMIBVIEW(BERcodec_NULL):
+    tag = ASN1_Class_SNMP_VARBIND.EXC_ENDOFMIBVIEW
 
 
 
@@ -123,6 +150,17 @@ class ASN1F_SNMP_PDU_TRAPv2(ASN1F_SEQUENCE):
 
 class ASN1F_SNMP_PDU_REPORT(ASN1F_SEQUENCE):
     ASN1_tag = ASN1_Class_SNMP.PDU_REPORT
+
+
+class ASN1F_varbind(ASN1F_field):
+    def m2i(self, pkt, x):
+        tag = self.ASN1_tag
+        for exc in [ASN1_Class_SNMP_VARBIND.EXC_NOSUCHOBJECT,
+                    ASN1_Class_SNMP_VARBIND.EXC_NOSUCHINSTANCE,
+                    ASN1_Class_SNMP_VARBIND.EXC_ENDOFMIBVIEW]:
+            if ord(x[0]) == exc:
+                tag = exc
+        return tag.get_codec(pkt.ASN1_codec).safedec(x, context=self.context)
 
 
 
@@ -171,7 +209,7 @@ SNMP_security_models = { 0: "reserved_any",
 class SNMPvarbind(ASN1_Packet):
     ASN1_codec = ASN1_Codecs.BER
     ASN1_root = ASN1F_SEQUENCE( ASN1F_OID("oid","1.3"),
-                                ASN1F_field("value",ASN1_NULL(0))
+                                ASN1F_varbind("value",ASN1_NULL(0))
                                 )
 
 
