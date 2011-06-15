@@ -274,6 +274,15 @@ class DNSRR(Packet):
 bind_layers( UDP,           DNS,           dport=53)
 bind_layers( UDP,           DNS,           sport=53)
 
+def txtfy(rdata):
+    for i in range(0, len(rdata), 0xff+1):
+        rdata = rdata[:i] + chr(len(rdata[i:i+0xff])) + rdata[i:]
+    return rdata
+    
+def untxtfy(rdata):
+    for i in range(0, len(rdata), 0xff):
+        rdata = rdata[:i] + rdata[i+1:]
+    return rdata
 
 @conf.commands.register
 def dyndns_add(nameserver, name, rdata, type="A", ttl=10):

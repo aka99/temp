@@ -11,6 +11,7 @@ import socket,time
 from config import conf
 from data import *
 from scapy.error import warning
+from scapy.packet import Padding
 
 class _SuperSocket_metaclass(type):
     def __repr__(self):
