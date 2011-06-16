@@ -125,9 +125,17 @@ sctpchunktypescls = {
     9 : "SCTPChunkError",
     10 : "SCTPChunkCookieEcho",
     11 : "SCTPChunkCookieAck",
+    12 : "SCTPChunkECNE",
+    13 : "SCTPChunkCWR",
     14 : "SCTPChunkShutdownComplete",
+    15 : "SCTPChunkAuth",
+    128 : "SCTPChunkASConfAck",
+    132 : "SCTPChunkPad",
+    192 : "SCTPChunkFwdTSN",
+    193 : "SCTPChunkASConf",
     }
 
+# http://www.iana.org/assignments/sctp-parameters
 sctpchunktypes = {
     0 : "data",
     1 : "init",
@@ -141,23 +149,41 @@ sctpchunktypes = {
     9 : "error",
     10 : "cookie-echo",
     11 : "cookie-ack",
+    12 : "ecne",
+    13 : "cwr",
     14 : "shutdown-complete",
+    15 : "auth",
+    128 : "asconf-ack",
+    132 : "pad",
+    192 : "forward-tsn",
+    193 : "asconf",
     }
 
 sctpchunkparamtypescls = {
-    1 : "SCTPChunkParamHearbeatInfo",
+    1 : "SCTPChunkParamHeartbeatInfo",
     5 : "SCTPChunkParamIPv4Addr",
     6 : "SCTPChunkParamIPv6Addr",
     7 : "SCTPChunkParamStateCookie",
-    8 : "SCTPChunkParamUnrocognizedParam",
+    8 : "SCTPChunkParamUnrecognizedParam",
     9 : "SCTPChunkParamCookiePreservative",
     11 : "SCTPChunkParamHostname",
     12 : "SCTPChunkParamSupportedAddrTypes",
     32768 : "SCTPChunkParamECNCapable",
+    32770 : "SCTPChunkParamRandom",
+    32771 : "SCTPChunkParamChunkList",
+    32772 : "SCTPChunkParamReqHMACAlgorithm",
+    32773 : "SCTPChunkParamPadding",
+    32776 : "SCTPChunkParamSupportedExt",
     49152 : "SCTPChunkParamFwdTSN",
+    49153 : "SCTPChunkParamAddIPAddr",
+    49154 : "SCTPChunkParamDeleteIPAddr",
+    49155 : "SCTPChunkParamErrorCause",
+    49156 : "SCTPChunkParamSetPrimaryAddr",
+    49157 : "SCTPChunkParamSuccess",
     49158 : "SCTPChunkParamAdaptationLayer",
     }
 
+# http://www.iana.org/assignments/sctp-parameters
 sctpchunkparamtypes = {
     1 : "heartbeat-info",
     5 : "IPv4",
@@ -168,7 +194,17 @@ sctpchunkparamtypes = {
     11 : "hostname",
     12 : "addrtypes",
     32768 : "ecn-capable",
+    32770 : "random",
+    32771 : "chunk-list",
+    32772 : "req-hmac-algorithm",
+    32773 : "padding",
+    32776 : "supported-ext",
     49152 : "fwd-tsn-supported",
+    49153 : "add-ip-addr",
+    49154 : "delete-ip-addr",
+    49155 : "error-cause",
+    49156 : "set-primary-addr",
+    49157 : "success",
     49158 : "adaptation-layer",
     }
 
@@ -176,15 +212,16 @@ sctpchunkparamtypes = {
 
 # Dummy class to guess payload type (variable parameters)
 class _SCTPChunkGuessPayload:
-    def default_payload_class(self,p):
+    def guess_payload_class(self,p):
         if len(p) < 4:
             return Padding
         else:
             t = ord(p[0])
-            return globals().get(sctpchunktypescls.get(t, "Raw"), Raw)
+            return globals().get(sctpchunktypescls.get(t, "SCTPChunk"), Raw)
 
 
 class SCTP(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP"
     fields_desc = [ ShortField("sport", None),
                     ShortField("dport", None),
                     XIntField("tag", None),
@@ -207,23 +244,26 @@ class SCTP(_SCTPChunkGuessPayload, Packet):
 ############## SCTP Chunk variable params
 
 class ChunkParamField(PacketListField):
-    islist = 1
-    holds_packets=1
     def __init__(self, name, default, count_from=None, length_from=None):
         PacketListField.__init__(self, name, default, Raw, count_from=count_from, length_from=length_from)
     def m2i(self, p, m):
         cls = Raw
         if len(m) >= 4:
             t = ord(m[0]) * 256 + ord(m[1])
-            cls = globals().get(sctpchunkparamtypescls.get(t, "Raw"), Raw)
+            cls = globals().get(sctpchunkparamtypescls.get(t, "SCTPChunkParam"), Raw)
         return cls(m)
 
-# dummy class to avoid Raw() after Chunk params
-class _SCTPChunkParam:
-    def extract_padding(self, s):
-        return "",s[:]
+class SCTPChunkParam(Packet):
+    name = "SCTP Chunk Parameter"
+    fields_desc = [ ShortEnumField("type", 0, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="data",
+                                  adjust = lambda pkt,x:x+4),
+                    PadField(StrLenField("data", "",
+                                         length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"),]
 
-class SCTPChunkParamHearbeatInfo(_SCTPChunkParam, Packet):
+class SCTPChunkParamHeartbeatInfo(Packet):
+    name = "SCTP Chunk Parameter: Heartbeat Info"
     fields_desc = [ ShortEnumField("type", 1, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="data",
                                   adjust = lambda pkt,x:x+4),
@@ -231,17 +271,20 @@ class SCTPChunkParamHearbeatInfo(_SCTPChunkParam, Packet):
                                          length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"),]
 
-class SCTPChunkParamIPv4Addr(_SCTPChunkParam, Packet):
+class SCTPChunkParamIPv4Addr(Packet):
+    name = "SCTP Chunk Parameter: IPv4 Address"
     fields_desc = [ ShortEnumField("type", 5, sctpchunkparamtypes),
                     ShortField("len", 8),
                     IPField("addr","127.0.0.1"), ]
 
-class SCTPChunkParamIPv6Addr(_SCTPChunkParam, Packet):
+class SCTPChunkParamIPv6Addr(Packet):
+    name = "SCTP Chunk Parameter: IPv6 Address"
     fields_desc = [ ShortEnumField("type", 6, sctpchunkparamtypes),
                     ShortField("len", 20),
                     IP6Field("addr","::1"), ]
 
-class SCTPChunkParamStateCookie(_SCTPChunkParam, Packet):
+class SCTPChunkParamStateCookie(Packet):
+    name = "SCTP Chunk Parameter: State Cookie"
     fields_desc = [ ShortEnumField("type", 7, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="cookie",
                                   adjust = lambda pkt,x:x+4),
@@ -249,7 +292,8 @@ class SCTPChunkParamStateCookie(_SCTPChunkParam, Packet):
                                          length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"),]
 
-class SCTPChunkParamUnrocognizedParam(_SCTPChunkParam, Packet):
+class SCTPChunkParamUnrecognizedParam(Packet):
+    name = "SCTP Chunk Parameter: Unrecognized Parameter"
     fields_desc = [ ShortEnumField("type", 8, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="param",
                                   adjust = lambda pkt,x:x+4),
@@ -257,12 +301,14 @@ class SCTPChunkParamUnrocognizedParam(_SCTPChunkParam, Packet):
                                          length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"),]
 
-class SCTPChunkParamCookiePreservative(_SCTPChunkParam, Packet):
+class SCTPChunkParamCookiePreservative(Packet):
+    name = "SCTP Chunk Parameter: Cookie Preservative"
     fields_desc = [ ShortEnumField("type", 9, sctpchunkparamtypes),
                     ShortField("len", 8),
                     XIntField("sug_cookie_inc", None), ]
 
-class SCTPChunkParamHostname(_SCTPChunkParam, Packet):
+class SCTPChunkParamHostname(Packet):
+    name = "SCTP Chunk Parameter: Host Name Address"
     fields_desc = [ ShortEnumField("type", 11, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="hostname",
                                   adjust = lambda pkt,x:x+4),
@@ -270,31 +316,151 @@ class SCTPChunkParamHostname(_SCTPChunkParam, Packet):
                                          length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"), ]
 
-class SCTPChunkParamSupportedAddrTypes(_SCTPChunkParam, Packet):
+class SCTPChunkParamSupportedAddrTypes(Packet):
+    name = "SCTP Chunk Parameter: Supported Address Types"
     fields_desc = [ ShortEnumField("type", 12, sctpchunkparamtypes),
                     FieldLenField("len", None, length_of="addr_type_list",
                                   adjust = lambda pkt,x:x+4),
-                    PadField(FieldListField("addr_type_list", [ "IPv4" ],
+                    PadField(FieldListField("addr_type_list", [ 5 ],
                                             ShortEnumField("addr_type", 5, sctpchunkparamtypes),
                                             length_from=lambda pkt: pkt.len-4),
                              4, padwith="\x00"), ]
 
-class SCTPChunkParamECNCapable(_SCTPChunkParam, Packet):
+class SCTPChunkParamECNCapable(Packet):
+    name = "SCTP Chunk Parameter: ECN Capable"
     fields_desc = [ ShortEnumField("type", 32768, sctpchunkparamtypes),
                     ShortField("len", 4), ]
 
-class SCTPChunkParamFwdTSN(_SCTPChunkParam, Packet):
+class SCTPChunkParamRandom(Packet):
+    name = "SCTP Chunk Parameter: Random"
+    fields_desc = [ ShortEnumField("type", 32770, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="randnum",
+                                  adjust = lambda pkt,x:x+4),
+                    PadField(StrLenField("randnum", "",
+                                         length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"), ]
+
+class SCTPChunkParamChunkList(Packet):
+    name = "SCTP Chunk Parameter: Chunk List"
+    fields_desc = [ ShortEnumField("type", 32771, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="chunk_type_list",
+                                  adjust = lambda pkt,x:x+4),
+                    PadField(FieldListField("chunk_type_list", [],
+                                            ByteEnumField("chunk_type", None, sctpchunktypes),
+                                            length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"), ]
+
+class SCTPChunkParamReqHMACAlgorithm(Packet):
+    name = "SCTP Chunk Parameter: Requested HMAC Algorithm"
+    fields_desc = [ ShortEnumField("type", 32772, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="hmac_id_list",
+                                  adjust = lambda pkt,x:x+4),
+                    PadField(FieldListField("hmac_id_list", [],
+                                            ShortEnumField("hmac_id", 1, {1:"SHA-1",3:"SHA-256"}),
+                                            length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"), ]
+
+class SCTPChunkParamPadding(Packet):
+    name = "SCTP Chunk Parameter: Padding"
+    fields_desc = [ ShortEnumField("type", 32773, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="padding",
+                                  adjust = lambda pkt,x:x+4),
+                    StrLenField("padding", "",
+                                         length_from=lambda pkt: pkt.len-4), ]
+
+class SCTPChunkParamSupportedExt(SCTPChunkParamChunkList):
+    name = "SCTP Chunk Parameter: Supported Extensions"
+    type = 32776
+
+class SCTPChunkParamFwdTSN(Packet):
+    name = "SCTP Chunk Parameter: Forward TSN supported"
     fields_desc = [ ShortEnumField("type", 49152, sctpchunkparamtypes),
                     ShortField("len", 4), ]
 
-class SCTPChunkParamAdaptationLayer(_SCTPChunkParam, Packet):
+class SCTPChunkParamAddIPAddr(Packet):
+    name = "SCTP Chunk Parameter: Add IP Address"
+    fields_desc = [ ShortEnumField("type", 49153, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="addr_param",
+                                  adjust = lambda pkt,x:x+8),
+                    IntField("correlation_id", None),
+                    ChunkParamField("addr_param", [], length_from=lambda pkt:pkt.len-8),
+                   ]
+
+class SCTPChunkParamDeleteIPAddr(SCTPChunkParamAddIPAddr):
+    name = "SCTP Chunk Parameter: Delete IP Address"
+    type = 49154
+
+class SCTPChunkParamErrorCause(Packet):
+    name = "SCTP Chunk Parameter: Error Cause Indication"
+    fields_desc = [ ShortEnumField("type", 49155, sctpchunkparamtypes),
+                    FieldLenField("len", None, length_of="error_causes",
+                                  adjust = lambda pkt,x:x+8),
+                    IntField("correlation_id", None),
+                    PadField(StrLenField("error_causes", "", length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"),
+                   ]
+
+class SCTPChunkParamSetPrimaryAddr(SCTPChunkParamAddIPAddr):
+    name = "SCTP Chunk Parameter: Set Primary Address"
+    type = 49156
+
+class SCTPChunkParamSuccess(Packet):
+    name = "SCTP Chunk Parameter: Success Indication"
+    fields_desc = [ ShortEnumField("type", 49157, sctpchunkparamtypes),
+                    ShortField("len", 8),
+                    IntField("correlation_id", None), ]
+
+class SCTPChunkParamAdaptationLayer(Packet):
+    name = "SCTP Chunk Parameter: Adaptation Layer Indication"
     fields_desc = [ ShortEnumField("type", 49158, sctpchunkparamtypes),
                     ShortField("len", 8),
-                    XIntField("indication", None), ]
+                    IntEnumField("adaptation_code", 1, {1:"DDP"}), ]
 
 ############## SCTP Chunks
 
+class SCTPChunk(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk"
+    fields_desc = [ ByteEnumField("type", 255, sctpchunktypes),
+                    XByteField("flags", None),
+                    FieldLenField("len", None, length_of="data", adjust = lambda pkt,x:x+4),
+                    PadField(StrLenField("data", "", length_from=lambda pkt: pkt.len-4),
+                             4, padwith="\x00"),
+                   ]
+
+# http://www.iana.org/assignments/sctp-parameters
+sctp_proto_ids = {
+    0 : "none",
+    1 : "IUA",
+    2 : "M2UA",
+    3 : "M3UA",
+    4 : "SUA",
+    5 : "M2PA",
+    6 : "V5UA",
+    7 : "H.248",
+    8 : "BICC/Q.2150.3",
+    9 : "TALI",
+    10 : "DUA",
+    11 : "ASAP",
+    12 : "ENRP",
+    13 : "H.323",
+    14 : "Q.IPC/Q.2150.3",
+    15 : "SIMCO",
+    16 : "DDP Segment Chunk",
+    17 : "DDP Stream Session Control",
+    18 : "S1AP",
+    19 : "RUA",
+    20 : "HNBAP",
+    21 : "ForCES-HP",
+    22 : "ForCES-MP",
+    23 : "ForCES-LP",
+    24 : "SBc-AP",
+    25 : "NBAP",
+    27 : "X2AP",
+    28 : "IRCP",
+    }
+
 class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Payload Data"
     fields_desc = [ ByteEnumField("type", 0, sctpchunktypes),
                     BitField("reserved", None, 4),
                     BitField("delay_sack", 0, 1),
@@ -305,12 +471,13 @@ class SCTPChunkData(_SCTPChunkGuessPayload, Packet):
                     XIntField("tsn", None),
                     XShortField("stream_id", None),
                     XShortField("stream_seq", None),
-                    XIntField("proto_id", None),
-                    PadField(StrLenField("data", None, length_from=lambda pkt: pkt.len-16),
+                    IntEnumField("proto_id", 0, sctp_proto_ids),
+                    PadField(StrLenField("data", "", length_from=lambda pkt: pkt.len-16),
                              4, padwith="\x00"),
                     ]
 
 class SCTPChunkInit(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Initiation"
     fields_desc = [ ByteEnumField("type", 1, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+20),
@@ -319,20 +486,12 @@ class SCTPChunkInit(_SCTPChunkGuessPayload, Packet):
                     ShortField("n_out_streams", None),
                     ShortField("n_in_streams", None),
                     XIntField("init_tsn", None),
-                    ChunkParamField("params", None, length_from=lambda pkt:pkt.len-20),
+                    ChunkParamField("params", [], length_from=lambda pkt:pkt.len-20),
                     ]
 
-class SCTPChunkInitAck(_SCTPChunkGuessPayload, Packet):
-    fields_desc = [ ByteEnumField("type", 2, sctpchunktypes),
-                    XByteField("flags", None),
-                    FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+20),
-                    XIntField("init_tag", None),
-                    IntField("a_rwnd", None),
-                    ShortField("n_out_streams", None),
-                    ShortField("n_in_streams", None),
-                    XIntField("init_tsn", None),
-                    ChunkParamField("params", None, length_from=lambda pkt:pkt.len-20),
-                    ]
+class SCTPChunkInitAck(SCTPChunkInit):
+    name = "SCTP Chunk: Initiation Ack"
+    type = 2
 
 class GapAckField(Field):
     def __init__(self, name, default):
@@ -340,7 +499,10 @@ class GapAckField(Field):
     def i2m(self, pkt, x):
         if x is None:
             return "\0\0\0\0"
-        sta, end = map(int, x.split(":"))
+        if type(x) in (list,tuple):
+            sta, end = map(int, x[:2])
+        else:
+            sta, end = map(int, x.split(":"))
         args = tuple([">HH", sta, end])
         return struct.pack(*args)
     def m2i(self, pkt, x):
@@ -349,8 +511,11 @@ class GapAckField(Field):
         if type(x) is tuple and len(x) == 2:
             return "%d:%d"%(x)
         return x
+    def randval(self):
+        return (RandShort(),RandShort())
 
 class SCTPChunkSACK(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Selective Ack"
     fields_desc = [ ByteEnumField("type", 3, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", None),
@@ -369,20 +534,19 @@ class SCTPChunkSACK(_SCTPChunkGuessPayload, Packet):
 
 
 class SCTPChunkHeartbeatReq(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Heartbeat Request"
     fields_desc = [ ByteEnumField("type", 4, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+4),
-                    ChunkParamField("params", None, length_from=lambda pkt:pkt.len-4),
+                    ChunkParamField("params", [], length_from=lambda pkt:pkt.len-4),
                    ]
 
-class SCTPChunkHeartbeatAck(_SCTPChunkGuessPayload, Packet):
-    fields_desc = [ ByteEnumField("type", 5, sctpchunktypes),
-                    XByteField("flags", None),
-                    FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+4),
-                    ChunkParamField("params", None, length_from=lambda pkt:pkt.len-4),
-                   ]
+class SCTPChunkHeartbeatAck(SCTPChunkHeartbeatReq):
+    name = "SCTP Chunk: Heartbeat Ack"
+    type = 5
 
 class SCTPChunkAbort(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Abort"
     fields_desc = [ ByteEnumField("type", 6, sctpchunktypes),
                     BitField("reserved", None, 7),
                     BitField("TCB", 0, 1),
@@ -392,6 +556,7 @@ class SCTPChunkAbort(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkShutdown(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Shutdown"
     fields_desc = [ ByteEnumField("type", 7, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", 8),
@@ -399,12 +564,14 @@ class SCTPChunkShutdown(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkShutdownAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Shutdown Ack"
     fields_desc = [ ByteEnumField("type", 8, sctpchunktypes),
                     XByteField("flags", None),
                     ShortField("len", 4),
                    ]
 
 class SCTPChunkError(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Operation Error"
     fields_desc = [ ByteEnumField("type", 9, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="error_causes", adjust = lambda pkt,x:x+4),
@@ -413,6 +580,7 @@ class SCTPChunkError(_SCTPChunkGuessPayload, Packet):
                    ]
 
 class SCTPChunkCookieEcho(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: State Cookie"
     fields_desc = [ ByteEnumField("type", 10, sctpchunktypes),
                     XByteField("flags", None),
                     FieldLenField("len", None, length_of="cookie", adjust = lambda pkt,x:x+4),
@@ -420,18 +588,71 @@ class SCTPChunkCookieEcho(_SCTPChunkGuessPayload, Packet):
                              4, padwith="\x00"),
                    ]
 
-class SCTPChunkCookieAck(_SCTPChunkGuessPayload, Packet):
-    fields_desc = [ ByteEnumField("type", 11, sctpchunktypes),
+class SCTPChunkCookieAck(SCTPChunkShutdownAck):
+    name = "SCTP Chunk: Cookie Ack"
+    type = 11
+
+class SCTPChunkECNE(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: ECN-Echo"
+    fields_desc = [ ByteEnumField("type", 12, sctpchunktypes),
                     XByteField("flags", None),
-                    ShortField("len", 4),
+                    ShortField("len", 8),
+                    IntField("lowest_tsn", 0),
                    ]
 
+class SCTPChunkCWR(SCTPChunkECNE):
+    name = "SCTP Chunk: Congestion Window Reduced"
+    type = 13
+
 class SCTPChunkShutdownComplete(_SCTPChunkGuessPayload, Packet):
-    fields_desc = [ ByteEnumField("type", 12, sctpchunktypes),
+    name = "SCTP Chunk: Shutdown Complete"
+    fields_desc = [ ByteEnumField("type", 14, sctpchunktypes),
                     BitField("reserved", None, 7),
                     BitField("TCB", 0, 1),
                     ShortField("len", 4),
                     ]
+
+class SCTPChunkAuth(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Authentication"
+    fields_desc = [ ByteEnumField("type", 15, sctpchunktypes),
+                    XByteField("flags", None),
+                    FieldLenField("len", None, length_of="hmac", adjust = lambda pkt,x:x+8),
+                    ShortField("shared_key_id", None),
+                    ShortEnumField("hmac_id", 1, {1:"SHA-1",3:"SHA-256"}),
+                    PadField(StrLenField("hmac", "", length_from=lambda pkt: pkt.len-8),
+                             4, padwith="\x00"),
+                    ]
+
+class SCTPChunkASConfAck(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Address Configuration Ack"
+    fields_desc = [ ByteEnumField("type", 128, sctpchunktypes),
+                    XByteField("flags", None),
+                    FieldLenField("len", None, length_of="params", adjust = lambda pkt,x:x+8),
+                    IntField("seq", None),
+                    ChunkParamField("params", [], length_from=lambda pkt:pkt.len-8),
+                   ]
+
+class SCTPChunkPad(_SCTPChunkGuessPayload, Packet):
+    name = "SCTP Chunk: Padding"
+    fields_desc = [ ByteEnumField("type", 132, sctpchunktypes),
+                    XByteField("flags", None),
+                    FieldLenField("len", None, length_of="padding", adjust = lambda pkt,x:x+4),
+                    StrLenField("padding", "", length_from=lambda pkt: pkt.len-4),
+                   ]
+
+class SCTPChunkFwdTSN(_SCTPChunkGuessPayload, Packet): # XXX: list is actually stream/sequence pairs
+    name = "SCTP Chunk: Forward Cumulative TSN"
+    fields_desc = [ ByteEnumField("type", 192, sctpchunktypes),
+                    XByteField("flags", None),
+                    FieldLenField("len", None, length_of="stream_list", adjust = lambda pkt,x:x+8),
+                    IntField("new_tsn", None),
+                    FieldListField("stream_list", [], ShortField("stream", None),
+                                   length_from=lambda pkt: pkt.len-8)
+                   ]
+
+class SCTPChunkASConf(SCTPChunkASConfAck):
+    name = "SCTP Chunk: Address Configuration Change"
+    type = 193
 
 bind_layers( IP,           SCTP,          proto=IPPROTO_SCTP)
 

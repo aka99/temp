@@ -194,8 +194,11 @@ class RandChoice(RandField):
             raise TypeError("RandChoice needs at least one choice")
         self._choice = args
     def _fix(self):
-        return random.choice(self._choice)
-    
+        r = random.choice(self._choice)
+        if isinstance(r, VolatileValue):
+            r = r._fix()
+        return r
+
 class RandString(RandField):
     def __init__(self, size=None, chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"):
         if size is None:
@@ -214,8 +217,11 @@ class RandBin(RandString):
 
 
 class RandTermString(RandString):
-    def __init__(self, size, term):
-        RandString.__init__(self, size, "".join(map(chr,range(1,256))))
+    def __init__(self, size=None, term="\x00"):
+        chars = map(chr,range(256))
+        if term in chars:
+            chars.remove(term)
+        RandString.__init__(self, size, "".join(chars))
         self.term = term
     def _fix(self):
         return RandString._fix(self)+self.term
@@ -325,7 +331,7 @@ class RandOID(RandString):
             
 
 class RandRegExp(RandField):
-    def __init__(self, regexp, lambda_=0.3,):
+    def __init__(self, regexp, lambda_=0.3):
         self._regexp = regexp
         self._lambda = lambda_
 
@@ -626,7 +632,7 @@ class IntAutoTime(AutoTime):
 
 
 class ZuluTime(AutoTime):
-    def __init__(self, diff=None):
+    def __init__(self, diff=0):
         self.diff=diff
     def _fix(self):
         return time.strftime("%y%m%d%H%M%SZ",time.gmtime(time.time()+self.diff))
@@ -664,4 +670,12 @@ class CorruptedBytes(VolatileValue):
 class CorruptedBits(CorruptedBytes):
     def _fix(self):
         return corrupt_bits(self.s, self.p, self.n)
+
+
+class RandFloat(RandField):
+    def __init__(self, min=0, max=1):
+        self.min = min
+        self.max = max
+    def _fix(self):
+        return random.random()*(self.max-self.min)+self.min
 

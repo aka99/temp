@@ -8,7 +8,7 @@ Unit testing infrastructure for Scapy
 """
 
 import sys,getopt,imp
-import bz2, base64, os.path, time, traceback, zlib, sha
+import bz2, base64, os.path, time, traceback, zlib, hashlib
 
 
 #### Import tool ####
@@ -38,7 +38,7 @@ class File:
     def get_local(self):
         return bz2.decompress(base64.decodestring(self.local))
     def get_URL(self):
-        return URL
+        return self.URL
     def write(self, dir):
         if dir:
             dir += "/"
@@ -236,7 +236,7 @@ def crc32(x):
     return "%08X" % (0xffffffffL & zlib.crc32(x))
 
 def sha1(x):
-    return sha.sha(x).hexdigest().upper()
+    return hashlib.sha1(x).hexdigest().upper()
 
 def compute_campaign_digests(test_campaign):
     dc = ""

@@ -7,10 +7,14 @@
 Clone of p0f passive OS fingerprinting
 """
 
+import socket,struct,random
 from scapy.data import KnowledgeBase
 from scapy.config import conf
 from scapy.layers.inet import IP, TCP, TCPOptions
-from scapy.packet import NoPayload
+from scapy.error import warning
+from scapy.packet import *
+from scapy.volatile import *
+from scapy.sendrecv import sniff
 
 conf.p0f_base ="/etc/p0f/p0f.fp"
 conf.p0fa_base ="/etc/p0f/p0fa.fp"

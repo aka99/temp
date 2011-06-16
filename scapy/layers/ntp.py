@@ -23,9 +23,9 @@ class TimeStampField(FixedPointField):
     def i2repr(self, pkt, val):
         if val is None:
             return "--"
-        val = self.i2h(pkt,val)
-        if val < _NTP_BASETIME:
-            return val
+        val = float(self.i2h(pkt,val))
+        if val < _NTP_BASETIME or val-_NTP_BASETIME >= 2**31:
+            return repr(val)
         return time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime(val-_NTP_BASETIME))
 
     def any2i(self, pkt, val):
@@ -44,32 +44,35 @@ class NTP(Packet):
     # RFC 1769
     name = "NTP"
     fields_desc = [ 
-         BitEnumField('leap', 0, 2,
-                      { 0: 'nowarning',
-                        1: 'longminute',
-                        2: 'shortminute',
-                        3: 'notsync'}),
-         BitField('version', 3, 3),
-         BitEnumField('mode', 3, 3,
-                      { 0: 'reserved',
-                        1: 'sym_active',
-                        2: 'sym_passive',
-                        3: 'client',
-                        4: 'server',
-                        5: 'broadcast',
-                        6: 'control',
-                        7: 'private'}),
-         BitField('stratum', 2, 8),
-         BitField('poll', 0xa, 8),          ### XXX : it's a signed int
-         BitField('precision', 0, 8),       ### XXX : it's a signed int
-         FixedPointField('delay', 0, size=32, frac_bits=16),
-         FixedPointField('dispersion', 0, size=32, frac_bits=16),
-         IPField('id', "127.0.0.1"),
-         TimeStampField('ref', 0),
-         TimeStampField('orig', None),  # None means current time
-         TimeStampField('recv', 0),
-         TimeStampField('sent', None) 
-         ]
+        BitEnumField('leap', 0, 2,
+                     { 0: 'nowarning',
+                       1: 'longminute',
+                       2: 'shortminute',
+                       3: 'notsync'}),
+        BitField('version', 3, 3),
+        BitEnumField('mode', 3, 3,
+                     { 0: 'reserved',
+                       1: 'sym_active',
+                       2: 'sym_passive',
+                       3: 'client',
+                       4: 'server',
+                       5: 'broadcast',
+                       6: 'control',
+                       7: 'private'}),
+        ByteField('stratum', 0),
+        SignedByteField('poll', 10),
+        SignedByteField('precision', -6),
+        FixedPointField('delay', 0, size=32, frac_bits=16),
+        FixedPointField('dispersion', 0, size=32, frac_bits=16),
+        ConditionalField(StrFixedLenField('id', "ATOM", 4),
+                         lambda pkt:pkt.stratum not in range(2,16)),
+        ConditionalField(IPField('addr', "127.0.0.1"),
+                         lambda pkt:pkt.stratum in range(2,16)),
+        TimeStampField('ref', 0),
+        TimeStampField('orig', None),  # None means current time
+        TimeStampField('recv', 0),
+        TimeStampField('sent', None) 
+        ]
     def mysummary(self):
         return self.sprintf("NTP v%ir,NTP.version%, %NTP.mode%")
 

@@ -10,6 +10,7 @@ Cisco NetFlow protocol v1
 
 from scapy.fields import *
 from scapy.packet import *
+from scapy.layers.inet import UDP
 
 # Cisco Netflow Protocol version 1
 class NetflowHeader(Packet):
@@ -44,5 +45,11 @@ class NetflowRecordV1(Packet):
                     IntField("padding2", 0) ]
 
 
+bind_layers( UDP,             NetflowHeader,   sport=9995)
+bind_layers( UDP,             NetflowHeader,   dport=9995)
+bind_layers( UDP,             NetflowHeader,   sport=9555)
+bind_layers( UDP,             NetflowHeader,   dport=9555)
+bind_layers( UDP,             NetflowHeader,   sport=2055)
+bind_layers( UDP,             NetflowHeader,   dport=2055)
 bind_layers( NetflowHeader,   NetflowHeaderV1, version=1)
 bind_layers( NetflowHeaderV1, NetflowRecordV1, )

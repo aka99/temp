@@ -10,6 +10,7 @@ RADIUS (Remote Authentication Dial In User Service)
 import struct
 from scapy.packet import *
 from scapy.fields import *
+from scapy.layers.inet import UDP
 
 class Radius(Packet):
     name = "Radius"
@@ -61,5 +62,13 @@ class Radius(Packet):
             p = p[:2]+struct.pack("!H",l)+p[4:]
         return p
 
+bind_layers( UDP,           Radius,        sport=1645) #Authentication (unofficial)
+bind_layers( UDP,           Radius,        dport=1645)
+bind_layers( UDP,           Radius,        sport=1646) #Accounting (unofficial)
+bind_layers( UDP,           Radius,        dport=1646)
+bind_layers( UDP,           Radius,        sport=1812) #Authentication (IANA)
+bind_layers( UDP,           Radius,        dport=1812)
+bind_layers( UDP,           Radius,        sport=1813) #Accounting (IANA)
+bind_layers( UDP,           Radius,        dport=1813)
 
 

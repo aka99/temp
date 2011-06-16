@@ -9,6 +9,7 @@ GeoIP: find out the geographical location of IP addresses
 
 from scapy.data import KnowledgeBase
 from scapy.config import conf
+from scapy.utils import load_object
 
 conf.IPCountry_base = "GeoIPCountry4Scapy.gz"
 conf.countryLoc_base = "countryLoc.csv"
@@ -56,8 +57,8 @@ def locate_ip(ip):
     ip=map(int,ip.split("."))
     ip = ip[3]+(ip[2]<<8L)+(ip[1]<<16L)+(ip[0]<<24L)
 
-    cloc = country_loc_kdb.get_base()
-    db = IP_country_kdb.get_base()
+    cloc = conf.country_loc_kdb.get_base()
+    db = conf.IP_country_kdb.get_base()
 
     d=0
     f=len(db)-1

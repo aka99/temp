@@ -42,7 +42,6 @@ class LLMNRQuery(Packet):
 class LLMNRResponse(LLMNRQuery):
     name = "Link Local Multicast Node Resolution - Response"
     qr = 1
-    fields_desc = []
 
     def answers(self, other):
         return (isinstance(other, LLMNRQuery) and
@@ -53,11 +52,15 @@ class LLMNRResponse(LLMNRQuery):
 def _llmnr_dispatcher(x, *args, **kargs):
     cls = Raw
     if len(x) >= 3:
-        if (ord(x[4]) & 0x80): # Response
+        if (ord(x[2]) & 0x80): # Response
             cls = LLMNRResponse
         else:                  # Query
             cls = LLMNRQuery
-    return cls(x, *args, **kargs)
+    try:
+        pkt = cls(x, *args, **kargs)
+    except:
+        pkt = Raw(x)
+    return pkt
 
 bind_bottom_up(UDP, _llmnr_dispatcher, { "dport": 5355 })
 bind_bottom_up(UDP, _llmnr_dispatcher, { "sport": 5355 })

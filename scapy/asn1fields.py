@@ -11,6 +11,7 @@ from asn1.asn1 import *
 from asn1.ber import *
 from volatile import *
 from base_classes import BasePacket
+from packet import fuzz
 
 
 #####################
@@ -57,6 +58,10 @@ class ASN1F_field(ASN1F_element):
 
     def i2repr(self, pkt, x):
         return repr(x)
+    def i2len(self, pkt, x):
+        return len(self.i2m(pkt, x))
+    def i2count(self, pkt, x):
+        return 1 #XXX: need to override this in list fields
     def i2h(self, pkt, x):
         return x
     def any2i(self, pkt, x):
@@ -178,6 +183,8 @@ class ASN1F_BIT_STRING(ASN1F_STRING):
     
 class ASN1F_IPADDRESS(ASN1F_STRING):
     ASN1_tag = ASN1_Class_UNIVERSAL.IPADDRESS    
+    def randval(self):
+        return RandIP()
 
 class ASN1F_TIME_TICKS(ASN1F_INTEGER):
     ASN1_tag = ASN1_Class_UNIVERSAL.TIME_TICKS
@@ -240,7 +247,7 @@ class ASN1F_SEQUENCE_OF(ASN1F_SEQUENCE):
     def i2repr(self, pkt, i):
         if i is None:
             return []
-        return i
+        return repr(i)
     def get_fields_list(self):
         return [self]
     def set_val(self, pkt, val):

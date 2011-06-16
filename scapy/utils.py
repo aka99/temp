@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore","tempnam",RuntimeWarning, __name__)
 
 from config import conf
 from data import MTU
-from error import log_runtime,log_loading,log_interactive
+from error import log_runtime,log_loading,log_interactive,Scapy_Exception,warning
 from base_classes import BasePacketList
 
 WINDOWS=sys.platform.startswith("win32")
@@ -53,15 +53,23 @@ def sane(x):
             r=r+i
     return r
 
-def lhex(x):
+def lhex(x, aligned = True):
     if type(x) in (int,long):
-        return hex(x)
+        if aligned:
+            length = len(hex(x)) - 2
+            additional_bytes_needed = length % 2
+            fmt = "0x%0" + ("%d" % (length + additional_bytes_needed)) + "x"
+            return fmt % x
+        else:
+            return hex(x)
     elif type(x) is tuple:
         return "(%s)" % ", ".join(map(lhex, x))
     elif type(x) is list:
         return "[%s]" % ", ".join(map(lhex, x))
-    else:
-        return x
+    try:
+        return hex(int(x))
+    except:
+        return repr(x)
 
 @conf.commands.register
 def hexdump(x):
@@ -237,9 +245,6 @@ else:
         s = ~s
         return (((s>>8)&0xff)|s<<8) & 0xffff
 
-def warning(x):
-    log_runtime.warning(x)
-
 def mac2str(mac):
     return "".join(map(lambda x: chr(int(x,16)), mac.split(":")))
 
@@ -249,7 +254,7 @@ def str2mac(s):
 def strxor(x,y):
     return "".join(map(lambda x,y:chr(ord(x)^ord(y)),x,y))
 
-# Workarround bug 643005 : https://sourceforge.net/tracker/?func=detail&atid=105470&aid=643005&group_id=5470
+# Workaround bug 643005 : https://sourceforge.net/tracker/?func=detail&atid=105470&aid=643005&group_id=5470
 try:
     socket.inet_aton("255.255.255.255")
 except socket.error:
@@ -313,7 +318,8 @@ def do_graph(graph,prog=None,format=None,target=None,type=None,string=None,optio
             target = "| %s" % conf.prog.display
     if format is not None:
         format = "-T %s" % format
-    w,r = os.popen2("%s %s %s %s" % (prog,options or "", format or "", target))
+    cmd = "%s %s %s %s" % (prog,options or "", format or "", target)
+    w,r = os.popen2(cmd)
     w.write(graph)
     w.close()
     if start_viewer:
@@ -470,10 +476,10 @@ endianness: "<" or ">", force endianness"""
     PcapWriter(filename, *args, **kargs).write(pkt)
 
 @conf.commands.register
-def rdpcap(filename, count=-1):
+def rdpcap(filename, count=-1, skip=0):
     """Read a pcap file and return a packet list
 count: read only <count> packets"""
-    return PcapReader(filename).read_all(count=count)
+    return PcapReader(filename).read_all(count=count, skip=skip)
 
 
 
@@ -525,7 +531,15 @@ class RawPcapReader:
         sec,usec,caplen,wirelen = struct.unpack(self.endian+"IIII", hdr)
         s = self.f.read(caplen)[:MTU]
         return s,(sec,usec,wirelen) # caplen = len(s)
-
+        
+    def skip_packets(self, skip):
+        while skip:
+            hdr = self.f.read(16)
+            if len(hdr) < 16:
+                return None
+            sec,usec,caplen,wirelen = struct.unpack(self.endian+"IIII", hdr)
+            self.f.seek(caplen, 1) # 1 is os.SEEK_CUR
+            skip -= 1
 
     def dispatch(self, callback):
         """call the specified callback routine for each packet read
@@ -537,10 +551,11 @@ class RawPcapReader:
         for p in self:
             callback(p)
 
-    def read_all(self,count=-1):
+    def read_all(self,count=-1,skip=0):
         """return a list of all packets in the pcap file
         """
         res=[]
+        self.skip_packets(skip)
         while count != 0:
             count -= 1
             p = self.read_packet()
@@ -586,8 +601,8 @@ class PcapReader(RawPcapReader):
             p = conf.raw_layer(s)
         p.time = sec+0.000001*usec
         return p
-    def read_all(self,count=-1):
-        res = RawPcapReader.read_all(self, count)
+    def read_all(self,count=-1,skip=0):
+        res = RawPcapReader.read_all(self, count, skip)
         import plist
         return plist.PacketList(res,name = os.path.basename(self.filename))
     def recv(self, size=MTU):

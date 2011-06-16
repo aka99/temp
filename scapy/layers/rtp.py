@@ -9,6 +9,7 @@ RTP (Real-time Transport Protocol).
 
 from scapy.packet import *
 from scapy.fields import *
+from scapy.layers.inet import UDP
 
 _rtp_payload_types = {
     # http://www.iana.org/assignments/rtp-parameters
@@ -32,9 +33,13 @@ class RTP(Packet):
                     BitField('extension', 0, 1),
                     BitFieldLenField('numsync', None, 4, count_of='sync'),
                     BitField('marker', 0, 1),
-                    BitEnumField('payload', 0, 7, _rtp_payload_types),
+                    BitEnumField('load', 0, 7, _rtp_payload_types),
                     ShortField('sequence', 0),
                     IntField('timestamp', 0),
                     IntField('sourcesync', 0),
                     FieldListField('sync', [], IntField("id",0), count_from=lambda pkt:pkt.numsync) ]
     
+bind_layers( UDP,           RTP,           sport=5004) #media data
+bind_layers( UDP,           RTP,           dport=5004)
+bind_layers( UDP,           RTP,           sport=5005) #control protocol
+bind_layers( UDP,           RTP,           dport=5005)

@@ -163,7 +163,7 @@ class NBNSNodeStatusResponseService(Packet):
 
 # End of Node Status Response packet
 class NBNSNodeStatusResponseEnd(Packet):
-    name="NBNS Node Status Response"
+    name="NBNS Node Status Response End"
     fields_desc = [SourceMACField("MAC_ADDRESS"),
                    BitField("STATISTICS",0,57*8)]
 
@@ -206,7 +206,14 @@ class NBTSession(Packet):
     name="NBT Session Packet"
     fields_desc= [ByteEnumField("TYPE",0,{0x00:"Session Message",0x81:"Session Request",0x82:"Positive Session Response",0x83:"Negative Session Response",0x84:"Retarget Session Response",0x85:"Session Keepalive"}),
                   BitField("RESERVED",0x00,7),
-                  BitField("LENGTH",0,17)]
+                  BitField("LENGTH",None,17)]
+    def post_build(self, p, pay):
+        if self.LENGTH is None:
+            len_hi = (len(pay) >> 16) & 0x1
+            len_lo = len(pay) & 0xFFFF
+            p = p[0]+chr(ord(p[1]) | len_hi)+struct.pack("!H",len_lo)
+        p += pay
+        return p
 
 bind_layers( UDP,           NBNSQueryRequest,  dport=137)
 bind_layers( UDP,           NBNSRequest,       dport=137)
@@ -220,3 +227,5 @@ bind_layers( NBNSNodeStatusResponseService, NBNSNodeStatusResponseEnd, )
 bind_layers( UDP,           NBNSWackResponse, sport=137)
 bind_layers( UDP,           NBTDatagram,      dport=138)
 bind_layers( TCP,           NBTSession,       dport=139)
+bind_layers( TCP,           NBTSession,       sport=445)
+bind_layers( TCP,           NBTSession,       dport=445)

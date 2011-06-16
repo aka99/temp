@@ -14,8 +14,8 @@ from scapy.packet import *
 from scapy.ansmachine import *
 from scapy.plist import SndRcvList
 from scapy.fields import *
-from scapy.sendrecv import srp,srp1
-from scapy.arch import get_if_hwaddr
+from scapy.sendrecv import srp,srp1,srpflood
+from scapy.arch import LOOPBACK_NAME,get_if_hwaddr,pcapdnet
 
 
 
@@ -48,16 +48,26 @@ conf.netcache.new_cache("arp_cache", 120) # cache entries expire after 120s
 @conf.commands.register
 def getmacbyip(ip, chainCC=0):
     """Return MAC address corresponding to a given IP address"""
-    if isinstance(ip,Net):
+    if type(ip) in (list,tuple):
+        ip = ip[0]
+    if isinstance(ip, VolatileValue):
+        ip = str(ip)
+    elif isinstance(ip, Net):
         ip = iter(ip).next()
     tmp = map(ord, inet_aton(ip))
     if (tmp[0] & 0xf0) == 0xe0: # mcast @
         return "01:00:5e:%.2x:%.2x:%.2x" % (tmp[1]&0x7f,tmp[2],tmp[3])
     iff,a,gw = conf.route.route(ip)
-    if ( (iff == "lo") or (ip == conf.route.get_if_bcast(iff)) ):
+    if ( (iff == LOOPBACK_NAME) or (ip == conf.route.get_if_bcast(iff)) ):
         return "ff:ff:ff:ff:ff:ff"
-    if gw != "0.0.0.0":
-        ip = gw
+    if WINDOWS:
+        # Windows uses local IP instead of 0.0.0.0 to represent locally reachable addresses
+        ifip = str(pcapdnet.dnet.intf().get(iff)['addr'])
+        if gw != ifip.split('/')[0]:
+            ip = gw
+    else:
+        if gw != "0.0.0.0":
+            ip = gw
 
     mac = conf.netcache.arp_cache.get(ip)
     if mac:
@@ -136,7 +146,7 @@ class Ether(Packet):
     name = "Ethernet"
     fields_desc = [ DestMACField("dst"),
                     SourceMACField("src"),
-                    XShortEnumField("type", 0x0000, ETHER_TYPES) ]
+                    XShortEnumField("type", 0x0600, ETHER_TYPES) ]
     def hashret(self):
         return struct.pack("H",self.type)+self.payload.hashret()
     def answers(self, other):
@@ -199,7 +209,7 @@ class CookedLinux(Packet):
 
 class SNAP(Packet):
     name = "SNAP"
-    fields_desc = [ X3BytesField("OUI",0x000000),
+    fields_desc = [ XThreeBytesField("OUI",0x000000),
                     XShortEnumField("code", 0x000, ETHER_TYPES) ]
 
 conf.neighbor.register_l3(Dot3, SNAP, lambda l2,l3: conf.neighbor.resolve(l2,l3.payload))
@@ -255,6 +265,19 @@ class STP(Packet):
                     BCDFloatField("fwddelay", 15) ]
 
 
+eap_types = {	1:"ID",
+				2:"NOTIFICATION",
+				3:"LEGACY NAK",
+				4:"MD5",
+				5:"ONE TIME PASSWORD",
+				6:"GENERIC TOKEN CARD",
+				13:"EAP-TLS",
+				17:"LEAP",
+				21:"EAP-TTLS",
+				25:"PEAP",
+				43:"EAP-FAST"
+			}
+
 class EAPOL(Packet):
     name = "EAPOL"
     fields_desc = [ ByteField("version", 1),
@@ -283,11 +306,12 @@ class EAPOL(Packet):
 
 class EAP(Packet):
     name = "EAP"
-    fields_desc = [ ByteEnumField("code", 4, {1:"REQUEST",2:"RESPONSE",3:"SUCCESS",4:"FAILURE"}),
+    fields_desc = [ ByteEnumField("code", 4, { 1:"REQUEST", 2:"RESPONSE", 3:"SUCCESS", 4:"FAILURE" }),
                     ByteField("id", 0),
                     ShortField("len",None),
-                    ConditionalField(ByteEnumField("type",0, {1:"ID",4:"MD5"}), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE])
-
+                    ConditionalField(ByteEnumField("type",0, eap_types), lambda pkt:pkt.code not in [EAP.SUCCESS, EAP.FAILURE]),
+                    ConditionalField(StrLenField("identity", "", length_from=lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 1),
+                    ConditionalField(FieldListField("eap_types", [0x00], ByteEnumField("eap_type", 0x00, eap_types), count_from = lambda pkt:pkt.len - 5), lambda pkt: pkt.code == EAP.RESPONSE and pkt.type == 3)
                                      ]
     
     REQUEST = 1
@@ -315,13 +339,179 @@ class EAP(Packet):
         return p+pay
              
 
+class EAPOLKey(Packet):
+    name = "EAPOL - Key Descriptor Header"
+    fields_desc = [ ByteEnumField("desc_type", 2, {1:"RC4",2:"802.11",254:"WPA"}), ]
+
+
+class EAPOLKeyRC4(Packet):
+    name = "EAPOL - Key Descriptor - RC4"
+    fields_desc = [ FieldLenField("keylen", None, length_of="key", fmt="H"),
+                    LongField("replay", 0),
+                    StrFixedLenField("iv", "\x00"*16, 16),
+                    BitField("unicast", 0, 1),
+                    BitField("index", 0, 7),
+                    StrFixedLenField("digest", "\x00"*16, 16),
+                    StrLenField("key", "", length_from=lambda x:x.keylen) ]
+
+
+class EAPOLKeyDot11(Packet):
+    name = "EAPOL - Key Descriptor - 802.11"
+    fields_desc = [ FlagsField("flags", 0, 13, ["KeyType","res4","res5","Install","ACK",
+                                                "MIC","Secure","Error","Request","Encrypted","SMK","res14","res15"]),
+                    BitEnumField("version", 1, 3, {1:"MD5/RC4",2:"SHA1/AES"}),
+                    ShortField("keylen", 0),
+                    LongField("replay", 0),
+                    StrFixedLenField("nonce", "\x00"*32, 32),
+                    StrFixedLenField("iv", "\x00"*16, 16),
+                    StrFixedLenField("rsc", "\x00"*8, 8),
+                    LongField("res", 0),
+                    StrFixedLenField("mic", "\x00"*16, 16),
+                    FieldLenField("keydatalen", None, length_of="keydata", fmt="H"),
+                    StrLenField("keydata", "", length_from=lambda x:x.keydatalen) ]
+                    
+class EAP_TLS(Packet): # eap type 13
+    name = "EAP-TLS"
+    fields_desc = [ FlagsField("flags", 0, 8, ['reserved5', 'reserved4', 'reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 127),
+				]
+				
+    def guess_payload_class(self, payload):
+        if self.flags > 127:
+            return scapy.layers.ssl.TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
+                    
+
+class LEAP(Packet): # eap type 17
+    name = "LEAP"
+    fields_desc = [ ByteField("version", 1),
+                    ByteField("reserved", 0),
+                    FieldLenField("length", None, length_of="data", fmt="B"),
+                    StrLenField("data", "", length_from=lambda pkt:pkt.length),
+                    StrField("name", "")
+                ]
+
+
+class EAP_TTLS(Packet): # eap type 21
+    name = "EAP-TTLS"
+    fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    BitField("version", 0, 3),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 15),
+				]
+				
+    def guess_payload_class(self, payload):
+        if self.flags >> 2 in [1, 3, 7]:	# if start bit is set
+			return Packet.guess_payload_class(self, payload)
+        else:
+            return scapy.layers.ssl.TLSv1RecordLayer
+            
+            
+class PEAP(Packet): # eap type 25
+    name = "PEAP"
+    fields_desc = [ FlagsField("flags", 0, 6, ['reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    BitField("version", 0, 2),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 31),
+                ]
+    
+    def guess_payload_class(self, payload):
+        if self.flags > 31:
+            return scapy.layers.ssl.TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
+    
+           
+class EAP_Fast(Packet): # eap type 43
+    name = "EAP-Fast"
+    fields_desc = [ FlagsField("flags", 0, 5, ['reserved2', 'reserved1', 'start', 'fragmented', 'length']),
+                    BitField("version", 0, 3),
+                    ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 15),
+                ]
+                
+    def guess_payload_class(self, payload):
+        if self.flags > 15:
+            return scapy.layers.ssl.TLSv1RecordLayer
+        else:
+            return Packet.guess_payload_class(self, payload)
+                
+
+# Hardware types - RFC 826 - Extracted from 
+# http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
+# We should add the length of every kind of address.
+hardware_types = {   0:"NET/ROM pseudo", # Not referenced by IANA
+                     1:"Ethernet",
+                     2:"Experimental Ethernet",
+                     3:"AX.25",
+                     4:"ProNET",
+                     5:"Chaos",
+                     6:"IEEE 802",
+                     7:"ARCNET",
+                     8:"Hyperchannel",
+                     9:"Lanstar",
+                    10:"Autonet",
+                    11:"LocalTalk",
+                    12:"LocalNet",
+                    13:"Ultra link",
+                    14:"SMDS",
+                    15:"Frame Relay",
+                    16:"ATM (Burnett)",
+                    17:"HDLC",
+                    18:"Fibre Channel",
+                    19:"ATM (Forum)",
+                    20:"Serial Line",
+                    21:"ATM (Burrows)",
+                    22:"MIL-STD-188-220",
+                    23:"Metricom",
+                    24:"IEEE 1394.1995",
+                    25:"MAPOS",
+                    26:"Twinaxial",
+                    27:"EUI-64",
+                    28:"HIPARP",
+                    29:"ISO 7816-3",
+                    30:"ARPSec",
+                    31:"IPsec",
+                    32:"InfiniBand",
+                    33:"P25 CAI",
+                    34:"Wiegand",
+                    35:"Pure IP",
+                    36:"HW_EXP1",
+                    37:"HFI",
+                   256:"HW_EXP2" }
+
+# http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
+arp_opcodes = { 1:"who-has",
+                2:"is-at",
+                3:"RARP-req",
+                4:"RARP-rep",
+                5:"Dyn-RARP-req",
+                6:"Dyn-RAR-rep",
+                7:"Dyn-RARP-err",
+                8:"InARP-req",
+                9:"InARP-rep",
+                10:"ARP-NAK",
+                11:"MARS-Req",
+                12:"MARS-Multi",
+                13:"MARS-MServ",
+                14:"MARS-Join",
+                15:"MARS-Leave",
+                16:"MARS-NAK",
+                17:"MARS-Unserv",
+                18:"MARS-SJoin",
+                19:"MARS-SLeave",
+                20:"MARS-Grouplist-Req",
+                21:"MARS-Grouplist-Rep",
+                22:"MARS-Redirect-Map",
+                23:"MAPOS-UNARP",
+                24:"OP_EXP1",
+                25:"OP_EXP2" }
+
 class ARP(Packet):
     name = "ARP"
-    fields_desc = [ XShortField("hwtype", 0x0001),
-                    XShortEnumField("ptype",  0x0800, ETHER_TYPES),
+    fields_desc = [ ShortEnumField("hwtype", 1, hardware_types),
+                    XShortEnumField("ptype", 0x0800, ETHER_TYPES),
                     ByteField("hwlen", 6),
                     ByteField("plen", 4),
-                    ShortEnumField("op", 1, {"who-has":1, "is-at":2, "RARP-req":3, "RARP-rep":4, "Dyn-RARP-req":5, "Dyn-RAR-rep":6, "Dyn-RARP-err":7, "InARP-req":8, "InARP-rep":9}),
+                    ShortEnumField("op", 1, arp_opcodes),
                     ARPSourceMACField("hwsrc"),
                     SourceIPField("psrc","pdst"),
                     MACField("hwdst", ETHER_ANY),
@@ -357,7 +547,7 @@ class GRErouting(Packet):
     fields_desc = [ ShortField("address_family",0),
                     ByteField("SRE_offset", 0),
                     FieldLenField("SRE_len", None, "routing_info", "B"),
-                    StrLenField("routing_info", "", "SRE_len"),
+                    StrLenField("routing_info", "", length_from=lambda x:x.SRE_len),
                     ]
 
 
@@ -368,7 +558,7 @@ class GRE(Packet):
                     BitField("key_present",0,1),
                     BitField("seqnum_present",0,1),
                     BitField("strict_route_source",0,1),
-                    BitField("recursion control",0,3),
+                    BitField("recursion_control",0,3),
                     BitField("flags",0,5),
                     BitField("version",0,3),
                     XShortEnumField("proto", 0x0000, ETHER_TYPES),
@@ -388,32 +578,39 @@ class GRE(Packet):
 
 
 bind_layers( Dot3,          LLC,           )
-bind_layers( Ether,         LLC,           type=122)
-bind_layers( Ether,         Dot1Q,         type=33024)
-bind_layers( Ether,         Ether,         type=1)
-bind_layers( Ether,         ARP,           type=2054)
-bind_layers( Ether,         EAPOL,         type=34958)
-bind_layers( Ether,         EAPOL,         dst='01:80:c2:00:00:03', type=34958)
+bind_layers( Ether,         Dot1Q,         type=0x8100)
+bind_layers( Ether,         ARP,           type=0x0806)
+bind_layers( Ether,         EAPOL,         type=0x888E)
+bind_layers( Ether,         EAPOL,         dst='01:80:c2:00:00:03', type=0x888E)
 bind_layers( CookedLinux,   LLC,           proto=122)
-bind_layers( CookedLinux,   Dot1Q,         proto=33024)
+bind_layers( CookedLinux,   Dot1Q,         proto=0x8100)
 bind_layers( CookedLinux,   Ether,         proto=1)
-bind_layers( CookedLinux,   ARP,           proto=2054)
-bind_layers( CookedLinux,   EAPOL,         proto=34958)
+bind_layers( CookedLinux,   ARP,           proto=0x0806)
+bind_layers( CookedLinux,   EAPOL,         proto=0x888E)
 bind_layers( GRE,           LLC,           proto=122)
-bind_layers( GRE,           Dot1Q,         proto=33024)
+bind_layers( GRE,           Dot1Q,         proto=0x8100)
 bind_layers( GRE,           Ether,         proto=1)
-bind_layers( GRE,           ARP,           proto=2054)
-bind_layers( GRE,           EAPOL,         proto=34958)
+bind_layers( GRE,           ARP,           proto=0x0806)
+bind_layers( GRE,           EAPOL,         proto=0x888E)
 bind_layers( GRE,           GRErouting,    { "routing_present" : 1 } )
 bind_layers( GRErouting,    Raw,           { "address_family" : 0, "SRE_len" : 0 })
 bind_layers( GRErouting,    GRErouting,    { } )
 bind_layers( EAPOL,         EAP,           type=0)
+bind_layers( EAPOL,         EAPOLKey,      type=3)
+bind_layers( EAP,           EAP_TLS,       type=13)
+bind_layers( EAP,           LEAP,          type=17)
+bind_layers( EAP,           EAP_TTLS,      type=21)
+bind_layers( EAP,           PEAP,          type=25)
+bind_layers( EAP,           EAP_Fast,      type=43)
+bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
+bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard is this defined?
+bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
 bind_layers( LLC,           STP,           dsap=66, ssap=66, ctrl=3)
 bind_layers( LLC,           SNAP,          dsap=170, ssap=170, ctrl=3)
-bind_layers( SNAP,          Dot1Q,         code=33024)
+bind_layers( SNAP,          Dot1Q,         code=0x8100)
 bind_layers( SNAP,          Ether,         code=1)
-bind_layers( SNAP,          ARP,           code=2054)
-bind_layers( SNAP,          EAPOL,         code=34958)
+bind_layers( SNAP,          ARP,           code=0x0806)
+bind_layers( SNAP,          EAPOL,         code=0x888E)
 bind_layers( SNAP,          STP,           code=267)
 
 conf.l2types.register(ARPHDR_ETHER, Ether)
@@ -472,7 +669,7 @@ Set cache=True if you want arping to modify internal ARP-Cache"""
 
     if cache and ans is not None:
         for pair in ans:
-            arp_cache[pair[1].psrc] = (pair[1].hwsrc, time.time())
+            conf.netcache.arp_cache[pair[1].psrc] = (pair[1].hwsrc, time.time())
     if verbose:
         ans.show()
     return ans,unans
@@ -538,3 +735,4 @@ def etherleak(target, **kargs):
                     filter="arp", **kargs)
 
 
+import scapy.layers.ssl

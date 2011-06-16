@@ -11,6 +11,10 @@ import os
 
 from scapy.data import KnowledgeBase
 from scapy.config import conf
+from scapy.packet import Raw
+from scapy.layers.inet import IP,UDP,TCP,ICMP,IPerror,UDPerror
+from scapy.sendrecv import sr
+from scapy.error import warning
 from scapy.arch import WINDOWS
 
 
@@ -34,6 +38,7 @@ class NmapKnowledgeBase(KnowledgeBase):
 
         self.base = []
         name = None
+        sig = {}
         try:
             for l in f:
                 l = l.strip()

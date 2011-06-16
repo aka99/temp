@@ -16,6 +16,7 @@ IPPROTO_VRRP=112
 
 # RFC 3768 - Virtual Router Redundancy Protocol (VRRP)
 class VRRP(Packet):
+    name = "VRRP"
     fields_desc = [
         BitField("version" , 2, 4),
         BitField("type" , 1, 4),
@@ -25,10 +26,9 @@ class VRRP(Packet):
         ByteField("authtype", 0),
         ByteField("adv", 1),
         XShortField("chksum", None),
-        FieldListField("addrlist", [], IPField("", "0.0.0.0"),
+        FieldListField("addrlist", [], IPField("addr", "0.0.0.0"),
                        count_from = lambda pkt: pkt.ipcount),
-        IntField("auth1", 0),
-        IntField("auth2", 0) ]
+        StrFixedLenField("auth", "\x00"*8, 8) ]
 
     def post_build(self, p, pay):
         if self.chksum is None:

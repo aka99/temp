@@ -7,14 +7,13 @@
 Packet class. Binding mechanism. fuzz() method.
 """
 
-import time,itertools,os
-import copy
-from fields import StrField,ConditionalField,Emph,PacketListField
+import time,itertools,os,copy,subprocess
+from fields import StrField,ConditionalField,Emph,PacketListField,HiddenField
 from config import conf
-from base_classes import BasePacket,Gen,SetGen,Packet_metaclass,NewDefaultValues
+from base_classes import BasePacket,Gen,SetGen,Packet_metaclass
 from volatile import VolatileValue
-from utils import import_hexcap,tex_escape,colgen,get_temp_file
-from error import Scapy_Exception,log_runtime
+from utils import import_hexcap,tex_escape,colgen,get_temp_file,WINDOWS
+from error import Scapy_Exception,log_runtime,warning
 
 try:
     import pyx
@@ -52,13 +51,13 @@ class Packet(BasePacket):
         return cls(import_hexcap())
 
     @classmethod
-    def upper_bonds(self):
-        for fval,upper in self.payload_guess:
+    def upper_bonds(cls):
+        for fval,upper in cls.payload_guess:
             print "%-20s  %s" % (upper.__name__, ", ".join("%-12s" % ("%s=%r"%i) for i in fval.iteritems()))
 
     @classmethod
-    def lower_bonds(self):
-        for lower,fval in self.overload_fields.iteritems():
+    def lower_bonds(cls):
+        for lower,fval in cls.overload_fields.iteritems():
             print "%-20s  %s" % (lower.__name__, ", ".join("%-12s" % ("%s=%r"%i) for i in fval.iteritems()))
 
     def __init__(self, _pkt="", post_transform=None, _internal=0, _underlayer=None, **fields):
@@ -110,7 +109,9 @@ class Packet(BasePacket):
 
     def get_field(self, fld):
         """DEV: returns the field instance from the name of the field"""
-        return self.fieldtype[fld]
+        if fld in self.fieldtype:
+            return self.fieldtype[fld]
+        return self.payload.get_field(fld)
         
     def add_payload(self, payload):
         if payload is None:
@@ -130,12 +131,12 @@ class Packet(BasePacket):
             else:
                 raise TypeError("payload must be either 'Packet' or 'str', not [%s]" % repr(payload))
     def remove_payload(self):
-        self.payload.remove_underlayer(self)
+        self.payload.remove_underlayer()
         self.__dict__["payload"] = NoPayload()
         self.overloaded_fields = {}
     def add_underlayer(self, underlayer):
         self.underlayer = underlayer
-    def remove_underlayer(self,other):
+    def remove_underlayer(self):
         self.underlayer = None
     def copy(self):
         """Returns a deep copy of the instance."""
@@ -152,24 +153,22 @@ class Packet(BasePacket):
         clone.__dict__["payload"] = self.payload.copy()
         clone.payload.add_underlayer(clone)
         return clone
+    def __copy__(self):
+        return self.copy()
+    def __deepcopy__(self, memo):
+        return self.copy()
 
     def getfieldval(self, attr):
         if attr in self.fields:
             return self.fields[attr]
         if attr in self.overloaded_fields:
-            return self.overloaded_fields[attr]
+            return copy.deepcopy(self.overloaded_fields[attr])
         if attr in self.default_fields:
-            return self.default_fields[attr]
+            return copy.deepcopy(self.default_fields[attr])
         return self.payload.getfieldval(attr)
     
     def getfield_and_val(self, attr):
-        if attr in self.fields:
-            return self.get_field(attr),self.fields[attr]
-        if attr in self.overloaded_fields:
-            return self.get_field(attr),self.overloaded_fields[attr]
-        if attr in self.default_fields:
-            return self.get_field(attr),self.default_fields[attr]
-        return self.payload.getfield_and_val(attr)
+        return self.get_field(attr), self.getfieldval(attr)
     
     def __getattr__(self, attr):
         if self.initialized:
@@ -228,6 +227,14 @@ class Packet(BasePacket):
         else:
             raise AttributeError(attr)
             
+    def getfieldlen(self, attr):
+        fld,fval = self.getfield_and_val(attr)
+        return fld.i2len(self, fval)
+
+    def getfieldcount(self, attr):
+        fld,fval = self.getfield_and_val(attr)
+        return fld.i2count(self, fval)
+
     def __repr__(self):
         s = ""
         ct = conf.color_theme
@@ -366,7 +373,10 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         if filename is None:
             fname = get_temp_file(autoext=".eps")
             canvas.writeEPSfile(fname)
-            subprocess.Popen([conf.prog.psreader, fname+".eps"])
+            if WINDOWS:
+                subprocess.Popen('"'+conf.prog.psreader+'" "'+fname+'.eps"')
+            else:
+                subprocess.Popen([conf.prog.psreader, fname+".eps"])
         else:
             canvas.writeEPSfile(filename)
 
@@ -377,7 +387,10 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
         if filename is None:
             fname = get_temp_file(autoext=".pdf")
             canvas.writePDFfile(fname)
-            subprocess.Popen([conf.prog.pdfreader, fname+".pdf"])
+            if WINDOWS:
+                subprocess.Popen('"'+conf.prog.pdfreader+'" "'+fname+'.pdf"')
+            else:
+                subprocess.Popen([conf.prog.pdfreader, fname+".pdf"])
         else:
             canvas.writePDFfile(filename)
 
@@ -543,9 +556,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
 
     def do_dissect(self, s):
         flist = self.fields_desc[:]
-        flist.reverse()
         while s and flist:
-            f = flist.pop()
+            f = flist.pop(0)
             s,fval = f.getfield(self, s)
             self.fields[f.name] = fval
             
@@ -699,7 +711,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
     def haslayer(self, cls):
         """true if self has a layer that is an instance of cls. Superseded by "cls in self" syntax."""
         if self.__class__ == cls or self.__class__.__name__ == cls:
-            return 1
+            return True
         for f in self.packetfields:
             fvalue_gen = self.getfieldval(f.name)
             if fvalue_gen is None:
@@ -710,7 +722,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
                 if isinstance(fvalue, Packet):
                     ret = fvalue.haslayer(cls)
                     if ret:
-                        return ret
+                        return True
         return self.payload.haslayer(cls)
     def getlayer(self, cls, nb=1, _track=None):
         """Return the nb^th layer that is an instance of cls."""
@@ -721,7 +733,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
             ccls,fld = cls.split(".",1)
         else:
             ccls,fld = cls,None
-        if cls is None or self.__class__ == cls or self.__class__.name == ccls:
+        if (cls is None or self.__class__ == cls or self.__class__.name == ccls or
+                self.__class__.__name__ == ccls):
             if nb == 1:
                 if fld is None:
                     return self
@@ -763,7 +776,7 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
             lname=cls
             ret = self.getlayer(cls)
         if ret is None:
-            if type(lname) is Packet_metaclass:
+            if isinstance(lname,Packet_metaclass):
                 lname = lname.__name__
             elif type(lname) is not str:
                 lname = repr(lname)
@@ -799,6 +812,8 @@ Creates an EPS file describing a packet. If filename is not provided a temporary
                               ct.punct("]###"))
         for f in self.fields_desc:
             if isinstance(f, ConditionalField) and not f._evalcond(self):
+                continue
+            elif isinstance(f, HiddenField) and f.to_show(self)==False:
                 continue
             if isinstance(f, Emph) or f in conf.emph:
                 ncol = ct.emph_field_name
@@ -1025,13 +1040,15 @@ class NoPayload(Packet):
         pass
     def dissection_done(self,pkt):
         return
+    def get_field(self, fld):
+        raise AttributeError(fld)
     def add_payload(self, payload):
         raise Scapy_Exception("Can't add payload to NoPayload instance")
     def remove_payload(self):
         pass
     def add_underlayer(self,underlayer):
         pass
-    def remove_underlayer(self,other):
+    def remove_underlayer(self):
         pass
     def copy(self):
         return self
@@ -1079,7 +1096,7 @@ class NoPayload(Packet):
     def answers(self, other):
         return isinstance(other, NoPayload) or isinstance(other, Padding)
     def haslayer(self, cls):
-        return 0
+        return False
     def getlayer(self, cls, nb=1, _track=None):
         if _track is not None:
             _track.append(nb)
@@ -1220,9 +1237,9 @@ def ls(obj=None):
 
 
     
-#############
-## Fuzzing ##
-#############
+##############################
+## Transformation functions ##
+##############################
 
 @conf.commands.register
 def fuzz(p, _inplace=0):
@@ -1244,4 +1261,10 @@ def fuzz(p, _inplace=0):
     return p
 
 
-
+@conf.commands.register
+def solidify(pkt):
+    """Reconstruct the given packet by building and dissecting it"""
+    if isinstance(pkt, Packet):
+        return pkt.__class__(str(pkt))
+    else:
+        return None

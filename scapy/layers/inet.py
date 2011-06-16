@@ -10,17 +10,21 @@ IPv4 (Internet Protocol v4).
 import os,time,struct,re,socket,new
 from select import select
 from collections import defaultdict
-from scapy.utils import checksum
-from scapy.layers.l2 import *
 from scapy.config import conf
+from scapy.utils import checksum
+from scapy.plist import PacketList,SndRcvList
+from scapy.layers.l2 import *
 from scapy.fields import *
 from scapy.packet import *
 from scapy.volatile import *
-from scapy.sendrecv import sr,sr1,srp1
-from scapy.plist import PacketList,SndRcvList
+from scapy.sendrecv import sr,sr1
 from scapy.automaton import Automaton,ATMT
 
 import scapy.as_resolvers
+
+import scapy.arch
+if scapy.arch.GNUPLOT:
+    Gnuplot=scapy.arch.Gnuplot
 
 
 ####################
@@ -39,6 +43,7 @@ class IPTools:
         return self.ottl()-self.ttl-1 
 
 
+# http://www.iana.org/assignments/ip-parameters
 _ip_options_names = { 0: "end_of_list",
                       1: "nop",
                       2: "security",
@@ -69,11 +74,13 @@ _ip_options_names = { 0: "end_of_list",
                       
 
 class _IPOption_HDR(Packet):
+    name = "Abstract IP Option Header"
     fields_desc = [ BitField("copy_flag",0, 1),
                     BitEnumField("optclass",0,2,{0:"control",2:"debug"}),
                     BitEnumField("option",0,5, _ip_options_names) ]
     
 class IPOption(Packet):
+    name = "IP Option"
     fields_desc = [ _IPOption_HDR,
                     FieldLenField("length", None, fmt="B",  # Only option 0 and 1 have no length and value
                                   length_of="value", adjust=lambda pkt,l:l+2),
@@ -95,23 +102,45 @@ class IPOption(Packet):
         return cls
 
 class IPOption_EOL(IPOption):
+    name = "IP Option End of List"
     option = 0
     fields_desc = [ _IPOption_HDR ]
     
 
 class IPOption_NOP(IPOption):
+    name = "IP Option NOP"
     option=1
     fields_desc = [ _IPOption_HDR ]
 
+
+# RFC791
+ipoption_security_levels = { 0x0000:"Unclassified",
+                             0xf135:"Confidential",
+                             0x789a:"EFTO",
+                             0xbc4d:"MMMM",
+                             0x5e26:"PROG",
+                             0xaf13:"Restricted",
+                             0xd788:"Secret",
+                             0x6bc5:"Top Secret",
+                             0x35e2:"reserved0",
+                             0x9af1:"reserved1",
+                             0x4d78:"reserved2",
+                             0x24bd:"reserved3",
+                             0x135e:"reserved4",
+                             0x89af:"reserved5",
+                             0xc4d6:"reserved6",
+                             0xe26b:"reserved7" }
+
 class IPOption_Security(IPOption):
+    name = "IP Option Security"
     copy_flag = 1
     option = 2
     fields_desc = [ _IPOption_HDR,
                     ByteField("length", 11),
-                    ShortField("security",0),
+                    XShortEnumField("security",0,ipoption_security_levels),
                     ShortField("compartment",0),
-                    ShortField("handling_restrictions",0),
-                    StrFixedLenField("transmission_control_code","xxx",3),
+                    StrFixedLenField("handling_restrictions","",2),
+                    StrFixedLenField("transmission_control_code","",3),
                     ]
     
 class IPOption_LSRR(IPOption):
@@ -122,7 +151,7 @@ class IPOption_LSRR(IPOption):
                     FieldLenField("length", None, fmt="B",
                                   length_of="routers", adjust=lambda pkt,l:l+3),
                     ByteField("pointer",4), # 4 is first IP
-                    FieldListField("routers",[],IPField("","0.0.0.0"), 
+                    FieldListField("routers",[],IPField("router","0.0.0.0"), 
                                    length_from=lambda pkt:pkt.length-3)
                     ]
     def get_current_router(self):
@@ -155,6 +184,7 @@ class IPOption_MTU_Reply(IPOption_MTU_Probe):
     option = 12
 
 class IPOption_Traceroute(IPOption):
+    name = "IP Option Traceroute"
     copy_flag = 1
     option = 18
     fields_desc = [ _IPOption_HDR,
@@ -189,12 +219,13 @@ class IPOption_SDBM(IPOption):
     fields_desc = [ _IPOption_HDR,
                     FieldLenField("length", None, fmt="B",
                                   length_of="addresses", adjust=lambda pkt,l:l+2),
-                    FieldListField("addresses",[],IPField("","0.0.0.0"), 
+                    FieldListField("addresses",[],IPField("address","0.0.0.0"), 
                                    length_from=lambda pkt:pkt.length-2)
                     ]
     
 
 
+# http://www.iana.org/assignments/tcp-parameters/tcp-parameters.xhtml
 TCPOptions = (
               { 0 : ("EOL",None),
                 1 : ("NOP",None),
@@ -536,10 +567,12 @@ class UDP(Packet):
         else:
             return self.sprintf("UDP %UDP.sport% > %UDP.dport%")    
 
+# http://www.iana.org/assignments/icmp-parameters
 icmptypes = { 0 : "echo-reply",
               3 : "dest-unreach",
               4 : "source-quench",
               5 : "redirect",
+              6 : "alt-host-addr",
               8 : "echo-request",
               9 : "router-advertisement",
               10 : "router-solicitation",
@@ -550,8 +583,20 @@ icmptypes = { 0 : "echo-reply",
               15 : "information-request",
               16 : "information-response",
               17 : "address-mask-request",
-              18 : "address-mask-reply" }
+              18 : "address-mask-reply",
+              30 : "traceroute",
+              31 : "datagram-convert-error",
+              32 : "mobile-host-redirect",
+              33 : "ipv6-where-are-you",
+              34 : "ipv6-i-am-here",
+              35 : "mobile-regist-request",
+              36 : "mobile-regist-reply",
+              37 : "domain-name-request",
+              38 : "domain-name-reply",
+              39 : "skip",
+              40 : "photuris" }
 
+# http://www.iana.org/assignments/icmp-parameters
 icmpcodes = { 3 : { 0  : "network-unreachable",
                     1  : "host-unreachable",
                     2  : "protocol-unreachable",
@@ -571,10 +616,19 @@ icmpcodes = { 3 : { 0  : "network-unreachable",
                     1  : "host-redirect",
                     2  : "TOS-network-redirect",
                     3  : "TOS-host-redirect", },
+              9 : { 0  : "normal",
+                    16 : "no-route-common-traffic", },
               11 : { 0 : "ttl-zero-during-transit",
                      1 : "ttl-zero-during-reassembly", },
               12 : { 0 : "ip-header-bad",
-                     1 : "required-option-missing", }, }
+                     1 : "required-option-missing",
+                     2 : "bad-length", },
+              40 : { 0 : "bad-spi",
+                     1 : "authentication-failed",
+                     2 : "decompress-failed",
+                     3 : "decrypt-failed",
+                     4 : "need-authentication",
+                     5 : "need-authorization", }, }
                          
                    
 
@@ -591,9 +645,9 @@ class ICMP(Packet):
                     ConditionalField(ICMPTimeStampField("ts_tx", None), lambda pkt:pkt.type in [13,14]),
                     ConditionalField(IPField("gw","0.0.0.0"),  lambda pkt:pkt.type==5),
                     ConditionalField(ByteField("ptr",0),   lambda pkt:pkt.type==12),
-                    ConditionalField(X3BytesField("reserved",0), lambda pkt:pkt.type==12),
+                    ConditionalField(XThreeBytesField("reserved",0), lambda pkt:pkt.type==12),
                     ConditionalField(IPField("addr_mask","0.0.0.0"), lambda pkt:pkt.type in [17,18]),
-                    ConditionalField(IntField("unused",0), lambda pkt:pkt.type not in [0,5,8,12,13,14,15,16,17,18]),
+                    ConditionalField(IntField("unused",0), lambda pkt:pkt.type in [3,4,11]),
                     
                     ]
     def post_build(self, p, pay):
@@ -620,7 +674,7 @@ class ICMP(Packet):
         if self.type in [3,4,5,11,12]:
             return IPerror
         else:
-            return None
+            return Packet.guess_payload_class(self, payload)
     def mysummary(self):
         if isinstance(self.underlayer, IP):
             return self.underlayer.sprintf("ICMP %IP.src% > %IP.dst% %ICMP.type% %ICMP.code%")
@@ -633,6 +687,8 @@ class ICMP(Packet):
 
 class IPerror(IP):
     name = "IP in ICMP"
+    aliastypes = [ IP ]
+    overload_fields = {ICMP: {}}
     def answers(self, other):
         if not isinstance(other, IP):
             return 0
@@ -650,6 +706,7 @@ class IPerror(IP):
 
 class TCPerror(TCP):
     name = "TCP in ICMP"
+    aliastypes = [ TCP ]
     def answers(self, other):
         if not isinstance(other, TCP):
             return 0
@@ -671,6 +728,7 @@ class TCPerror(TCP):
 
 class UDPerror(UDP):
     name = "UDP in ICMP"
+    aliastypes = [ UDP ]
     def answers(self, other):
         if not isinstance(other, UDP):
             return 0
@@ -686,6 +744,7 @@ class UDPerror(UDP):
 
 class ICMPerror(ICMP):
     name = "ICMP in ICMP"
+    aliastypes = [ ICMP ]
     def answers(self, other):
         if not isinstance(other,ICMP):
             return 0
@@ -703,10 +762,10 @@ class ICMPerror(ICMP):
     def mysummary(self):
         return Packet.mysummary(self)
 
-bind_layers( Ether,         IP,            type=2048)
-bind_layers( CookedLinux,   IP,            proto=2048)
-bind_layers( GRE,           IP,            proto=2048)
-bind_layers( SNAP,          IP,            code=2048)
+bind_layers( Ether,         IP,            type=0x0800)
+bind_layers( CookedLinux,   IP,            proto=0x0800)
+bind_layers( GRE,           IP,            proto=0x0800)
+bind_layers( SNAP,          IP,            code=0x0800)
 bind_layers( IPerror,       IPerror,       frag=0, proto=4)
 bind_layers( IPerror,       ICMPerror,     frag=0, proto=1)
 bind_layers( IPerror,       TCPerror,      frag=0, proto=6)
@@ -1069,7 +1128,7 @@ class TracerouteResult(SndRcvList):
                 
                 
     def world_trace(self):
-        from modules.geo import locate_ip
+        from scapy.modules.geoip import locate_ip
         ips = {}
         rt = {}
         ports_done = {}
@@ -1134,7 +1193,7 @@ class TracerouteResult(SndRcvList):
                 trace_id = (s.src,s.dst,s.proto,0)
             trace = rt.get(trace_id,{})
             ttl = conf.ipv6_enabled and scapy.layers.inet6.IPv6 in s and s.hlim or s.ttl
-            if not (ICMP in r and r[ICMP].type == 11) and not (conf.ipv6_enabled and scapy.layers.inet6.IPv6 in r and ICMPv6TimeExceeded in r):
+            if not (ICMP in r and r[ICMP].type == 11) and not (conf.ipv6_enabled and scapy.layers.inet6.IPv6 in r and scapy.layers.inet6.ICMPv6TimeExceeded in r):
                 if trace_id in ports_done:
                     continue
                 ports_done[trace_id] = None

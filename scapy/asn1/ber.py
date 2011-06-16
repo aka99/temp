@@ -287,7 +287,7 @@ class BERcodec_IPADDRESS(BERcodec_STRING):
         try:
             ipaddr_ascii = inet_ntoa(s)
         except Exception:
-            raise BER_Decoding_Error("IP address could not be decoded", decoded=obj)
+            raise BER_Decoding_Error("IP address could not be decoded")
         return cls.asn1_object(ipaddr_ascii), t
 
 class BERcodec_UTC_TIME(BERcodec_STRING):

@@ -13,6 +13,7 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.plist import PacketList
 from scapy.layers.l2 import *
+from scapy.layers.inet import IP,TCP
 
 
 try:
@@ -118,11 +119,14 @@ class RadioTap(Packet):
     fields_desc = [ ByteField('version', 0),
                     ByteField('pad', 0),
                     FieldLenField('len', None, 'notdecoded', '<H', adjust=lambda pkt,x:x+8),
-                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','Channel','FHSS','dBm_AntSignal',
-                                                     'dBm_AntNoise','Lock_Quality','TX_Attenuation','dB_TX_Attenuation',
-                                                      'dBm_TX_Power', 'Antenna', 'dB_AntSignal', 'dB_AntNoise',
-                                                     'b14', 'b15','b16','b17','b18','b19','b20','b21','b22','b23',
-                                                     'b24','b25','b26','b27','b28','b29','b30','Ext']),
+                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','Channel',
+                                                      'FHSS','dBm_AntSignal','dBm_AntNoise','Lock_Quality',
+                                                      'TX_Attenuation','dB_TX_Attenuation','dBm_TX_Power','Antenna',
+                                                      'dB_AntSignal','dB_AntNoise','RX_Flags', '',
+                                                      '','','','MCS',
+                                                      '','','','',
+                                                      '','','','',
+                                                      '','Radiotap_Namespace','Vendor_Namespace','Ext']),
                     StrLenField('notdecoded', "", length_from= lambda pkt:pkt.len-8) ]
 
 class PPI(Packet):
@@ -150,10 +154,47 @@ class Dot11SCField(LEShortField):
         else:
             return s,None
 
+dot11subtypes = { 0:{  0: "association-req",
+                       1: "association-res",
+                       2: "reassociation-req",
+                       3: "reassociation-res",
+                       4: "probe-req",
+                       5: "probe-res",
+                       8: "beacon",
+                       9: "ATIM",
+                      10: "disassociation",
+                      11: "authentication",
+                      12: "deauthentication",
+                      13: "action" },
+                  1:{  8: "block-ack-req",
+                       9: "block-ack",
+                      10: "PS-poll",
+                      11: "RTS",
+                      12: "CTS",
+                      13: "ack",
+                      14: "CF-end",
+                      15: "CF-end+CF-ack" },
+                  2:{  0: "data",
+                       1: "data+CF-ack",
+                       2: "data+CF-poll",
+                       3: "data+CF-ack+CF-poll",
+                       4: "null",
+                       5: "CF-ack",
+                       6: "CF-poll",
+                       7: "CF-ack+CF-poll",
+                       8: "QoS+data",
+                       9: "QoS+data+CF-ack",
+                      10: "QoS+data+CF-poll",
+                      11: "QoS+data+CF-ack+CF-poll",
+                      12: "QoS",
+                      13: "QoS+CF-ack",
+                      14: "QoS+CF-poll",
+                      15: "QoS+CF-ack+CF-poll" } }
+
 class Dot11(Packet):
     name = "802.11"
     fields_desc = [
-                    BitField("subtype", 0, 4),
+                    BitMultiEnumField("subtype", 0, 4, dot11subtypes, depends_on=lambda pkt:pkt.type),
                     BitEnumField("type", 0, 2, ["Management", "Control", "Data", "Reserved"]),
                     BitField("proto", 0, 2),
                     FlagsField("FCfield", 0, 8, ["to-DS", "from-DS", "MF", "retry", "pw-mgt", "MD", "wep", "order"]),
@@ -169,7 +210,7 @@ class Dot11(Packet):
     def guess_payload_class(self, payload):
         if self.type == 0x02 and (self.subtype >= 0x08 and self.subtype <=0xF and self.subtype != 0xD):
             return Dot11QoS
-	elif self.FCfield & 0x40:
+        elif self.FCfield & 0x40:
             return Dot11WEP
         else:
             return Packet.guess_payload_class(self, payload)
@@ -219,10 +260,10 @@ class Dot11QoS(Packet):
         return Packet.guess_payload_class(self, payload)
 
 
-capability_list = [ "res8", "res9", "short-slot", "res11",
-                    "res12", "DSSS-OFDM", "res14", "res15",
-                   "ESS", "IBSS", "CFP", "CFP-req",
-                   "privacy", "short-preamble", "PBCC", "agility"]
+capability_list = [ "ESS", "IBSS", "CFP", "CFP-req",
+                    "privacy", "short-preamble", "PBCC", "agility",
+                    "", "", "short-slot", "",
+                    "", "DSSS-OFDM", "", ""]
 
 reason_code = {0:"reserved",1:"unspec", 2:"auth-expired",
                3:"deauth-ST-leaving",
@@ -239,7 +280,7 @@ class Dot11Beacon(Packet):
     name = "802.11 Beacon"
     fields_desc = [ LELongField("timestamp", 0),
                     LEShortField("beacon_interval", 0x0064),
-                    FlagsField("cap", 0, 16, capability_list) ]
+                    FlagsField("cap", 0, -16, capability_list) ]
     
 
 class Dot11Elt(Packet):
@@ -263,19 +304,19 @@ class Dot11Disas(Packet):
 
 class Dot11AssoReq(Packet):
     name = "802.11 Association Request"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("listen_interval", 0x00c8) ]
 
 
 class Dot11AssoResp(Packet):
     name = "802.11 Association Response"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("status", 0),
                     LEShortField("AID", 0) ]
 
 class Dot11ReassoReq(Packet):
     name = "802.11 Reassociation Request"
-    fields_desc = [ FlagsField("cap", 0, 16, capability_list),
+    fields_desc = [ FlagsField("cap", 0, -16, capability_list),
                     LEShortField("listen_interval", 0x00c8),
                     MACField("current_AP", ETHER_ANY) ]
 
@@ -290,7 +331,7 @@ class Dot11ProbeResp(Packet):
     name = "802.11 Probe Response"
     fields_desc = [ LELongField("timestamp", 0),
                     LEShortField("beacon_interval", 0x0064),
-                    FlagsField("cap", 0, 16, capability_list) ]
+                    FlagsField("cap", 0, -16, capability_list) ]
     
 class Dot11Auth(Packet):
     name = "802.11 Authentication"

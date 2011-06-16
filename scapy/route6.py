@@ -130,7 +130,7 @@ class Route6:
             else:
                 self.routes[i] = (net,the_plen,gw,iface,the_addr)
         self.invalidate_cache()
-        ip6_neigh_cache.flush()
+        conf.netcache.in6_neighbor.flush()
 
     def ifdel(self, iff):
         """ removes all route entries that uses 'iff' interface. """
@@ -218,7 +218,7 @@ class Route6:
                 
         if not pathes:
             warning("No route found for IPv6 destination %s (no default route?)" % dst)
-            return (LOOPBACK_NAME, "::", "::") # XXX Linux specific
+            return (LOOPBACK_NAME, "::1", "::")
 
         # Sort with longest prefix first
         pathes.sort(reverse=True)
@@ -270,5 +270,5 @@ _res = conf.route6.route("::/0")
 if _res:
     iff, gw, addr = _res
     conf.iface6 = iff
-del(_res)
+del(_res,iff,gw,addr)
 

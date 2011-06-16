@@ -11,10 +11,11 @@ import os,random
 from scapy.packet import *
 from scapy.fields import *
 from scapy.automaton import *
-from scapy.layers.inet import UDP
+from scapy.layers.inet import IP,UDP
 
 
 
+# RFC1350, RFC2347
 TFTP_operations = { 1:"RRQ",2:"WRQ",3:"DATA",4:"ACK",5:"ERROR",6:"OACK" }
 
 
@@ -52,12 +53,14 @@ class TFTP_DATA(Packet):
         return self.sprintf("DATA %block%"),[UDP]
 
 class TFTP_Option(Packet):
+    name = "TFTP Option"
     fields_desc = [ StrNullField("oname",""),
                     StrNullField("value","") ]
     def extract_padding(self, pkt):
         return "",pkt
 
 class TFTP_Options(Packet):
+    name = "TFTP Options"
     fields_desc = [ PacketListField("options", [], TFTP_Option, length_from=lambda x:None) ]
 
     
@@ -73,6 +76,7 @@ class TFTP_ACK(Packet):
     def mysummary(self):
         return self.sprintf("ACK %block%"),[UDP]
 
+# RFC1350, RFC2347
 TFTP_Error_Codes = {  0: "Not defined",
                       1: "File not found",
                       2: "Access violation",

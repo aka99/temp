@@ -625,7 +625,15 @@ class Automaton:
                         if fd == self.cmdin:
                             yield self.CommandMessage("Received command message")
                         elif fd == self.listen_sock:
-                            pkt = self.listen_sock.recv(MTU)
+                            if isinstance(fd, int):
+                                read_func = os.read
+                            elif hasattr(fd, 'read'):
+                                read_func = fd.read
+                            else:
+                                read_func = fd.recv
+                            self.debug(5, "Trying to read %d" % MTU)
+                            pkt = read_func(MTU)
+                            self.debug(5, "Finished reading %d" % (len(pkt)))
                             if pkt is not None:
                                 if self.master_filter(pkt):
                                     self.debug(3, "RECVD: %s" % pkt.summary())

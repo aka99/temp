@@ -10,7 +10,7 @@ ASN.1 (Abstract Syntax Notation One)
 import random
 from scapy.config import conf
 from scapy.error import Scapy_Exception,warning
-from scapy.volatile import RandField
+from scapy.volatile import RandField,RandIP
 from scapy.utils import Enum_metaclass, EnumElement
 
 class RandASN1Object(RandField):
@@ -55,14 +55,18 @@ class ASN1_BadTag_Decoding_Error(ASN1_Decoding_Error):
 
 
 class ASN1Codec(EnumElement):
+    @classmethod
     def register_stem(cls, stem):
         cls._stem = stem
+    @classmethod
     def dec(cls, s, context=None):
         return cls._stem.dec(s, context=context)
+    @classmethod
     def safedec(cls, s, context=None):
         return cls._stem.safedec(s, context=context)
+    @classmethod
     def get_stem(cls):
-        return cls.stem
+        return cls._stem
     
 
 class ASN1_Codecs_metaclass(Enum_metaclass):
@@ -201,6 +205,14 @@ class ASN1_Object:
         return self.val == other
     def __cmp__(self, other):
         return cmp(self.val, other)
+    def __getitem__(self, cls):
+        return self.val.__getitem__(cls)
+    def __delitem__(self, cls):
+        self.val.__delitem__(cls)
+    def __setitem__(self, cls):
+        self.val.__setitem__(cls)
+    def __contains__(self, cls):
+        self.val.__contains__(cls)
 
 class ASN1_DECODING_ERROR(ASN1_Object):
     tag = ASN1_Class_UNIVERSAL.ERROR

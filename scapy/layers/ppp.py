@@ -39,6 +39,7 @@ class PPPoED(PPPoE):
                     ShortField("len", None) ]
 
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_proto = { 0x0001: "Padding Protocol",
                0x0003: "ROHC small-CID [RFC3095]",
                0x0005: "ROHC large-CID [RFC3095]",
@@ -191,6 +192,7 @@ _PPP_proto = { 0x0001: "Padding Protocol",
 
 
 class HDLC(Packet):
+    name = "HDLC"
     fields_desc = [ XByteField("address",0xff),
                     XByteField("control",0x03)  ]
 
@@ -203,6 +205,7 @@ class PPP(Packet):
             cls = HDLC
         return cls
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_conftypes = { 1:"Configure-Request",
                    2:"Configure-Ack",
                    3:"Configure-Nak",
@@ -221,7 +224,7 @@ _PPP_conftypes = { 1:"Configure-Request",
 
 ### PPP IPCP stuff (RFC 1332)
 
-# All IPCP options are defined below (names and associated classes) 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_ipcpopttypes = {     1:"IP-Addresses (Deprecated)",
                           2:"IP-Compression-Protocol",
                           3:"IP-Address",
@@ -234,9 +237,11 @@ _PPP_ipcpopttypes = {     1:"IP-Addresses (Deprecated)",
 
 class PPP_IPCP_Option(Packet):
     name = "PPP IPCP Option"
-    fields_desc = [ ByteEnumField("type" , None , _PPP_ipcpopttypes),
-                    FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+2),
-                    StrLenField("data", "", length_from=lambda p:max(0,p.len-2)) ]
+    fields_desc = [
+        ByteEnumField("type" , None , _PPP_ipcpopttypes),
+        FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+2),
+        StrLenField("data", "", length_from=lambda p:max(0,p.len-2))
+    ]
     def extract_padding(self, pay):
         return "",pay
 
@@ -289,16 +294,22 @@ class PPP_IPCP_Option_NBNS2(PPP_IPCP_Option):
 
 
 class PPP_IPCP(Packet):
-    fields_desc = [ ByteEnumField("code" , 1, _PPP_conftypes),
-		    XByteField("id", 0 ),
-                    FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
-                    PacketListField("options", [],  PPP_IPCP_Option, length_from=lambda p:p.len-4,) ]
+    name = "PPP IPCP"
+    fields_desc = [
+        ByteEnumField("code" , 1, _PPP_conftypes),
+        XByteField("id", 0 ),
+        FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
+        PacketListField("options", [],  PPP_IPCP_Option, length_from=lambda p:p.len-4,)
+    ]
 
 
 ### ECP
 
+# http://www.iana.org/assignments/ppp-numbers
 _PPP_ecpopttypes = { 0:"OUI",
-                     1:"DESE", }
+                     1:"DESE",
+                     2:"3DESE",
+                     3:"DESE-bis" }
 
 class PPP_ECP_Option(Packet):
     name = "PPP ECP Option"
@@ -320,6 +331,7 @@ class PPP_ECP_Option(Packet):
         return cls
 
 class PPP_ECP_Option_OUI(PPP_ECP_Option):
+    name = "PPP ECP Option: OUI"
     fields_desc = [ ByteEnumField("type" , 0 , _PPP_ecpopttypes),
                     FieldLenField("len", None, length_of="data", fmt="B", adjust=lambda p,x:x+6),
                     StrFixedLenField("oui","",3),
@@ -329,6 +341,7 @@ class PPP_ECP_Option_OUI(PPP_ECP_Option):
 
 
 class PPP_ECP(Packet):
+    name = "PPP ECP"
     fields_desc = [ ByteEnumField("code" , 1, _PPP_conftypes),
 		    XByteField("id", 0 ),
                     FieldLenField("len" , None, fmt="H", length_of="options", adjust=lambda p,x:x+4 ),
@@ -343,5 +356,3 @@ bind_layers( HDLC,          PPP,           )
 bind_layers( PPP,           IP,            proto=33)
 bind_layers( PPP,           PPP_IPCP,      proto=0x8021)
 bind_layers( PPP,           PPP_ECP,       proto=0x8053)
-bind_layers( Ether,         PPP_IPCP,      type=0x8021)
-bind_layers( Ether,         PPP_ECP,       type=0x8053)

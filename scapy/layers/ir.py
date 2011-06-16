@@ -17,28 +17,28 @@ from scapy.layers.l2 import CookedLinux
 
 class IrLAPHead(Packet):
     name = "IrDA Link Access Protocol Header"
-    fields_desc = [ XBitField("Address", 0x7f, 7),
-                    BitEnumField("Type", 1, 1, {"Response":0,
-                                                "Command":1})]
+    fields_desc = [ XBitField("address", 0x7f, 7),
+                    BitEnumField("type", 1, 1, {"response":0,
+                                                "cmd":1})]
 
 class IrLAPCommand(Packet):
     name = "IrDA Link Access Protocol Command"
-    fields_desc = [ XByteField("Control", 0),
-                    XByteField("Format identifier", 0),
-                    XIntField("Source address", 0),
-                    XIntField("Destination address", 0xffffffffL),
-                    XByteField("Discovery flags", 0x1),
-                    ByteEnumField("Slot number", 255, {"final":255}),
-                    XByteField("Version", 0)]
+    fields_desc = [ XByteField("control", 0),
+                    XByteField("format", 0),
+                    XIntField("src", 0),
+                    XIntField("dest", 0xffffffffL),
+                    XByteField("discovery", 0x1),
+                    ByteEnumField("slot", 255, {"final":255}),
+                    XByteField("ver", 0)]
 
 
 class IrLMP(Packet):
     name = "IrDA Link Management Protocol"
-    fields_desc = [ XShortField("Service hints", 0),
-                    XByteField("Character set", 0),
-                    StrField("Device name", "") ]
+    fields_desc = [ XShortField("hints", 0),
+                    XByteField("charset", 0),
+                    StrField("device", "") ]
 
 
 bind_layers( CookedLinux,   IrLAPHead,     proto=23)
-bind_layers( IrLAPHead,     IrLAPCommand,  Type=1)
+bind_layers( IrLAPHead,     IrLAPCommand,  type=1)
 bind_layers( IrLAPCommand,  IrLMP,         )
