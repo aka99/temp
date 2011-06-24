@@ -86,7 +86,217 @@ def getmacbyip(ip, chainCC=0):
         return mac
     return None
 
+#
+# VLAN (and potentially) other tags.
+#
+# TPIDs (Tag Protocol IDs) are special ethertypes that signify TAGs, rather
+# than real protocols. 
+#
+conf.inner_tpids = set([0x8100])
+conf.outer_tpids = set([0x8100, 0x88a8, 0x9100, 0x9200])
+conf.vntag_tpids = set([0x8926])
+conf.tpids = conf.inner_tpids | conf.outer_tpids
 
+conf.default_vlan=1
+conf.default_src_mac="00:00:00:00:00:00"
+
+#
+# Useful Constants
+#
+ETHER_NONE       = -1
+ETHER_LEN        = 0
+ETHER_TYPE       = 1
+ETHER_TPID       = 2
+ETHER_INNER_TPID = 3
+ETHER_OUTER_TPID = 4
+ETHER_VNTAG      = 5
+#
+# Ethernet tag helper functions
+#
+def ether_short_get(s):
+    """
+    Interpret the first two bytes of a string as a short integer.
+    If there is not enough data, return 0.
+    """
+    if len(s) >= 2:
+        return struct.unpack("!H", s[0:2])[0]
+    else:
+        return 0
+
+def ether_whatis(tpid_type_len):
+    """
+    Interpret a short (two bytes) as either a TPID,  Ethertype or length
+    Returns the defined ENUM plus the length of the tag (or 0 if it is not a TPID)
+    """
+    if tpid_type_len <= 0x600:
+        return (ETHER_LEN, 0)
+    elif tpid_type_len in conf.tpids:
+        return (ETHER_TPID, 4)
+    elif tpid_type_len in conf.vntag_tpids:
+        return (ETHER_TPID, 6)
+    else:
+        return (ETHER_TYPE, 0)
+
+def ether_whatis2(tpid_type_len, s):
+    """
+    Interpret a short (two bytes) either as TPID, Ethertype or length,
+    but distinguish between Inner and outer TPIDS, based on the
+    bytes that follow the tag
+    """
+    (whatis, tag_len) = ether_whatis(tpid_type_len)
+    if whatis == ETHER_TPID:
+        if tpid_type_len in conf.vntag_tpids:
+            return (ETHER_VNTAG, 6)
+        
+        outer = tpid_type_len in conf.outer_tpids
+        inner = tpid_type_len in conf.inner_tpids
+        if inner and outer:
+            next_tpid_type_len = ether_short_get(s[tag_len:])
+            if next_tpid_type_len in conf.tpids:
+                inner = False
+
+        if inner:
+            return (ETHER_INNER_TPID, 4)
+        if outer:
+            return (ETHER_OUTER_TPID, 4)
+    return (whatis, tag_len)
+        
+def EtherTag_dispatch_hook(cls, _pkt=None, *args, **kargs):
+    """
+    The function determines the class for a tag, based on the first two bytes (TPID)
+    """
+    if _pkt and len(_pkt) >=2:
+        tpid_type_len = ether_short_get(_pkt)
+        whatis = ether_whatis2(tpid_type_len, _pkt)[0]
+        if whatis == ETHER_INNER_TPID:
+            return Dot1Q
+        elif whatis == ETHER_OUTER_TPID:
+            return Dot1AD
+        elif whatis == ETHER_VNTAG:
+            return VNTag
+        else:
+            return Untagged
+    return cls
+
+def Ether_dispatch_hook(cls, _pkt=None, *args, **kargs):
+    """
+    The function determines the Ethernet encapsulation based on the type/len field.
+    The trick is to get to that field by going past all the tags
+    """
+    if _pkt and len(_pkt) >= 14:
+        offset = 12
+        # Skip all the tags
+        while offset <= len(_pkt) - 2:
+            tag_type_len = ether_short_get(_pkt[offset:])
+            (whatis, tag_len) = ether_whatis(tag_type_len)
+            if whatis != ETHER_TPID:
+                break
+            offset += tag_len
+
+        if whatis == ETHER_TYPE:
+            return Ether
+        if whatis == ETHER_LEN:
+            return Dot3 
+    return cls
+
+#
+# Ethernet Tags
+#
+class EtherTag(Packet):
+    """
+    Base Class for the Ethernet Tags
+    """
+    def guess_payload_class(self, s):
+        if s is None:
+            return Untagged
+
+        next_whatis = ether_whatis2(ether_short_get(s), s)[0]
+        if  next_whatis == ETHER_OUTER_TPID:
+            return Dot1Q
+        elif next_whatis == ETHER_INNER_TPID:
+            return Dot1AD
+        elif next_whatis == ETHER_VNTAG:
+            return VNTag
+        else:
+            return Packet.guess_payload_class(self, s)
+        
+    def extract_padding(self, _pkt):
+        tags_end = 0
+        while tags_end < len(_pkt):
+            (whatis, tag_len) = ether_whatis(ether_short_get(_pkt[tags_end:]))
+            if whatis == ETHER_TPID: 
+                tags_end += tag_len
+                continue
+            else:
+                break
+        return _pkt[:tags_end], _pkt[tags_end:]
+    
+    def answers(self, other):
+        if self.vlan == conf.default_vlan or self.vlan == 0:
+            if isinstance(other, Untagged) or other is None:
+                return True
+        if isinstance(other, EtherTag):
+            if ( (self.tpid == other.tpid) and
+                 (self.vlan == other.vlan) ):
+                return self.payload.answers(other.payload)
+            else:
+                return False
+    def mysummary(self):
+        return self.sprintf("VID:%vlan%")
+
+class Untagged(EtherTag):
+    name = "Untagged"
+    def answers(self, other):
+        if other is None:
+            return True
+        if isinstance(other, Untagged):
+            return True
+        if (isinstance(other, EtherTag) and
+            (other.vlan == 0) or (other.vlan == conf.default_vlan)):
+            return True
+        return False
+    def mysummary(self):
+        return self.printf("Untagged")
+    @classmethod
+    def dispatch_hook(cls, _pkt=None, *args, **kargs):
+        return EtherTag_dispatch_hook(cls, _pkt, args, kargs)
+ 
+class Dot1Q(EtherTag):
+    name = "802.1Q"
+    fields_desc =  [ XShortField("tpid", 0x8100),
+                     BitField("prio", 0, 3),
+                     BitField("cfi", 0, 1),
+                     BitField("vlan", conf.default_vlan, 12)]
+    @classmethod
+    def dispatch_hook(cls, _pkt=None, *args, **kargs):
+        return EtherTag_dispatch_hook(cls, _pkt, args, kargs)
+
+class Dot1AD(EtherTag):
+    name = "802.1ad"
+    fields_desc =  [ XShortField("tpid", 0x9100),
+                     BitField("prio", 0, 3),
+                     BitField("dei", 0, 1),
+                     BitField("vlan", conf.default_vlan, 12)]
+    @classmethod
+    def dispatch_hook(cls, _pkt=None, *args, **kargs):
+        return EtherTag_dispatch_hook(cls, _pkt, args, kargs)
+
+class VNTag(EtherTag):
+    name = "VNTag"
+    fields_desc =  [ XShortField("tpid", 0x8926),
+                     BitField("dir",     0, 1),
+                     BitField("ptr",     0, 1),
+                     BitField("dst",     0, 14),
+                     BitField("looped",  0, 1),
+                     BitField("r",       0, 1),
+                     BitField("version", 0, 2),
+                     BitField("src",     0, 12) ]
+    @classmethod
+    def dispatch_hook(cls, _pkt=None, *args, **kargs):
+        return EtherTag_dispatch_hook(cls, _pkt, args, kargs)
+
+bind_layers(Dot1Q, Dot1Q, tpid=0x9100)
+bind_layers(VNTag, Dot1Q, )
 
 ### Fields
 
@@ -115,7 +325,7 @@ class SourceMACField(MACField):
                 except:
                     pass
             if x is None:
-                x = "00:00:00:00:00:00"
+                x = conf.default_src_mac
         return MACField.i2h(self, pkt, x)
     def i2m(self, pkt, x):
         return MACField.i2m(self, pkt, self.i2h(pkt, x))
@@ -132,58 +342,82 @@ class ARPSourceMACField(MACField):
                 except:
                     pass
             if x is None:
-                x = "00:00:00:00:00:00"
+                x = conf.default_src_mac
         return MACField.i2h(self, pkt, x)
     def i2m(self, pkt, x):
         return MACField.i2m(self, pkt, self.i2h(pkt, x))
 
-
-
 ### Layers
 
+class Ethernet_base(Packet):
+    """
+    This is the base class for both types of Ethernet frames.
+    This class overrides the standard __div__ method for the packets, so that if
+    an ethernet packet is followed by a tag, it gets incorporated inside the "tags"
+    field
+    """
+    def __div__(self, other):
+        if isinstance(other, EtherTag) and isinstance(self.payload, NoPayload):
+            cloneA = self.copy()
+            cloneB = other.copy()
+            payloadB = cloneB.payload
+            cloneB.remove_payload()
+            if cloneA.tags is None or isinstance(cloneA.tags, Untagged):
+                cloneA.tags = cloneB
+            else:
+                cloneA.tags /= cloneB
+            return cloneA/payloadB
+        else:
+            return Packet.__div__(self, other)
 
-class Ether(Packet):
+class Ether(Ethernet_base):
     name = "Ethernet"
     fields_desc = [ DestMACField("dst"),
                     SourceMACField("src"),
+                    PacketField("tags", Untagged(), Dot1Q),
                     XShortEnumField("type", 0x0600, ETHER_TYPES) ]
     def hashret(self):
         return struct.pack("H",self.type)+self.payload.hashret()
     def answers(self, other):
         if isinstance(other,Ether):
             if self.type == other.type:
-                return self.payload.answers(other.payload)
+                if ((self.tags is None and other.tags is None) or
+                    (self.tags is None and isinstance(other.tags, Untagged)) or
+                    (self.tags is not None and self.tags.answers(other.tags))):
+                    return self.payload.answers(other.payload)
         return 0
     def mysummary(self):
-        return self.sprintf("%src% > %dst% (%type%)")
+        if self.tags is None:
+            return self.sprintf("%src% > %dst% Untagged (%type%)")
+        else:
+            return self.sprintf("%src% > %dst% ") + \
+                   self.tags.mysummary()          + \
+                   self.sprintf(" (%type%)")
     @classmethod
     def dispatch_hook(cls, _pkt=None, *args, **kargs):
-        if _pkt and len(_pkt) >= 14:
-            if struct.unpack("!H", _pkt[12:14])[0] <= 1500:
-                return Dot3
-        return cls
+        return Ether_dispatch_hook(cls, _pkt, args, kargs)
 
-
-class Dot3(Packet):
+class Dot3(Ethernet_base):
     name = "802.3"
     fields_desc = [ DestMACField("dst"),
                     MACField("src", ETHER_ANY),
+                    PacketField("tags", Untagged(), Dot1Q),
                     LenField("len", None, "H") ]
     def extract_padding(self,s):
         l = self.len
         return s[:l],s[l:]
     def answers(self, other):
         if isinstance(other,Dot3):
-            return self.payload.answers(other.payload)
+            if ((self.tags is None and other.tags is None) or
+                ((self.tags is not None and other.tags is not None) and
+                 self.tags.answers(other.tags))):
+                return self.payload.answers(other.payload)
         return 0
     def mysummary(self):
         return "802.3 %s > %s" % (self.src, self.dst)
     @classmethod
     def dispatch_hook(cls, _pkt=None, *args, **kargs):
-        if _pkt and len(_pkt) >= 14:
-            if struct.unpack("!H", _pkt[12:14])[0] > 1500:
-                return Ether
-        return cls
+        return Ether_dispatch_hook(cls, _pkt, args, kargs)
 
 
 class LLC(Packet):
@@ -214,37 +448,7 @@ class SNAP(Packet):
 
 conf.neighbor.register_l3(Dot3, SNAP, lambda l2,l3: conf.neighbor.resolve(l2,l3.payload))
 
-
-class Dot1Q(Packet):
-    name = "802.1Q"
-    aliastypes = [ Ether ]
-    fields_desc =  [ BitField("prio", 0, 3),
-                     BitField("id", 0, 1),
-                     BitField("vlan", 1, 12),
-                     XShortEnumField("type", 0x0000, ETHER_TYPES) ]
-    def answers(self, other):
-        if isinstance(other,Dot1Q):
-            if ( (self.type == other.type) and
-                 (self.vlan == other.vlan) ):
-                return self.payload.answers(other.payload)
-        else:
-            return self.payload.answers(other)
-        return 0
-    def default_payload_class(self, pay):
-        if self.type <= 1500:
-            return LLC
-        return Raw
-    def extract_padding(self,s):
-        if self.type <= 1500:
-            return s[:self.type],s[self.type:]
-        return s,None
-    def mysummary(self):
-        if isinstance(self.underlayer, Ether):
-            return self.underlayer.sprintf("802.1q %Ether.src% > %Ether.dst% (%Dot1Q.type%) vlan %Dot1Q.vlan%")
-        else:
-            return self.sprintf("802.1q (%Dot1Q.type%) vlan %Dot1Q.vlan%")
-
-            
+    
 conf.neighbor.register_l3(Ether, Dot1Q, lambda l2,l3: conf.neighbor.resolve(l2,l3.payload))
 
 class STP(Packet):
@@ -578,17 +782,17 @@ class GRE(Packet):
 
 
 bind_layers( Dot3,          LLC,           )
-bind_layers( Ether,         Dot1Q,         type=0x8100)
+# bind_layers( Ether,         Dot1Q,         type=0x8100)
 bind_layers( Ether,         ARP,           type=0x0806)
 bind_layers( Ether,         EAPOL,         type=0x888E)
 bind_layers( Ether,         EAPOL,         dst='01:80:c2:00:00:03', type=0x888E)
 bind_layers( CookedLinux,   LLC,           proto=122)
-bind_layers( CookedLinux,   Dot1Q,         proto=0x8100)
+# bind_layers( CookedLinux,   Dot1Q,         proto=0x8100)
 bind_layers( CookedLinux,   Ether,         proto=1)
 bind_layers( CookedLinux,   ARP,           proto=0x0806)
 bind_layers( CookedLinux,   EAPOL,         proto=0x888E)
 bind_layers( GRE,           LLC,           proto=122)
-bind_layers( GRE,           Dot1Q,         proto=0x8100)
+# bind_layers( GRE,           Dot1Q,         proto=0x8100)
 bind_layers( GRE,           Ether,         proto=1)
 bind_layers( GRE,           ARP,           proto=0x0806)
 bind_layers( GRE,           EAPOL,         proto=0x888E)
@@ -607,7 +811,7 @@ bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
 bind_layers( LLC,           STP,           dsap=66, ssap=66, ctrl=3)
 bind_layers( LLC,           SNAP,          dsap=170, ssap=170, ctrl=3)
-bind_layers( SNAP,          Dot1Q,         code=0x8100)
+# bind_layers( SNAP,          Dot1Q,         code=0x8100)
 bind_layers( SNAP,          Ether,         code=1)
 bind_layers( SNAP,          ARP,           code=0x0806)
 bind_layers( SNAP,          EAPOL,         code=0x888E)
