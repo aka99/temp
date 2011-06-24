@@ -266,3 +266,8 @@ bind_layers( Dot15d4FCS, Dot15d4Beacon, fcf_frametype=0)
 bind_layers( Dot15d4FCS, Dot15d4Data, fcf_frametype=1)
 bind_layers( Dot15d4FCS, Dot15d4Ack,  fcf_frametype=2)
 bind_layers( Dot15d4FCS, Dot15d4Cmd,  fcf_frametype=3)
+
+
+### DLT Types ###
+conf.l2types.register(195, Dot15d4FCS)
+conf.l2types.register(230, Dot15d4)
