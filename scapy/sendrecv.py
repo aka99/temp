@@ -33,6 +33,33 @@ import plist
 ## Send / Receive ##
 ####################
 
+class L2SocketSplit(object):
+    def __init__(self, iface1, iface2, *args, **kwargs):
+        super(L2SocketSplit, self).__init__()
+
+        self.sock1 = conf.L2socket(iface=iface1, *args, **kwargs)
+        self.sock2 = conf.L2socket(iface=iface2, *args, **kwargs)
+
+        self.servers = []
+
+    def __del__(self):
+        self.close()
+
+    def send(self, packet):
+        sock = self.sock1
+
+        if 'IP' in packet:
+            if packet.dst in self.servers:
+                sock = self.sock2
+            else:
+                if packet.src not in self.servers:
+                    self.servers.append(packet.src)
+
+        sock.send(packet)
+
+    def close(self):
+        self.sock1.close()
+        self.sock2.close()
 
 
 
@@ -258,6 +285,14 @@ sendp(packets, [inter=0], [loop=0], [verbose=conf.verb]) -> None"""
     if iface is None and iface_hint is not None:
         iface = conf.route.route(iface_hint)[0]
     __gen_send(conf.L2socket(iface=iface, *args, **kargs), x, inter=inter, loop=loop, count=count, verbose=verbose, realtime=realtime)
+
+@conf.commands.register
+def sendp_split(x, iface1, iface2, inter=0, loop=0, count=None, verbose=None, realtime=None, *args, **kwargs):
+    """Send packets at layer 2, after splitting them across two interfaces
+sendp_split(packets, iface1, iface2, [inter=0], [loop=0], [verbose=conf.verb]) -> None"""
+
+    socket = L2SocketSplit(iface1, iface2, *args, **kwargs)
+    __gen_send(socket, x, inter=inter, loop=loop, count=count, verbose=verbose, realtime=realtime)
 
 @conf.commands.register
 def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, iface=None):
