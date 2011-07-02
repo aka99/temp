@@ -531,7 +531,7 @@ iface:    listen answers only on the given interface"""
 
 @conf.commands.register
 def sniff(count=0, store=1, offline=None, prn = None, lfilter=None, L2socket=None, timeout=None,
-          opened_socket=None, stop_filter=None, *arg, **karg):
+          opened_socket=None, stop_filter=None, start_event=None, end_event=None, *arg, **karg):
     """Sniff packets
 sniff([count=0,] [prn=None,] [store=1,] [offline=None,] [lfilter=None,] + L2ListenSocket args) -> list of packets
 
@@ -550,6 +550,8 @@ opened_socket: provide an object ready to use .recv() on
 stop_filter: python function applied to each packet to determine
              if we have to stop the capture after this packet
              ex: stop_filter = lambda x: x.haslayer(TCP)
+  end_event: an event to wait on. acts as an early exit
+start_event: an event to wait on. signals that listening has started
     """
     c = 0
     
@@ -566,8 +568,10 @@ stop_filter: python function applied to each packet to determine
     lst = []
     if timeout is not None:
         stoptime = time.time()+timeout
+    if start_event:
+        start_event.set()
     remain = None
-    while 1:
+    while end_event is None or not end_event.is_set():
         try:
             if timeout is not None:
                 remain = stoptime-time.time()
