@@ -19,7 +19,7 @@ warnings.filterwarnings("ignore","tempnam",RuntimeWarning, __name__)
 from config import conf
 from data import MTU
 from error import log_runtime,log_loading,log_interactive,Scapy_Exception,warning
-from base_classes import BasePacketList
+from base_classes import BasePacketList,BasePcapReader
 
 WINDOWS=sys.platform.startswith("win32")
 
@@ -483,7 +483,7 @@ count: read only <count> packets"""
 
 
 
-class RawPcapReader:
+class RawPcapReader(BasePcapReader):
     """A stateful pcap reader. Each packet is returned as a string"""
 
     def __init__(self, filename):

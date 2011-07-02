@@ -22,7 +22,7 @@ class Gen(object):
 class SetGen(Gen):
     def __init__(self, set, _iterpacket=1):
         self._iterpacket=_iterpacket
-        if type(set) is list:
+        if type(set) is list or isinstance(set, BasePcapReader):
             self.set = set
         elif isinstance(set, BasePacketList):
             self.set = list(set)
@@ -264,4 +264,7 @@ class BasePacketList:
     pass
 
 
+class BasePcapReader:
+    def __repr__(self):
+        return str(self.__class__)
 
