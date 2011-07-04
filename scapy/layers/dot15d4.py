@@ -22,7 +22,9 @@ class dot15d4AddressField(Field):
         else:               self.adjust=lambda pkt,x:self.lengthFromAddrMode(pkt, x)
     def i2repr(self, pkt, x):
         """Convert internal value to a nice representation"""
-        return lhex(self.i2h(pkt,x))
+        x = hex(self.i2h(pkt,x))[2:-1]
+        x = len(x) %2 != 0 and "0" + x or x
+        return ":".join(["%s%s" % (x[i], x[i+1]) for i in range(0,len(x),2)])
     def addfield(self, pkt, s, val):
         """Add an internal value to a string"""
         if self.adjust(pkt, self.length_of) == 2:
@@ -136,11 +138,11 @@ class Dot15d4Ack(Packet):
 class Dot15d4AuxSecurityHeader(Packet):
     name = "802.15.4 Auxillary Security Header"
     fields_desc = [
-                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32", 2:"MIC-64", 3:"MIC-128",          \
-                                                           4:"ENC", 5:"ENC-MIC-32", 6:"ENC-MIC-64", 7:"ENC-MIC-128"}),
+                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32"}),
                     BitEnumField("sec_sc_keyidmode", 0, 2, {0:"Implicit", 1:"KeyIndex"}),
-                    HiddenField(BitField("sec_sc_reserved", 0, 3), True),
+                    BitField("sec_sc_reserved", 0, 3),
                     XLEIntField("sec_framecounter", 0x00000000),
+                    #TODO KeyId field only appears if sec_sc_keyidmode != 0
                     #TODO length of sec_keyid_keysource varies btwn 0, 4, and 8 bytes depending on sec_sc_keyidmode
                     #XLEIntField("sec_keyid_keysource", 0x00000000),
                     ConditionalField(XByteField("sec_keyid_keyindex", 0xFF), lambda pkt:pkt.getfieldval("sec_sc_keyidmode") != 0),
@@ -266,8 +268,3 @@ bind_layers( Dot15d4FCS, Dot15d4Beacon, fcf_frametype=0)
 bind_layers( Dot15d4FCS, Dot15d4Data, fcf_frametype=1)
 bind_layers( Dot15d4FCS, Dot15d4Ack,  fcf_frametype=2)
 bind_layers( Dot15d4FCS, Dot15d4Cmd,  fcf_frametype=3)
-
-
-### DLT Types ###
-conf.l2types.register(195, Dot15d4FCS)
-conf.l2types.register(230, Dot15d4)
