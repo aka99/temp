@@ -138,9 +138,10 @@ class Dot15d4Ack(Packet):
 class Dot15d4AuxSecurityHeader(Packet):
     name = "802.15.4 Auxillary Security Header"
     fields_desc = [
-                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32"}),
+                    BitEnumField("sec_sc_seclevel", 0, 3, {0:"None", 1:"MIC-32", 2:"MIC-64", 3:"MIC-128",          \
+                                                          4:"ENC", 5:"ENC-MIC-32", 6:"ENC-MIC-64", 7:"ENC-MIC-128"}),
                     BitEnumField("sec_sc_keyidmode", 0, 2, {0:"Implicit", 1:"KeyIndex"}),
-                    BitField("sec_sc_reserved", 0, 3),
+                    HiddenField(BitField("sec_sc_reserved", 0, 3), True),
                     XLEIntField("sec_framecounter", 0x00000000),
                     #TODO KeyId field only appears if sec_sc_keyidmode != 0
                     #TODO length of sec_keyid_keysource varies btwn 0, 4, and 8 bytes depending on sec_sc_keyidmode
@@ -268,3 +269,8 @@ bind_layers( Dot15d4FCS, Dot15d4Beacon, fcf_frametype=0)
 bind_layers( Dot15d4FCS, Dot15d4Data, fcf_frametype=1)
 bind_layers( Dot15d4FCS, Dot15d4Ack,  fcf_frametype=2)
 bind_layers( Dot15d4FCS, Dot15d4Cmd,  fcf_frametype=3)
+
+
+### DLT Types ###
+conf.l2types.register(195, Dot15d4FCS)
+conf.l2types.register(230, Dot15d4)
