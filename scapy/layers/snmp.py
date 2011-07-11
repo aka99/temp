@@ -297,6 +297,7 @@ class SNMP(ASN1_Packet):
                      SNMPget, SNMPnext, SNMPresponse, SNMPset,
                      SNMPtrapv1, SNMPbulk, SNMPinform, SNMPtrapv2)
         )
+    overload_fields = {UDP: {"sport": 161, "dport": 161 }}
     def answers(self, other):
         return ( isinstance(self.PDU, SNMPresponse)    and
                  ( isinstance(other.PDU, SNMPget) or
@@ -366,14 +367,26 @@ class SNMPv3(ASN1_Packet):
     ASN1_root = ASN1F_SEQUENCE(
         ASN1F_enum_INTEGER("version", 3, {0:"v1", 1:"v2c", 2:"v2", 3:"v3"}),
         ASN1F_SEQUENCE(ASN1F_INTEGER("id", 0),
-                       ASN1F_INTEGER("max_size", 2048),
-                       ASN1F_STRING("flags", "\x00"),
+                       ASN1F_INTEGER("max_size", 1500),
+                       ASN1F_STRING("flags", None),
                        ASN1F_enum_INTEGER("security_model", 3, SNMP_security_models)),
         ASN1F_SNMP_SECURITY("security", SNMPsecurityUSM()),
         ASN1F_CHOICE("data", SNMPscopedPDU(),
                      SNMPscopedPDU, SNMPencryptedPDU)
         )
-
+    overload_fields = {UDP: {"sport": 161, "dport": 161 }}
+    def post_build(self, p, pay):
+        if self.flags is None:
+            flags = 0
+            if self.security_model == 3:
+                if self.security.authentication != "":
+                    flags += 0x01
+                if self.security.privacy != "":
+                    flags += 0x02
+            s = self.copy()
+            s.flags = struct.pack("B",flags)
+            return s.build()
+        return p+pay
 
 
 def _snmp_dispatcher(x, *args, **kargs):
@@ -427,10 +440,9 @@ def snmpgeneratekey(password, engine, protocol):
     key = hash_func((password*(2**20/len(password)+1))[:2**20]).digest()
     return hash_func(key+engine+key).digest()
 
-
 def snmphash(pkt, password, protocol):
     pkt = pkt.copy()
-    snmpv3 = pkt["SNMPv3"]
+    snmpv3 = SNMPv3(str(pkt["SNMPv3"]))
     
     if snmpv3.security_model != 3:
         raise Scapy_Exception("Unsupported security model")
@@ -451,13 +463,13 @@ def snmphash(pkt, password, protocol):
     hash2 = hash_func(k2+hash1).digest()
     mac = hash2[:12]
     
-    snmpv3.security.authentication = auth_asn1
+#    snmpv3.security.authentication = auth_asn1
     
     return mac
 
 def snmpauthenticate(pkt, password, protocol):
     pkt = pkt.copy()
-    snmpv3 = pkt["SNMPv3"]
+    snmpv3 = SNMPv3(str(pkt["SNMPv3"]))
     
     auth = snmpv3.security.authentication.val
     if len(auth) != 12:
@@ -465,14 +477,27 @@ def snmpauthenticate(pkt, password, protocol):
     
     return snmphash(pkt, password, protocol) == auth
 
-
-def snmpdecrypt(pkt, password, protocol, hash_protocol):
+def snmpsetauth(pkt, password, protocol):
     pkt = pkt.copy()
     snmpv3 = pkt["SNMPv3"]
     
     if snmpv3.security_model != 3:
         raise Scapy_Exception("Unsupported security model")
-        return False
+    
+    if snmpv3.flags is None:
+        snmpv3.flags = ASN1_STRING("\x01")
+    if "security" not in snmpv3.fields:
+        snmpv3.security = SNMPsecurityUSM() #XXX: can't set field on default packet
+    snmpv3.security.authentication = snmphash(pkt, password, protocol)
+    
+    return snmpv3
+
+def snmpdecrypt(pkt, password, protocol, hash_protocol):
+    pkt = pkt.copy()
+    snmpv3 = SNMPv3(str(pkt["SNMPv3"]))
+    
+    if snmpv3.security_model != 3:
+        raise Scapy_Exception("Unsupported security model")
     
     priv = snmpv3.security.privacy.val
     if len(priv) != 8:
@@ -497,17 +522,17 @@ def snmpdecrypt(pkt, password, protocol, hash_protocol):
     snmpv3.data = SNMPscopedPDU(data)
     if snmpv3.data.payload:
         del(snmpv3.data.payload)
+    snmpv3.flags = None
     snmpv3.security.privacy = ASN1_STRING("")
     snmpv3.security.authentication = ASN1_STRING(snmphash(pkt, password, hash_protocol))
     return pkt
 
 def snmpencrypt(pkt, password, priv, protocol, hash_protocol):
     pkt = pkt.copy()
-    snmpv3 = pkt["SNMPv3"]
+    snmpv3 = SNMPv3(str(pkt["SNMPv3"]))
     
     if snmpv3.security_model != 3:
         raise Scapy_Exception("Unsupported security model")
-        return False
     
     if not isinstance(priv, basestring):
         if isinstance(priv, ASN1_STRING):
@@ -539,6 +564,7 @@ def snmpencrypt(pkt, password, priv, protocol, hash_protocol):
         raise Scapy_Exception("Unknown protocol %r" % protocol)
     
     snmpv3.data = SNMPencryptedPDU(encrypted_pdu=ASN1_STRING(data))
+    snmpv3.flags = None
     snmpv3.security.privacy = ASN1_STRING(priv)
     snmpv3.security.authentication = ASN1_STRING(snmphash(pkt, password, hash_protocol))
     return pkt
