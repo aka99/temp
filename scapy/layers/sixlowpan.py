@@ -46,7 +46,7 @@ Known Issues:
 """
 
 from scapy.packet import Packet, bind_layers
-from scapy.fields import BitField, ByteField, XBitField, LEShortField, LEIntField, StrLenField, HiddenField, BitEnumField, Field, ShortField, BitFieldLenField, XShortField
+from scapy.fields import BitField, ByteField, XBitField, LEShortField, LEIntField, StrLenField, HiddenField, BitEnumField, Field, ShortField, BitFieldLenField, XShortField, FlagsField
 
 from scapy.layers.inet6 import IPv6, IP6Field
 from scapy.utils6 import in6_or, in6_and, in6_xor
@@ -183,8 +183,8 @@ class LoWPANFragmentationFirst(Packet):
     name = "6LoWPAN First Fragmentation Packet"
     fields_desc = [
         HiddenField(BitField("__reserved", 0x18, 5)),
-        BitField("__datagramSize", 0x0, 11),
-        XShortField("__datagramTag", 0x0),
+        BitField("datagramSize", 0x0, 11),
+        XShortField("datagramTag", 0x0),
     ]
     
     def guess_payload_class(self, payload):
@@ -194,13 +194,13 @@ class LoWPANFragmentationSubsequent(Packet):
     name = "6LoWPAN Subsequent Fragmentation Packet"
     fields_desc = [
         HiddenField(BitField("__reserved", 0x1C, 5)),
-        BitField("__datagramSize", 0x0, 11),
-        XShortField("__datagramTag", 0x0), #TODO: change default value, should be a random one
-        ByteField("__datagramOffset", 0x0), #VALUE PRINTED IN OCTETS, wireshark does in bits (128 bits == 16 octets)
+        BitField("datagramSize", 0x0, 11),
+        XShortField("datagramTag", 0x0), #TODO: change default value, should be a random one
+        ByteField("datagramOffset", 0x0), #VALUE PRINTED IN OCTETS, wireshark does in bits (128 bits == 16 octets)
     ]
 
-    def guess_payload_class(self, payload):
-        return LoWPAN_IPHC
+#    def guess_payload_class(self, payload):
+#        return LoWPAN_IPHC
 
 #class LoWPANBroadcast(Packet):
     # page 23. Section 11.1
@@ -339,7 +339,6 @@ def source_addr_mode2(pkt):
     Keyword arguments:
     pkt -- packet object instance
     """
-    print "LA USAMOS"
     if pkt.sac == 0x0:
         if pkt.sam == 0x0:      return 16
         elif pkt.sam == 0x1:    return 8
@@ -463,12 +462,32 @@ class LoWPAN_IPHC(Packet):
         ConditionalField(
             IP6FieldLenField("sourceAddr", "::", 0, length_of=source_addr_mode2),
             #SixLoWPANAddrField("sourceAddr", 0x0, length_of=source_addr_mode),
-            lambda pkt: source_addr_mode(pkt) != 0
+            lambda pkt: source_addr_mode2(pkt) != 0
         ),
         ConditionalField(
             IP6FieldLenField("destinyAddr", "::", 0, length_of=destiny_addr_mode), #problem when it's 0
             lambda pkt: destiny_addr_mode(pkt) != 0 
         ),
+        
+        # LoWPAN_UDP Header Compression ########################################
+        # TODO: IMPROVE!!!!!
+        ConditionalField(
+            FlagsField("header_compression", 0, 8, ["A", "B", "C", "D", "E", "C", "PS", "PD"]),
+            lambda pkt: pkt.nh
+        ),
+        ConditionalField(
+            ShortField("udpSourcePort", 0x0),
+            lambda pkt: pkt.nh and pkt.header_compression & 0x2 == 0x0
+        ),
+        ConditionalField(
+            ShortField("udpDestinyPort", 0x0),
+            lambda pkt: pkt.nh and pkt.header_compression & 0x1 == 0x0
+        ),
+        ConditionalField(
+            XShortField("udpChecksum", 0x0),
+            lambda pkt: pkt.nh and pkt.header_compression & 0x4 == 0x0
+        ),
+        
     ]
 
     def post_disect(self, data):
@@ -503,12 +522,14 @@ class LoWPAN_IPHC(Packet):
         return Packet.do_build(self)
     
     def do_build_payload(self):
-        print "do_build_payload"
         #self.payload = self.payload.payload
         return Packet.do_build_payload(self)
     def post_build(self, pkt, pay):
         # remove IPv6 header
-        return pkt + pay[40:]
+        if self.header_compression & 240 == 240: #TODO: UDP header IMPROVE
+            return pkt + pay[40+16:]
+        else:
+            return pkt + pay[40:]
         
     def _getSourceAddr(self, packet_ipv6): #TODO: implement!!
         """Builds the source IPv6 address for the IPv6 compressed packet. """
@@ -633,6 +654,31 @@ class SixLoWPAN(Packet):
         else:
             return payload
 
+#fragmentate IPv6 or any other packet
+MAX_SIZE = 96
+def fragmentate(packet, datagram_tag):
+    """Split a packet into different links to transmit as 6lowpan packets.
+    """
+    str_packet = str(packet)
+
+    if len(str_packet) <= MAX_SIZE:
+        return [packet]
+    
+    def chunks(l, n):
+        return [l[i:i+n] for i in range(0, len(l), n)]
+
+    new_packet = chunks(str_packet, MAX_SIZE)
+
+    new_packet[0] = LoWPANFragmentationFirst(datagramTag = datagram_tag, datagramSize=len(str_packet))/new_packet[0]
+    i=1
+    while i<len(new_packet):
+        new_packet[i] = LoWPANFragmentationSubsequent(datagramTag = datagram_tag, datagramSize=len(str_packet), datagramOffset=MAX_SIZE/8*i)/new_packet[i]
+        i+=1
+
+    return new_packet
+    
+
+
 bind_layers( SixLoWPAN,         LoWPANUncompressedIPv6,             )
 bind_layers( SixLoWPAN,         LoWPANHC1CompressedIPv6,            )
 bind_layers( SixLoWPAN,         LoWPANFragmentationFirst,           )
@@ -741,4 +787,56 @@ if __name__ == '__main__':
 
     #p = AuxiliarySecurityHeaderIEEE802_15_4("\x18\x05\x00\x00\x00\xff\xee\xdd\xcc\xbb\xaa\x00\x99\x88\x77")
     #p.show2()
+
+    # TEST UDP HEADER COMPRESSION ##############################################
+    udp_header_compression = "\xc2\x9c\x00\x2a\x7e\xf7\x00\xf0\x22\x3d\x16\x2e\x8e\x60\x10\x03\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x48\x65\x6c\x6c\x6f\x20\x31\x20\x66\x72\x6f\x6d\x20\x74\x68\x65\x20\x63\x6c\x69\x65\x6e\x74\x2e\x2d\x2e\x2d\x2e\x2d\x20\x30\x20\x33\x34\x35\x36\x37\x38\x39\x20\x31\x20\x33\x34\x35\x36\x37\x38\x39\x20\x32\x20\x33\x34\x35\x36\x37\x38\x39\x20\x33\x20\x33\x34\x35\x36\x37\x38\x39\x20\x34\x20\x33\x34\x35\x36"
+    
+    p = SixLoWPAN(udp_header_compression)
+    assert p.header_compression == 240
+    assert p.udpSourcePort == 8765
+    assert p.udpDestinyPort == 5678
+    assert p.udpChecksum == 0x8e60
+    
+    # udp 2
+    udp = "\xe2\x9c\x00\x2a\x4d\x37\x38\x39\x20\x52\x20\x33\x34\x35\x36\x37\x38\x39\x20\x53\x20\x33\x34\x35\x36\x37\x38\x39\x20\x54\x20\x33\x34\x35\x36\x37\x38\x39\x20\x55\x20\x33\x34\x35\x36\x37\x38\x39\x20\x56\x20\x33\x34\x35\x36\x37\x38"
+    
+    p = SixLoWPAN(udp)
+    assert p.datagramSize == 668
+    assert p.datagramTag == 0x2a
+    assert p.datagramOffset == 616/8 #TODO: should be multiplied by 8
+    
+    #udp 3
+    udp = "\xe2\x9c\x00\x2a\x11\x37\x38\x39\x20\x35\x20\x33\x34\x35\x36\x37\x38\x39\x20\x36\x20\x33\x34\x35\x36\x37\x38\x39\x20\x37\x20\x33\x34\x35\x36\x37\x38\x39\x20\x38\x20\x33\x34\x35\x36\x37\x38\x39\x20\x39\x20\x33\x34\x35\x36\x37\x38\x39\x20\x61\x20\x33\x34\x35\x36\x37\x38\x39\x20\x62\x20\x33\x34\x35\x36\x37\x38\x39\x20\x63\x20\x33\x34\x35\x36\x37\x38\x39\x20\x64\x20\x33\x34\x35\x36\x37\x38\x39\x20\x65\x20\x10\x3e"
+    
+    p = SixLoWPAN(udp)
+    assert p.datagramSize == 668
+    assert p.datagramTag == 0x2a
+    assert p.datagramOffset == 136/8
+    
+    #udp 4
+    udp = "\xe2\x9c\x00\x2a\x1d\x33\x34\x35\x36\x37\x38\x39\x20\x66\x20\x33\x34\x35\x36\x37\x38\x39\x20\x67\x20\x33\x34\x35\x36\x37\x38\x39\x20\x68\x20\x33\x34\x35\x36\x37\x38\x39\x20\x69\x20\x33\x34\x35\x36\x37\x38\x39\x20\x6a\x20\x33\x34\x35\x36\x37\x38\x39\x20\x6b\x20\x33\x34\x35\x36\x37\x38\x39\x20\x6c\x20\x33\x34\x35\x36\x37\x38\x39\x20\x6d\x20\x33\x34\x35\x36\x37\x38\x39\x20\x6e\x20\x33\x34\x35\x36\x37\x38"
+    
+    p = SixLoWPAN(udp)
+    assert p.datagramSize == 668
+    assert p.datagramTag == 0x2a
+    assert p.datagramOffset == 232/8
+    #p.show2()
+    print str(p.payload.payload).encode('hex')
+    
+    #udp 5
+    udp = "\xe2\x9c\x00\x2a\x29\x39\x20\x6f\x20\x33\x34\x35\x36\x37\x38\x39\x20\x70\x20\x33\x34\x35\x36\x37\x38\x39\x20\x71\x20\x33\x34\x35\x36\x37\x38\x39\x20\x72\x20\x33\x34\x35\x36\x37\x38\x39\x20\x73\x20\x33\x34\x35\x36\x37\x38\x39\x20\x74\x20\x33\x34\x35\x36\x37\x38\x39\x20\x75\x20\x33\x34\x35\x36\x37\x38\x39\x20\x76\x20\x33\x34\x35\x36\x37\x38\x39\x20\x77\x20\x33\x34\x35\x36\x37\x38\x39\x20\x78\x20\x33\x34"
+    
+    p = SixLoWPAN(udp)
+    assert p.datagramSize == 668
+    assert p.datagramTag == 0x2a
+    assert p.datagramOffset == 328/8
+    
+    #udp 6
+    udp = "\xe2\x9c\x00\x2a\x35\x35\x36\x37\x38\x39\x20\x79\x20\x33\x34\x35\x36\x37\x38\x39\x20\x7a\x20\x33\x34\x35\x36\x37\x38\x39\x20\x41\x20\x33\x34\x35\x36\x37\x38\x39\x20\x42\x20\x33\x34\x35\x36\x37\x38\x39\x20\x43\x20\x33\x34\x35\x36\x37\x38\x39\x20\x44\x20\x33\x34\x35\x36\x37\x38\x39\x20\x45\x20\x33\x34\x35\x36\x37\x38\x39\x20\x46\x20\x33\x34\x35\x36\x37\x38\x39\x20\x47\x20\x33\x34\x35\x36\x37\x38\x39\x20"
+    
+    p = SixLoWPAN(udp)
+    assert p.datagramSize == 668
+    assert p.datagramTag == 0x2a
+    assert p.datagramOffset == 424/8
+    ############################################################################
     
