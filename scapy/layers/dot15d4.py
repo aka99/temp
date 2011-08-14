@@ -238,6 +238,85 @@ class Dot15d4CmdCoordRealign(Packet):
     def mysummary(self):
         return self.sprintf("802.15.4 Coordinator Realign Payload ( %Dot15dCmdCoordRealign.pan_id% : chan %Dot15d4CmdCoordRealign.channel% )")
 
+class ZigbeePayloadField(StrField): # passes the remaining length of the current frame to do a relational offset such as all but the last 4 bytes.
+    def __init__(self, name, default, codec=None, fld=None, length_from=None):
+        StrField.__init__(self, name, default, codec=codec)
+        self.length_from = length_from
+    def getfield(self, pkt, s):
+        l = self.length_from(pkt, s)
+        if l <= 0:
+            return s,""
+        return s[l:], self.m2i(pkt,s[:l])
+
+class ZigbeeNWK(Packet):
+    name = "Zigbee Network Layer"
+    fields_desc = [
+                    BitField("discover_route", 0, 2),
+                    BitField("proto_version", 2, 4),
+                    BitEnumField("frametype", 0, 2, {0:'data', 1:'command'}),
+                    FlagsField("flags", 0, 8, ['multicast', 'security', 'source_route', 'extended_dst', 'extended_src', 'reserved1', 'reserved2', 'reserved3']),
+                    XLEShortField("destination", 0),
+                    XLEShortField("source", 0),
+                    ByteField("radius", 0),
+                    ByteField("seqnum", 1),
+                    
+                    ConditionalField(ByteField("relay_count", 1), lambda pkt:pkt.flags & 0x04),
+                    ConditionalField(ByteField("relay_index", 0), lambda pkt:pkt.flags & 0x04),
+                    ConditionalField(FieldListField("relays", [ ], XLEShortField("", 0x0000), count_from = lambda pkt:pkt.relay_count), lambda pkt:pkt.flags & 0x04),
+                    
+                    ConditionalField(XLongField("ext_dst", 0), lambda pkt:pkt.flags & 8),
+                    ConditionalField(XLongField("ext_src", 0), lambda pkt:pkt.flags & 16),
+                ]
+                
+    def guess_payload_class(self, payload):
+        if self.flags & 0x02:
+            return ZigbeeSecurityHeader
+        elif self.frametype == 0:
+            return ZigbeeAppDataPayload
+        elif self.frametype == 1:
+            return ZigbeeNWKCommandPayload
+        else:
+            return Packet.guess_payload_class(self, payload)
+
+class ZigbeeNWKCommandPayload(Packet):
+    name = "Zigbee Network Layer Command Payload"
+    fields_desc = [ ByteEnumField("cmd_identifier", 1, {1:"route request", 5:"route record"}),
+                    ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)),
+                ]
+        
+class ZigbeeSecurityHeader(Packet):
+    name = "Zigbee Security Header"
+    fields_desc = [ HiddenField(FlagsField("reserved1", 0, 2, [ 'reserved1', 'reserved2' ]), True),
+                    BitField("extended_nonce", 1, 1),
+                    BitEnumField("key_type", 1, 2, {1:'network_key'}),
+                    HiddenField(FlagsField("reserved2", 0, 3, [ 'reserved3', 'reserved4', 'reserved5' ]), True),
+                    XIntField("fc", 0),
+                    
+                    ConditionalField(XLongField("source", 0), lambda pkt:pkt.extended_nonce),
+                    ByteField("key_seqnum", 0),
+                    ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)-6),
+                    XIntField("mic", 0),
+                ]
+                
+class ZigbeeAppDataPayload(Packet):
+    name = "Zigbee Application Layer Data Payload"
+    fields_desc = [ FlagsField("frame_control", 2, 4, [ 'reserved1', 'security', 'ack_req', 'extended_hdr' ]),
+                    BitEnumField("delivery_mode", 0, 2, {0:'unicast'}),
+                    BitEnumField("frametype", 0, 2, {0:'data', 1:'command', 2:'ack'}),
+                    
+                    ConditionalField(ByteField("dst_endpoint", 10), lambda pkt:(pkt.frame_control & 0x04 or pkt.frametype == 2)),
+                    ConditionalField(XLEShortField("cluster", 0), lambda pkt:(pkt.frame_control & 0x04 or pkt.frametype == 2)),
+                    ConditionalField(XLEShortField("profile", 0), lambda pkt:(pkt.frame_control & 0x04 or pkt.frametype == 2)),
+                    ConditionalField(ByteField("src_endpoint", 10), lambda pkt:(pkt.frame_control & 0x04 or pkt.frametype == 2)),
+                    ByteField("counter", 0),
+                    ConditionalField(ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)), lambda pkt:pkt.frametype == 0),
+                ]
+                
+class ZigbeeAppCommandPayload(Packet):
+    name = "Zigbee Application Layer Command Payload"
+    fields_desc = [ ByteEnumField("cmd_identifier", 1, {5:"transport key"}),
+                    ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)),
+                ]
 
 ### Utility Functions ###
 def util_srcpanid_present(pkt):
@@ -253,9 +332,9 @@ def makeFCS(data):
     crc = 0
     for i in range(0, len(data)):
         c = ord(data[i])
-        q = (crc ^ c) & 15				#Do low-order 4 bits
+        q = (crc ^ c) & 15              #Do low-order 4 bits
         crc = (crc // 16) ^ (q * 4225)
-        q = (crc ^ (c // 16)) & 15		#And high 4 bits
+        q = (crc ^ (c // 16)) & 15      #And high 4 bits
         crc = (crc // 16) ^ (q * 4225)
     return struct.pack('<H', crc) #return as bytes in little endian order
 
@@ -269,6 +348,8 @@ bind_layers( Dot15d4FCS, Dot15d4Beacon, fcf_frametype=0)
 bind_layers( Dot15d4FCS, Dot15d4Data, fcf_frametype=1)
 bind_layers( Dot15d4FCS, Dot15d4Ack,  fcf_frametype=2)
 bind_layers( Dot15d4FCS, Dot15d4Cmd,  fcf_frametype=3)
+bind_layers( Dot15d4Data, ZigbeeNWK)
+bind_layers( ZigbeeAppDataPayload, ZigbeeAppCommandPayload, frametype=1)
 
 
 ### DLT Types ###
