@@ -76,13 +76,16 @@ class IP6FieldLenField(IP6Field):
     def addfield(self, pkt, s, val):
         """Add an internal value  to a string"""
         l = self.length_of(pkt)
+        if l == 0:  return s
         internal = self.i2m(pkt,val)[-l:]
+        #print "addfield", l, internal.encode('hex')
         return s+struct.pack("!%ds"%l, internal)
     def getfield(self, pkt, s):
         l = self.length_of(pkt)
         assert l >= 0 and l <=16
         if l <= 0:
             return s,""
+        #print "getfield", l, s[:l].encode('hex')
         return s[l:], self.m2i(pkt,"\x00"*(16-l) + s[:l])
 
 class BitVarSizeField(BitField):
@@ -401,6 +404,7 @@ class LoWPAN_IPHC(Packet):
         The packet payload needs to be decompressed and depending on the
         arguments, several convertions should be done.
         """
+        #print "post_dissect"
         
         #uncompress payload
         packet = IPv6()
@@ -418,6 +422,9 @@ class LoWPAN_IPHC(Packet):
             packet.hlim = 255
         #TODO: Payload length can be inferred from lower layers from either the
         #6LoWPAN Fragmentation header or the IEEE802.15.4 header
+        
+        packet.src = self.decompressSourceAddr(packet)
+        packet.dst = self.decompressDestinyAddr(packet)
         
         if self.nh == 1:
             # The Next Header field is compressed and the next header is
@@ -450,12 +457,10 @@ class LoWPAN_IPHC(Packet):
             packet.payload = data
             data = str(packet)
         
-        self.decompressSourceAddr(packet)
-        self.decompressDestinyAddr(packet)
-        
         return Packet.post_dissect(self, data)
         
     def decompressDestinyAddr(self, packet):
+        #print "decompressDestinyAddr"
         try:
             tmp_ip = socket.inet_pton(socket.AF_INET6, self.destinyAddr)
         except socket.error:
@@ -463,12 +468,35 @@ class LoWPAN_IPHC(Packet):
         
         
         if self.m == 0 and self.dac == 0:
-            pass
+            if self.dam == 0:
+                pass
+            elif self.dam == 1:
+                tmp_ip = LINK_LOCAL_PREFIX[0:8] + tmp[-8:]
+            elif self.dam == 2:
+                tmp_ip = LINK_LOCAL_PREFIX[0:8] + "\x00\x00\x00\xff\xfe\x00" + tmp[-2:]
+            """else: #self.dam == 3
+                raise Exception('Unimplemented')"""
+            
         elif self.m == 0 and self.dac == 1:
             if self.dam == 0:
                 raise Exception('Reserved')
             elif self.dam == 0x3:
-                tmp_ip = "\x00"*16 #TODO: Context information
+                underlayer = self.underlayer
+                while underlayer != None and isinstance(underlayer, SixLoWPAN):
+                    underlayer = underlayer.underlayer
+                if type(underlayer) == Dot15d4Data:
+                    if underlayer.underlayer.fcf_destaddrmode == 3:
+                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + struct.pack(">Q", underlayer.dest_addr)
+                        #Turn off the bit 7.
+                        tmp_ip = tmp_ip[0:8] + struct.pack("B", (struct.unpack("B", tmp_ip[8])[0] ^ 0x2)) + tmp_ip[9:16]
+                    elif underlayer.underlayer.fcf_destaddrmode == 2:
+                        tmp_ip = LINK_LOCAL_PREFIX[0:8] + \
+                            "\x00\x00\x00\xff\xfe\x00" + \
+                            struct.pack(">Q", underlayer.dest_addr)
+                else:
+                    payload = packet.payload
+                    #Most of the times, it's necessary the IEEE 802.15.4 data to extract this address
+                    raise Exception('Unimplemented: IP Header is contained into IEEE 802.15.4 frame, in this case it\'s not available.')
         elif self.m == 1 and self.dac == 0:
             if self.dam == 0:
                 raise Exception("unimplemented")
@@ -488,9 +516,11 @@ class LoWPAN_IPHC(Packet):
                 
         
         self.destinyAddr = socket.inet_ntop(socket.AF_INET6, tmp_ip)
+        return self.destinyAddr
     
     def compressSourceAddr(self, ipv6):
-        tmp_ip = socket.inet_pton(socket.AF_INET6, ipv6.dst)
+        #print "compressSourceAddr"
+        tmp_ip = socket.inet_pton(socket.AF_INET6, ipv6.src)
         
         if self.sac == 0:
             if self.sam == 0x0:
@@ -502,14 +532,18 @@ class LoWPAN_IPHC(Packet):
             else: #self.sam == 0x3:
                 pass
         else: #self.sac == 1
-            if self.sam == 0x1:
+            if self.sam == 0x0:
+                tmp_ip = "\x00"*16
+            elif self.sam == 0x1:
                 tmp_ip = tmp_ip[8:16]
             elif self.sam == 0x2:
                 tmp_ip = tmp_ip[14:16]
         
-        self.sourceAddr = socket.inet_ntop(socket.AF_INET6, tmp_ip)
+        self.sourceAddr = socket.inet_ntop(socket.AF_INET6, "\x00"*(16-len(tmp_ip)) + tmp_ip)
+        return self.sourceAddr
     
     def compressDestinyAddr(self, ipv6):
+        #print "compressDestinyAddr"
         tmp_ip = socket.inet_pton(socket.AF_INET6, ipv6.dst)
         
         if self.m == 0 and self.dac == 0:
@@ -526,17 +560,20 @@ class LoWPAN_IPHC(Packet):
                 tmp_ip = "\x00"*14 + tmp_ip[14:16]
         elif self.m == 1 and self.dac == 0:
             if self.dam == 0x1:
-                tmp_ip = "\x00"*11 + tmp_ip[1] + tmp_ip[11:16]
+                tmp_ip = "\x00"*10 + tmp_ip[1] + tmp_ip[11:16]
             elif self.dam == 0x2:
-                tmp_ip = "\x00"*13 + tmp_ip[1] + tmp_ip[13:16]
+                tmp_ip = "\x00"*12 + tmp_ip[1] + tmp_ip[13:16]
             elif self.dam == 0x3:
                 tmp_ip = "\x00"*15 + tmp_ip[15:16]
         elif self.m == 1 and self.dac == 1:
             raise Exception('Unimplemented')
         
+        #print len(tmp_ip)
+        #print "M: %d, DAC: %d, DAM: %d, %s"%(self.m, self.dac, self.dam, tmp_ip.encode('hex'))
         self.destinyAddr = socket.inet_ntop(socket.AF_INET6, tmp_ip)
     
     def decompressSourceAddr(self, packet):
+        #print "decompressSourceAddr"
         try:
             tmp_ip = socket.inet_pton(socket.AF_INET6, self.sourceAddr)
         except socket.error, e:
@@ -582,12 +619,13 @@ class LoWPAN_IPHC(Packet):
                 raise Exception('Unimplemented')
         
         self.sourceAddr = socket.inet_ntop(socket.AF_INET6, tmp_ip)
+        return self.sourceAddr
     
     def guess_payload_class(self, payload):
         return IPv6
 
     def do_build(self):
-        
+        #print "do_build"
         assert type(self.payload) == IPv6
         ipv6 = self.payload
         
@@ -630,8 +668,8 @@ class LoWPAN_IPHC(Packet):
             self.__contextIdentifierExtension = 0
         
         # 5. Compress Source Addr
-        #self.compressSourceAddr(ipv6)
-        #self.compressDestinyAddr(ipv6)
+        self.compressSourceAddr(ipv6)
+        self.compressDestinyAddr(ipv6)
         
         return Packet.do_build(self)
     
@@ -898,7 +936,7 @@ if __name__ == '__main__':
     
     packet = Dot15d4FCS("\x41\xc8\x14\xcd\xab\xff\xff\x05\x05\x05\x00\x05\x74\x12\x00\x7a\x3b\x3a\x1a\x9b\x01\x24\xe3\x00\x00\x04\x00\x10\x01\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x04\x0e\x00\x08\x0c\x0a\x03\x00\x01\x00\x00\x01\x00\xff\xff\xff\x08\x1e\x40\x40\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xa8\x7b")
     assert packet.sourceAddr == "fe80::212:7405:5:505"
-    assert packet.destinyAddr == "ff02::1a"
+    assert packet.dst == "ff02::1a"
     #packet.show2()
     
     #TODO: Mesh Header. DOESNT WORK! (In wireshark it reports, malformed packet)
@@ -906,13 +944,13 @@ if __name__ == '__main__':
     #packet.show2()
     
     #TODO: Neighbour Solicitation (1st packet *417 file)
-    packet = LoWPAN_IPHC("\x7b\x49\x3a\x02\x01\xff\x02\x02\x02\x87\x00\x02\x0b\x00\x00\x00\x00\xfe\x80\x00\x00\x00\x00\x00\x00\x02\x12\x74\x02\x00\x02\x02\x02")
     print "##########################################"
+    packet = LoWPAN_IPHC("\x7b\x49\x3a\x02\x01\xff\x02\x02\x02\x87\x00\x02\x0b\x00\x00\x00\x00\xfe\x80\x00\x00\x00\x00\x00\x00\x02\x12\x74\x02\x00\x02\x02\x02")
     packet.show2()
     print packet._nhField, packet.tc_ecn, packet.tc_dscp, packet.__padd, packet.flowlabel
     assert packet._nhField == 0x3a
-    assert packet.sourceAddr == "::"
-    assert packet.destinyAddr == "ff02::1:ff02:202"
+    assert packet.src == "::"
+    assert packet.dst == "ff02::1:ff02:202"
     #packet.show2()
     
     #TODO: Neighbour Solicitation (2nd packet *417 file)
@@ -946,21 +984,23 @@ if __name__ == '__main__':
     #packet = defragmentate(get_request)
     #packet.show2()
     
-    lowpan_iphc_header = "\x78\xe7\x00\x06\x80\x00\x01"
-    packet = SixLoWPAN(lowpan_iphc_header)
-    assert packet.tf == 0x3
-    assert packet.nh == 0
-    assert packet.hlim == 0x0
-    assert packet.cid == True
-    assert packet.sac == True
-    assert packet.sam == 0x2
-    assert packet.m == 0x0
-    assert packet.dac == 0x1
-    assert packet.dam == 0x03
-    assert packet._nhField == 0x06
-    assert packet._hopLimit == 128
+    # It requires the ETH message
+    #lowpan_iphc_header = "\x78\xe7\x00\x06\x80\x00\x01"
+    #packet = SixLoWPAN(lowpan_iphc_header)
+    #assert packet.tf == 0x3
+    #assert packet.nh == 0
+    #assert packet.hlim == 0x0
+    #assert packet.cid == True
+    #assert packet.sac == True
+    #assert packet.sam == 0x2
+    #assert packet.m == 0x0
+    #assert packet.dac == 0x1
+    #assert packet.dam == 0x03
+    #assert packet._nhField == 0x06
+    #assert packet._hopLimit == 128
     #packet.show2()
     
+    # It requires the ETH message
     lowpan_iphc_header = "\x78\xf6\x00\x06\x80\x00\x01"
     packet = SixLoWPAN(lowpan_iphc_header)
     assert packet.tf == 0x3
@@ -975,19 +1015,19 @@ if __name__ == '__main__':
     assert packet._nhField == 0x06
     assert packet._hopLimit == 128
     
-    lowpan_iphc_header = "\x78\xe7\x00\x06\x80\x00\x01"
-    packet = SixLoWPAN(lowpan_iphc_header)
-    assert packet.tf == 0x3
-    assert packet.nh == 0
-    assert packet.hlim == 0x0
-    assert packet.cid == True
-    assert packet.sac == True
-    assert packet.sam == 0x2
-    assert packet.m == 0x0
-    assert packet.dac == 0x1
-    assert packet.dam == 0x03
-    assert packet._nhField == 0x06
-    assert packet._hopLimit == 128
+    #lowpan_iphc_header = "\x78\xe7\x00\x06\x80\x00\x01"
+    #packet = SixLoWPAN(lowpan_iphc_header)
+    #assert packet.tf == 0x3
+    #assert packet.nh == 0
+    #assert packet.hlim == 0x0
+    #assert packet.cid == True
+    #assert packet.sac == True
+    #assert packet.sam == 0x2
+    #assert packet.m == 0x0
+    #assert packet.dac == 0x1
+    #assert packet.dam == 0x03
+    #assert packet._nhField == 0x06
+    #assert packet._hopLimit == 128
     #packet.show2()
     
     #ICMP: Neighbour Solicitation
@@ -1020,15 +1060,15 @@ if __name__ == '__main__':
     
     #NOTE: this is not a real package, it's the first fragment from a udp packet
     # extracted from 6lowpan-test.pcap
-    udp = "\x7e\xf7\x00\xf0\x22\x3d\x16\x2e\x8e\x60\x10\x03\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x48\x65\x6c\x6c\x6f\x20\x31\x20\x66\x72\x6f\x6d\x20\x74\x68\x65\x20\x63\x6c\x69\x65\x6e\x74\x2e\x2d\x2e\x2d\x2e\x2d\x20\x30\x20\x33\x34\x35\x36\x37\x38\x39\x20\x31\x20\x33\x34\x35\x36\x37\x38\x39\x20\x32\x20\x33\x34\x35\x36\x37\x38\x39\x20\x33\x20\x33\x34\x35\x36\x37\x38\x39\x20\x34\x20\x33\x34\x35\x36"
-    packet = SixLoWPAN(udp)
-    assert packet.udpSourcePort == 8765
-    assert packet.udpDestinyPort == 5678
-    assert packet.udpChecksum == 0x8e60
-    assert packet.payload.payload.nh == 0x11 # the ipv6 header
-    assert packet.payload.payload.payload.sport == 8765 #udp decompressed header
-    assert packet.payload.payload.payload.dport == 5678 #udp decompressed header
-    assert packet.payload.payload.payload.chksum == 0x8e60 #udp decompressed header
+    #udp = "\x7e\xf7\x00\xf0\x22\x3d\x16\x2e\x8e\x60\x10\x03\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x48\x65\x6c\x6c\x6f\x20\x31\x20\x66\x72\x6f\x6d\x20\x74\x68\x65\x20\x63\x6c\x69\x65\x6e\x74\x2e\x2d\x2e\x2d\x2e\x2d\x20\x30\x20\x33\x34\x35\x36\x37\x38\x39\x20\x31\x20\x33\x34\x35\x36\x37\x38\x39\x20\x32\x20\x33\x34\x35\x36\x37\x38\x39\x20\x33\x20\x33\x34\x35\x36\x37\x38\x39\x20\x34\x20\x33\x34\x35\x36"
+    #packet = SixLoWPAN(udp)
+    #assert packet.udpSourcePort == 8765
+    #assert packet.udpDestinyPort == 5678
+    #assert packet.udpChecksum == 0x8e60
+    #assert packet.payload.payload.nh == 0x11 # the ipv6 header
+    #assert packet.payload.payload.payload.sport == 8765 #udp decompressed header
+    #assert packet.payload.payload.payload.dport == 5678 #udp decompressed header
+    #assert packet.payload.payload.payload.chksum == 0x8e60 #udp decompressed header
     #packet.show2()
     
     # Check Traffic Class and Flow Label when TF=0
@@ -1067,13 +1107,51 @@ if __name__ == '__main__':
     #TODO: Context Test
     
     # Check Source Address
-    packet = SixLoWPAN()/LoWPAN_IPHC(sam = 0, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
-    assert packet.payload.payload.src == "::1" # NO CONTEXT
-    packet = SixLoWPAN()/LoWPAN_IPHC(sam = 2, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
-    packet = SixLoWPAN(str(packet))
-    assert packet.payload.payload.src == "::1" # NO CONTEXT
+    #packet = SixLoWPAN()/LoWPAN_IPHC(sam = 0, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
+    #packet = SixLoWPAN(str(packet))
+    #assert packet.payload.payload.src == "::1" # NO CONTEXT
+    #packet = SixLoWPAN()/LoWPAN_IPHC(sam = 2, sac = 0)/IPv6(hlim=65, src="aaaa::1")/ICMPv6EchoRequest()
+    #packet = SixLoWPAN(str(packet))
+    #assert packet.payload.payload.src == "fe80::ff:fe00:1" # NO CONTEXT
     
     # Check Destiny Address
     
     
+    # REAL PACKETS
+    #packet = Dot15d4FCS("\x41\xcc\x38\xcd\xab\x55\x44\x33\xfe\xff\x22\x11\x02\x16\x15\x14\xfe\xff\x13\x12\x02\x7a\xe7\x00\x3a\x00\x01\x80\x00\xc4\xcd\x00\x00\x00\x00\x19\xb1")
+    #packet.show2()
+    ping_id = 0x7cc4
+    ping_seq = 1
+    ping_data = "\x77\xaf\x01\x4e\xc4\xb2\x03\x00\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f\x20\x21\x22\x23\x24\x25\x26\x27\x28\x29\x2a\x2b\x2c\x2d\x2e\x2f\x30\x31\x32\x33\x34\x35\x36\x37"
+    
+    # PING
+    # echo request
+    packet1 = SixLoWPAN()/LoWPAN_IPHC(tf=3, nh=0, hlim=2, cid=True)/IPv6(src="aaaa::11:22ff:fe33:4455", dst="aaaa::1")/ICMPv6EchoRequest(id=ping_id,seq=ping_seq, data=ping_data)
+    #packet.show2()
+    
+    SixLoWPAN(str(packet)).show2()
+    
+    # echo reply
+    packet2 = SixLoWPAN()/LoWPAN_IPHC(tf=3, nh=0, hlim=2, cid=True)/IPv6(src="aaaa::11:22ff:fe33:4455", dst="aaaa::1")/ICMPv6EchoRequest(id=ping_id,seq=ping_seq, data=ping_data)
+    
+    print len(str(packet1)), len(str(packet2))
+    
+    # HAND SHAKE (http://www.workrobot.com/sansfire2009/SCAPY-packet-crafting-reference.html)
+    #ip=IP(src="10.1.2.3", dst="10.2.3.4")
+    #SYN=TCP(sport=1500, dport=80, flags="S", seq=100)
+    #SYNACK=sr1(ip/SYN)
+
+    #my_ack = SYNACK.seq + 1
+    #ACK=TCP(sport=1050, dport=80, flags="A", seq=101, ack=my_ack)
+    #send(ip/ACK)
+
+    #payload="stuff"
+    #PUSH=TCP(sport=1050, dport=80, flags="PA", seq=11, ack=my_ack)
+    #send(ip/PUSH/payload)
+    
+    # ROUTER ADVERTISEMENT
+    p = Dot15d4FCS("\x41\xc8\x58\xcd\xab\xff\xff\x16\x15\x14\xfe\xff\x13\x12\x02\x7b\x3b\x3a\x01\x86\x00\xf7\x2e\x80\x00\x00\xc8\x00\x05\x7e\x40\x00\x00\x00\x00\x03\x04\x40\xc0\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x01\x00\x00\x00\x00\x05\x00\x01\x02\x02\x12\x13\xff\xfe\x14\x15\x16\x6c\x6f\x63\x61\x6c\x00\x3e\x14")
+    #Dot15d4FCS(str(p)).show2()
+    
+    p = IPv6("\x60\x00\x00\x00\x00\x48\x3a\xff\xfe\x80\x00\x00\x00\x00\x00\x00\x00\x12\x13\xff\xfe\x14\x15\x16\xff\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01\x86\x00\xf7\x2e\x80\x00\x00\xc8\x00\x05\x7e\x40\x00\x00\x00\x00\x03\x04\x40\xc0\xff\xff\xff\xff\xff\xff\xff\xff\x00\x00\x00\x00\xaa\xaa\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x05\x01\x00\x00\x00\x00\x05\x00\x01\x02\x02\x12\x13\xff\xfe\x14\x15\x16\x6c\x6f\x63\x61\x6c\x00")
+    p.show2()
