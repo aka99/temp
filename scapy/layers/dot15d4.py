@@ -22,7 +22,8 @@ class dot15d4AddressField(Field):
         else:               self.adjust=lambda pkt,x:self.lengthFromAddrMode(pkt, x)
     def i2repr(self, pkt, x):
         """Convert internal value to a nice representation"""
-        x = hex(self.i2h(pkt,x))[2:-1]
+        #print "DEBUG:", self.name, self.i2h(pkt,x), self.i2m(pkt,x)
+        x = hex(self.i2m(pkt,x))[2:-1]
         x = len(x) %2 != 0 and "0" + x or x
         return ":".join(["%s%s" % (x[i], x[i+1]) for i in range(0,len(x),2)])
     def addfield(self, pkt, s, val):
@@ -219,7 +220,7 @@ class Dot15d4Cmd(Packet):
                     ]
 
     def mysummary(self):
-        return self.sprintf("802.15.4 Command %Dot15d4Cmd.commandid% ( %Dot15dCmd.src_panid%:%Dot15d4Cmd.src_addr% -> %Dot15d4Cmd.dest_panid%:%Dot15d4Cmd.dest_addr% )")
+        return self.sprintf("802.15.4 Command %Dot15d4Cmd.cmd_id% ( %Dot15dCmd.src_panid%:%Dot15d4Cmd.src_addr% -> %Dot15d4Cmd.dest_panid%:%Dot15d4Cmd.dest_addr% )")
 
     #TODO implement more command frame payloads
     def guess_payload_class(self, payload):
