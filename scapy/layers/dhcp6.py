@@ -260,8 +260,7 @@ class DHCP6OptUnknown(_DHCP6OptGuessPayload): # A generic DHCPv6 Option
 
 class _DUIDField(PacketField):
     def __init__(self, name, default, length_from=None):
-        StrField.__init__(self, name, default)
-        self.length_from = length_from
+        PacketField.__init__(self, name, default, Raw, length_from)
 
     def i2m(self, pkt, i):
         return str(i)
