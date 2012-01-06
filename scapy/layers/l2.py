@@ -479,7 +479,8 @@ eap_types = {	1:"ID",
 				17:"LEAP",
 				21:"EAP-TTLS",
 				25:"PEAP",
-				43:"EAP-FAST"
+				43:"EAP-FAST",
+				254:"EXPANDED EAP"
 			}
 
 class EAPOL(Packet):
@@ -637,7 +638,22 @@ class EAP_Fast(Packet): # eap type 43
             return scapy.layers.ssl.TLSv1RecordLayer
         else:
             return Packet.guess_payload_class(self, payload)
-                
+
+
+class EAP_Expanded(Packet): # eap type 254
+    name = "Expanded EAP"
+    fields_desc = [ XThreeBytesField("vendor_id", 0),
+                    IntField("vendor_type", 0)
+                ]
+
+
+class WPS(Packet): # eap type 254 vendor id 0x372a
+    name = "Wi-Fi Protected Setup"
+    fields_desc = [ ByteField("opcode", 1),
+                    FlagsField("flags", 0, 8, ['more_flags', 'length']),
+                    StrField("data", "")
+            ]
+
 
 # Hardware types - RFC 826 - Extracted from 
 # http://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml on 24/08/10
@@ -806,6 +822,8 @@ bind_layers( EAP,           LEAP,          type=17)
 bind_layers( EAP,           EAP_TTLS,      type=21)
 bind_layers( EAP,           PEAP,          type=25)
 bind_layers( EAP,           EAP_Fast,      type=43)
+bind_layers( EAP,           EAP_Expanded,  type=254)
+bind_layers( EAP_Expanded,  WPS,           vendor_id=0x372a)
 bind_layers( EAPOLKey,      EAPOLKeyRC4,   desc_type=1)
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=254) #XXX: in what standard is this defined?
 bind_layers( EAPOLKey,      EAPOLKeyDot11, desc_type=2)
