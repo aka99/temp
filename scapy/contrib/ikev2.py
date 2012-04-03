@@ -193,7 +193,7 @@ class IKEv2_Transform_ID(ShortField):
 			return None
 		else:
 			map = IKEv2TransformNum[pkt.transform_type][1]
-			for k in keys(map):
+			for k in map.keys():
 				if map[k] == x:
 					return k
 			return None

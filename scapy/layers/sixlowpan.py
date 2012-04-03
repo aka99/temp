@@ -171,7 +171,7 @@ class LoWPANUncompressedIPv6(Packet):
     
     def guess_payload_class(self, payload):
         # super SWITCH depending on reserved and type
-        if self.__type == LOWPAN_IPv6Uncompressed:
+        if self.__type == LoWPANUncompressedIPv6:
             return IPv6(payload)
 
 class LoWPANMesh(Packet):
@@ -183,7 +183,7 @@ class LoWPANMesh(Packet):
         BitField("__hopsLeft", 0x0, 4),
         ConditionalField(
             SixLoWPANAddrField("_sourceAddr", 0x0, length_of=lambda pkt: pkt.__v and 2 or 8),
-            lambda pkt: source_addr_mode(pkt) != 0
+            lambda pkt: source_addr_mode2(pkt) != 0
         ),
         ConditionalField(
             SixLoWPANAddrField("_destinyAddr", 0x0, length_of=lambda pkt: pkt.__f and 2 or 8),
@@ -470,9 +470,9 @@ class LoWPAN_IPHC(Packet):
             if self.dam == 0:
                 pass
             elif self.dam == 1:
-                tmp_ip = LINK_LOCAL_PREFIX[0:8] + tmp[-8:]
+                tmp_ip = LINK_LOCAL_PREFIX[0:8] + tmp_ip[-8:]
             elif self.dam == 2:
-                tmp_ip = LINK_LOCAL_PREFIX[0:8] + "\x00\x00\x00\xff\xfe\x00" + tmp[-2:]
+                tmp_ip = LINK_LOCAL_PREFIX[0:8] + "\x00\x00\x00\xff\xfe\x00" + tmp_ip[-2:]
             """else: #self.dam == 3
                 raise Exception('Unimplemented')"""
             

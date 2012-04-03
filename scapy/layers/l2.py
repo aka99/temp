@@ -936,7 +936,7 @@ class ARP_am(AnsweringMachine):
         arp = req.getlayer(ARP)
         iff,a,gw = conf.route.route(arp.psrc)
         if self.iface != None:
-            iff = iface
+            iff = self.iface
         ARP_addr = self.ARP_addr
         IP_addr = arp.pdst
         resp = Ether(dst=ether.src,

@@ -482,11 +482,11 @@ iwconfig wlan0 mode managed
         p /= self.replace
         q.ID += 1
         q.getlayer(TCP).flags="RA"
-        q.getlayer(TCP).seq+=len(replace)
+        q.getlayer(TCP).seq+=len(self.replace)
         return [p,q]
     
-    def print_reply(self):
-        print p.sprintf("Sent %IP.src%:%IP.sport% > %IP.dst%:%TCP.dport%")
+    def print_reply(self, req, reply):
+        print reply.sprintf("Sent %IP.src%:%IP.sport% > %IP.dst%:%TCP.dport%")
 
     def send_reply(self, reply):
         sendp(reply, iface=self.ifto, **self.optsend)
