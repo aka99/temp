@@ -5,7 +5,7 @@
 from scapy.packet import *
 from scapy.layers.inet import IP
 from scapy.fields import BitField, ByteField, XShortField, IntField, XIntField
-from scapy.utils import checksum
+from scapy.utils import checksum, inet_aton
 import struct, hmac, hashlib
 
 class CARP(Packet):

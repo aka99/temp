@@ -354,10 +354,10 @@ class OSPF_SummaryIP_LSA(OSPF_BaseLSA):
                    ShortField("len", None),
                    IPField("mask", "255.255.255.0"),
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 10),
+                   XThreeBytesField("metric", 10),
                    # TODO: Define correct conditions
                    ConditionalField(ByteField("tos", 0), lambda pkt:False),
-                   ConditionalField(X3BytesField("tosmetric", 0), lambda pkt:False)]
+                   ConditionalField(XThreeBytesField("tosmetric", 0), lambda pkt:False)]
 
 
 class OSPF_SummaryASBR_LSA(OSPF_SummaryIP_LSA):
@@ -381,12 +381,12 @@ class OSPF_External_LSA(OSPF_BaseLSA):
                    IPField("mask", "255.255.255.0"),
                    FlagsField("ebit", 0, 1, ["E"]),
                    BitField("reserved", 0, 7),
-                   X3BytesField("metric", 20),
+                   XThreeBytesField("metric", 20),
                    IPField("fwdaddr", "0.0.0.0"),
                    XIntField("tag", 0),
                    # TODO: Define correct conditions
                    ConditionalField(ByteField("tos", 0), lambda pkt:False),
-                   ConditionalField(X3BytesField("tosmetric", 0), lambda pkt:False)]
+                   ConditionalField(XThreeBytesField("tosmetric", 0), lambda pkt:False)]
 
 
 class OSPF_NSSA_External_LSA(OSPF_External_LSA):
@@ -677,7 +677,7 @@ class OSPFv3_Inter_Area_Prefix_LSA(OSPF_BaseLSA):
                    XShortField("chksum", None),
                    ShortField("len", None),
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 10),
+                   XThreeBytesField("metric", 10),
                    ByteField("prefixlen", 64),
                    OSPFv3PrefixOptionsField(),
                    ShortField("reserved2", 0),
@@ -694,7 +694,7 @@ class OSPFv3_Inter_Area_Router_LSA(OSPF_BaseLSA):
                    XShortField("chksum", None),
                    ShortField("len", None),
                    ByteField("reserved", 0),
-                   X3BytesField("metric", 1),
+                   XThreeBytesField("metric", 1),
                    IPField("router", "2.2.2.2")]
 
 
@@ -708,7 +708,7 @@ class OSPFv3_AS_External_LSA(OSPF_BaseLSA):
                    XShortField("chksum", None),
                    ShortField("len", None),
                    FlagsField("flags", 0, 8, ["T", "F", "E"]),
-                   X3BytesField("metric", 20),
+                   XThreeBytesField("metric", 20),
                    ByteField("prefixlen", 64),
                    OSPFv3PrefixOptionsField(),
                    ShortEnumField("reflstype", 0, _OSPFv3_LStypes),

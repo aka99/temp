@@ -43,23 +43,22 @@ Known Issues:
 
 """
 
-from scapy.packet import Packet, bind_layers
-from scapy.fields import BitField, ByteField, XBitField, LEShortField, LEIntField, StrLenField, HiddenField, BitEnumField, Field, ShortField, BitFieldLenField, XShortField, FlagsField, StrField
+import socket
+import struct
 
-from scapy.layers.inet6 import IPv6, IP6Field
+from scapy.packet import Packet, bind_layers
+from scapy.fields import BitField, ByteField, XBitField, LEShortField, LEIntField, StrLenField, HiddenField, BitEnumField, Field, ShortField, BitFieldLenField, XShortField, FlagsField, StrField, ConditionalField, FieldLenField
+
+from scapy.layers.inet6 import IPv6, IP6Field, ICMPv6EchoRequest
 from scapy.layers.inet import UDP
 from scapy.utils6 import in6_or, in6_and, in6_xor
 
 from dot15d4 import Dot15d4, Dot15d4Data, Dot15d4FCS, dot15d4AddressField
-from scapy.utils import lhex
+from scapy.utils import lhex, hexdump
 
-from scapy.fields import Field, ConditionalField, FieldLenField
 from scapy.route6 import *
 
 from scapy.packet import Raw
-
-import socket
-import struct
 
 LINK_LOCAL_PREFIX = "\xfe\x80\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
 
@@ -766,8 +765,6 @@ bind_layers( Dot15d4Data,         SixLoWPAN,             )
 
 
 if __name__ == '__main__':
-    from scapy.utils import hexdump
-    
     #ip6_packet = LoWPANIPv6UncompressField(Reserved=0x1, Type=0x1) / \
     #    IPv6(src="AAAA:BBBB:CCCC:DDDD:EEEE:FFFF:0000:1111")
     #ip6_packet.show()
@@ -796,7 +793,6 @@ if __name__ == '__main__':
 
     #lowpan_frag_iphc = LoWPAN_IPHC(lowpan_iphc)
     #lowpan_frag_iphc.show2()
-    from scapy.layers.inet6 import IPv6, ICMPv6EchoRequest
     #p = LoWPAN_IPHC(tf=0x0, flowLabel=0x8, _nhField=0x3a, _hopLimit=64)/IPv6(dst="aaaa::11:22ff:fe33:4455", src="aaaa::1")/ICMPv6EchoRequest()
     #p.show2()
     #print hexdump(p)
@@ -807,9 +803,7 @@ if __name__ == '__main__':
     #print
     #print
 
-    #from scapy.layers.inet6 import IPv6
     #ip6 = IPv6(src="2002:db8::11:22ff:fe33:4455", dst="2002:db8::ff:fe00:1")
-    #from scapy.utils import hexdump
     #hexdump(ip6)
 
     # SAMPLE PACKETSS!!! IEEE 802.15.4 containing   
@@ -829,8 +823,6 @@ if __name__ == '__main__':
 
     #ieee = Dot15d4FCS(ieee802_iphc)
     #ieee.show2()
-
-    #from scapy.utils import hexdump
 
     #hexdump(ieee)
 

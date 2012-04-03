@@ -3,9 +3,13 @@
 # scapy.contrib.description = MPLS
 # scapy.contrib.status = loads
 
+import struct
 from scapy.packet import Packet,bind_layers
 from scapy.fields import BitField,ByteField
 from scapy.layers.l2 import Ether
+from scapy.layers.inet import IP
+from scapy.layers.inet6 import IPv6
+from scapy.config import conf
 
 #
 # Support L3 MPLS

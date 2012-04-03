@@ -168,10 +168,6 @@ class EigrpIP6Field(StrField, IP6Field, EigrpIPField):
     def getfield(self, pkt, s):
         return EigrpIPField.getfield(self, pkt, s)
 
-class ThreeBytesField(X3BytesField, ByteField):
-    def i2repr(self, pkt, x):
-        return ByteField.i2repr(self, pkt, x)
-
 
 class EIGRPGeneric(Packet):
     name = "EIGRP Generic TLV"
@@ -435,7 +431,7 @@ def _EIGRPGuessPayloadClass(p, **kargs):
         t = struct.unpack("!H", p[:2])[0]
         clsname = _eigrp_tlv_cls.get(t, "EIGRPGeneric")
         cls = globals()[clsname]
-	return cls(p, **kargs)
+    return cls(p, **kargs)
 
 _EIGRP_OPCODES = { 1 : "Update",
                    2 : "Request",

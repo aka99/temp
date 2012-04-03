@@ -18,7 +18,8 @@
 
 from scapy.packet import *
 from scapy.fields import *
-from scapy.layers.l2 import SNAP
+from scapy.layers.l2 import Dot3,LLC,SNAP
+from scapy.sendrecv import sendp
 
 class DtpGenericTlv(Packet):
     name = "DTP Generic TLV"
@@ -93,7 +94,7 @@ def _DTPGuessPayloadClass(p, **kargs):
         t = struct.unpack("!H", p[:2])[0]
         clsname = _DTP_TLV_CLS.get(t, "DtpGenericTlv")
         cls = globals()[clsname]
-	return cls(p, **kargs)
+    return cls(p, **kargs)
 
 class DTP(Packet):
     name = "DTP"

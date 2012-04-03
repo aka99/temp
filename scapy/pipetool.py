@@ -11,11 +11,11 @@ import scapy.utils
 from scapy.config import conf
 import os,thread,select
 import subprocess
-import itertools
 import collections
 import time
 from scapy.error import log_interactive,warning
 import Queue
+from scapy.automaton import Message
 
 class PipeEngine:
     pipes = {}

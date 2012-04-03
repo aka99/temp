@@ -5,7 +5,7 @@
 # scapy.contrib.description = IKEv2
 # scapy.contrib.status = loads
 
-from scapy.all import *
+#from scapy.all import *
 import logging
 
 
@@ -16,7 +16,9 @@ from scapy.packet import *
 from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import IP,UDP
+from scapy.layers.isakmp import ISAKMP
 from scapy.sendrecv import sr
+from scapy.main import interact
 
 # see http://www.iana.org/assignments/ikev2-parameters for details
 IKEv2AttributeTypes= { "Encryption":    (1, { "DES-IV64"  : 1,

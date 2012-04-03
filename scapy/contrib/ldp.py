@@ -25,7 +25,6 @@ from scapy.fields import *
 from scapy.ansmachine import *
 from scapy.layers.inet import UDP
 from scapy.layers.inet import TCP
-from scapy.base_classes import Net
 
 
 # Guess payload
