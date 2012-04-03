@@ -22,6 +22,8 @@ conf.use_dnet = 1
 from scapy.arch import pcapdnet
 from scapy.arch.pcapdnet import *
 
+import scapy.sendrecv
+
 LOOPBACK_NAME="lo0"
 WINDOWS = True
 
@@ -428,9 +430,8 @@ def sndrcv(pks, pkt, timeout = 2, inter = 0, verbose=None, chainCC=0, retry=0, m
         print "\nReceived %i packets, got %i answers, remaining %i packets" % (nbrecv+len(ans), len(ans), notans)
     return plist.SndRcvList(ans),plist.PacketList(remain,"Unanswered")
 
-
-import scapy.sendrecv
 scapy.sendrecv.sndrcv = sndrcv
+
 
 def sniff(count=0, store=1, offline=None, prn = None, lfilter=None, L2socket=None, timeout=None, *arg, **karg):
     """Sniff packets
@@ -490,8 +491,8 @@ L2socket: use the provided L2socket
     s.close()
     return plist.PacketList(lst,"Sniffed")
 
-import scapy.sendrecv
 scapy.sendrecv.sniff = sniff
+
 
 def get_if_list():
     return sorted(ifaces.keys())
