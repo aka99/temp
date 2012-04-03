@@ -1220,7 +1220,7 @@ class PubKey(OSSLHelper, _EncryptAndVerify):
                 self.format = "PEM"
                 self.pemkey = rawkey
                 self.textkey = textkey
-                cmd = openssl_convert_RSA_cmd("PEM", "DER")
+                cmd = openssl_convert_RSA("PEM", "DER")
                 self.derkey = self._apply_ossl_cmd(cmd, rawkey)
             else:
                 raise Exception(error_msg)
@@ -1235,9 +1235,9 @@ class PubKey(OSSLHelper, _EncryptAndVerify):
                 self.format = "DER"
                 self.derkey = rawkey
                 self.textkey = textkey
-                cmd = openssl_convert_RSA_cmd("DER", "PEM")
+                cmd = openssl_convert_RSA("DER", "PEM")
                 self.pemkey = self._apply_ossl_cmd(cmd, rawkey)
-                cmd = openssl_convert_RSA_cmd("DER", "DER")
+                cmd = openssl_convert_RSA("DER", "DER")
                 self.derkey = self._apply_ossl_cmd(cmd, rawkey)                
             else:
                 try: # Perhaps it is a cert
@@ -2109,7 +2109,7 @@ class Cert(OSSLHelper, _EncryptAndVerify):
         """
         cmd = ["openssl", "verify", "-CAfile", cafile]
         if untrusted_file:
-           cmd += ["-untrusted", untrusted_file]
+            cmd += ["-untrusted", untrusted_file]
         try:
             pemcert = self.output(fmt="PEM")
             cmdres = self._apply_ossl_cmd(cmd, pemcert)
