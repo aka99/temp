@@ -25,10 +25,10 @@
     ####################################################################
 
 import logging
-from types import IntType
-from types import NoneType
-from types import StringType
-#from  time import sleep
+#from types import IntType
+#from types import NoneType
+#from types import StringType
+#from time import sleep
 import socket
 logging.getLogger("scapy").setLevel(1)
 from scapy.all import *
@@ -123,7 +123,7 @@ def adapt(min_length, max_length, fields, fields2, location=2):
 def examples(example=None):
     if example == None:
         print """This command presents some example to introduce scapy
-gsm-um to new users.
+gsm_um to new users.
 The following parameters can be used:
     examples("imsiDetach")
     examples("call")
@@ -588,7 +588,6 @@ def handoverCommand(SynchronizationIndication_presence=0,
                     VgcsTargetModeIdentication_presence=0,
                     MultiRateConfiguration_presence=0):
     """HANDOVER COMMAND Section 9.1.15"""
-    name = "Handover Command"
     a = TpPd(pd=0x6)
     b = MessageType(mesType=0x2b)  # 00101011
     c = CellDescription()
@@ -1120,7 +1119,7 @@ def systemInformationType6():
     f = CellOptionsBCCH()
     g = NccPermitted()
     h = Si6RestOctets()
-    packet = a / b / c / d / e / f / g
+    packet = a / b / c / d / e / f / g / h
     return packet
 
 
@@ -1220,7 +1219,6 @@ class UplinkAccess():
 # Network to MS
 def uplinkBusy():
     """UPLINK BUSY Section 9.1.46"""
-    name = "Uplink Busy"
     a = TpPd(pd=0x6)
     b = MessageType(mesType=0x2a)  # 00101010
     packet = a / b
@@ -1263,7 +1261,7 @@ def vgcsUplinkGrant():
 
 
 # Network to MS
-def systemInformationType10():
+class systemInformationType10():
     """SYSTEM INFORMATION TYPE 10 Section 9.1.50"""
     name = "SyStem Information Type 10"
     fields_desc = [
@@ -1413,16 +1411,16 @@ def cmServiceRequest(PriorityLevel_presence=0):
 
 
 # Network to MS
-def identityRequest():
+def identityRequest_Sec_9_2():
     """IDENTITY REQUEST Section 9.2.10"""
     a = TpPd(pd=0x5)
     b = MessageType(mesType=0x8)  # 00001000
-    c = IdentityTypeAndSpareHalfOctets()
+    c = IdentityTypeAndSpareHalfOctet()
     packet = a / b / c
     return packet
 
 
-def identityResponse():
+def identityResponse_Sec_9_2():
     """IDENTITY RESPONSE Section 9.2.11"""
     a = TpPd(pd=0x5)
     b = MessageType(mesType=0x9)  # 00001001
@@ -1848,7 +1846,7 @@ def modifyComplete(LowLayerCompatibility_presence=0,
         e = HighLayerCompatibilityHdr(ieiHLC=0x7D, eightBitHLC=0x0)
         packet = packet / e
     if ReverseCallSetupDirection_presence is 1:
-        f = ReverseCallSetupDirection(ieiRCSD=0xA3)
+        f = ReverseCallSetupDirectionHdr(ieiRCSD=0xA3)
         packet = packet / f
     return packet
 
@@ -2225,7 +2223,7 @@ def startCc(CallControlCapabilities_presence=0):
     packet = a / b
     if CallControlCapabilities_presence is 1:
         c = CallControlCapabilitiesHdr(ieiCCC=0x15, eightBitCCC=0x0)
-        packet = paclet / c
+        packet = packet / c
     return packet
 
 
@@ -2486,7 +2484,7 @@ def authenticationAndCipheringReject():
     return packet
 
 
-def identityRequest():
+def identityRequest_Sec_9_4():
     """IDENTITY REQUEST Section 9.4.12"""
     a = TpPd(pd=0x3)
     b = MessageType(mesType=0x15)  # 00010101
@@ -2495,7 +2493,7 @@ def identityRequest():
     return packet
 
 
-def identityResponse():
+def identityResponse_Sec_9_4():
     """IDENTITY RESPONSE Section 9.4.13"""
     a = TpPd(pd=0x3)
     b = MessageType(mesType=0x16)  # 00010110
@@ -6506,7 +6504,7 @@ class ConnectedNumberHdr(Packet):
         aList = []
         a = []
         i = 0
-        sum1 = 0
+#        sum1 = 0
         for i in range(0, len(self.fields_desc)):
             aList.append(self.fields_desc[i].name)
         for i in aList:
