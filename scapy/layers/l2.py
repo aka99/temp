@@ -580,7 +580,7 @@ class EAP_TLS(Packet): # eap type 13
     fields_desc = [ FlagsField("flags", 0, 8, ['reserved5', 'reserved4', 'reserved3', 'reserved2', 'reserved1', 'start', 'fragmented', 'length']),
                     ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 127),
 				]
-				
+    
     def guess_payload_class(self, payload):
         if self.flags > 127:
             return scapy.layers.ssl.TLSv1RecordLayer
@@ -604,10 +604,10 @@ class EAP_TTLS(Packet): # eap type 21
                     BitField("version", 0, 3),
                     ConditionalField(IntField("length", 0), lambda pkt:pkt.flags > 15),
 				]
-				
+    
     def guess_payload_class(self, payload):
         if self.flags >> 2 in [1, 3, 7]:	# if start bit is set
-			return Packet.guess_payload_class(self, payload)
+            return Packet.guess_payload_class(self, payload)
         else:
             return scapy.layers.ssl.TLSv1RecordLayer
             

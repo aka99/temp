@@ -113,9 +113,9 @@ def getmacbyip6(ip6, chainCC=0):
 
     if res is not None:
         if ICMPv6NDOptDstLLAddr in res:
-	  mac = res[ICMPv6NDOptDstLLAddr].lladdr
-	else:
-	  mac = res.src
+            mac = res[ICMPv6NDOptDstLLAddr].lladdr
+        else:
+            mac = res.src
         conf.netcache.in6_neighbor[ip6] = mac
         return mac
 
@@ -447,7 +447,7 @@ class IPv6(_IPv6GuessPayload, Packet, IPTools):
                 if in6_ismaddr(self.dst):
                     if ((od == sd) or 
                         (in6_isaddrllallnodes(self.dst) and in6_isaddrllallservers(other.dst))):
-                         return self.payload.answers(other.payload)
+                        return self.payload.answers(other.payload)
                     return False
                 if (os == sd): 
                     return self.payload.answers(other.payload)
@@ -609,8 +609,8 @@ def in6_chksum(nh, u, p):
             rthdr = u.addresses[-1]
             final_dest_addr_found = 1
         elif (isinstance(u, IPv6ExtHdrDestOpt) and (len(u.options) == 1) and
-             isinstance(u.options[0], HAO)):
-             hahdr  = u.options[0].hoa
+              isinstance(u.options[0], HAO)):
+            hahdr = u.options[0].hoa
         u = u.underlayer
     if u is None:  
         warning("No IPv6 underlayer to compute checksum. Leaving null.")
@@ -2920,47 +2920,47 @@ class L3RawSocket6(L3RawSocket):
         self.ins = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(type))
 
 def IPv6inIP(dst='203.178.135.36', src=None):
-  _IPv6inIP.dst = dst
-  _IPv6inIP.src = src
-  if not conf.L3socket == _IPv6inIP:
-    _IPv6inIP.cls = conf.L3socket
-  else:
-    del(conf.L3socket)
-  return _IPv6inIP
+    _IPv6inIP.dst = dst
+    _IPv6inIP.src = src
+    if not conf.L3socket == _IPv6inIP:
+        _IPv6inIP.cls = conf.L3socket
+    else:
+        del(conf.L3socket)
+    return _IPv6inIP
 
 class _IPv6inIP(SuperSocket):
-  dst = '127.0.0.1'
-  src = None
-  cls = None
+    dst = '127.0.0.1'
+    src = None
+    cls = None
 
-  def __init__(self, family=socket.AF_INET6, type=socket.SOCK_STREAM, proto=0, **args):
-    SuperSocket.__init__(self, family, type, proto)
-    self.worker = self.cls(**args)
+    def __init__(self, family=socket.AF_INET6, type=socket.SOCK_STREAM, proto=0, **args):
+        SuperSocket.__init__(self, family, type, proto)
+        self.worker = self.cls(**args)
 
-  def set(self, dst, src=None):
-    _IPv6inIP.src = src
-    _IPv6inIP.dst = dst
+    def set(self, dst, src=None):
+        _IPv6inIP.src = src
+        _IPv6inIP.dst = dst
 
-  def nonblock_recv(self):
-    p = self.worker.nonblock_recv()
-    return self._recv(p)
+    def nonblock_recv(self):
+        p = self.worker.nonblock_recv()
+        return self._recv(p)
 
-  def recv(self, x):
-    p = self.worker.recv(x)
-    return self._recv(p, x)
+    def recv(self, x):
+        p = self.worker.recv(x)
+        return self._recv(p, x)
 
-  def _recv(self, p, x=MTU):
-    if p is None:
-      return p
-    elif isinstance(p, IP):
-      # TODO: verify checksum
-      if p.src == self.dst and p.proto == socket.IPPROTO_IPV6:
-        if isinstance(p.payload, IPv6):
-          return p.payload
-    return p
+    def _recv(self, p, x=MTU):
+        if p is None:
+            return p
+        elif isinstance(p, IP):
+            # TODO: verify checksum
+            if p.src == self.dst and p.proto == socket.IPPROTO_IPV6:
+                if isinstance(p.payload, IPv6):
+                    return p.payload
+        return p
 
-  def send(self, x):
-    return self.worker.send(IP(dst=self.dst, src=self.src, proto=socket.IPPROTO_IPV6)/x)
+    def send(self, x):
+        return self.worker.send(IP(dst=self.dst, src=self.src, proto=socket.IPPROTO_IPV6)/x)
 
 
 #############################################################################

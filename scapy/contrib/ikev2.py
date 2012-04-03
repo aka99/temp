@@ -104,7 +104,7 @@ for n in IKEv2TransformTypes:
 
 IKEv2Transforms = {}
 for n in IKEv2TransformTypes:
-	IKEv2Transforms[IKEv2TransformTypes[n][0]]=n
+    IKEv2Transforms[IKEv2TransformTypes[n][0]]=n
 
 del(n)
 del(e)
@@ -168,36 +168,37 @@ class IKEv2(IKEv2_class): # rfc4306
        
 
 class IKEv2_Key_Length_Attribute(IntField):
-	# We only support the fixed-length Key Length attribute (the only one currently defined)
-	name="key length"
-	def __init__(self, name):
-		IntField.__init__(self, name, "0x800E0000")
-		
-	def i2h(self, pkt, x):
-		return IntField.i2h(self, pkt, x & 0xFFFF)
-		
-	def h2i(self, pkt, x):
-		return IntField.h2i(self, pkt, struct.pack("!I", 0x800E0000 | int(x, 0)))
+    # We only support the fixed-length Key Length attribute (the only one currently defined)
+    name="key length"
+    def __init__(self, name):
+        IntField.__init__(self, name, "0x800E0000")
+        
+    def i2h(self, pkt, x):
+        return IntField.i2h(self, pkt, x & 0xFFFF)
+        
+    def h2i(self, pkt, x):
+        return IntField.h2i(self, pkt, struct.pack("!I", 0x800E0000 | int(x, 0)))
 
 
 class IKEv2_Transform_ID(ShortField):
-	def i2h(self, pkt, x):
-		if pkt == None:
-			return None
-		else:
-			map = IKEv2TransformNum[pkt.transform_type][1]
-			return map[x]
-		
-	def h2i(self, pkt, x):
-		if pkt == None:
-			return None
-		else:
-			map = IKEv2TransformNum[pkt.transform_type][1]
-			for k in map.keys():
-				if map[k] == x:
-					return k
-			return None
-		
+    def i2h(self, pkt, x):
+        if pkt == None:
+            return None
+        else:
+            map = IKEv2TransformNum[pkt.transform_type][1]
+            return map[x]
+        
+    def h2i(self, pkt, x):
+        if pkt == None:
+            return None
+        else:
+            map = IKEv2TransformNum[pkt.transform_type][1]
+            for k in map.keys():
+                if map[k] == x:
+                    return k
+            return None
+
+
 class IKEv2_payload_Transform(IKEv2_class):
     name = "IKE Transform"
     fields_desc = [

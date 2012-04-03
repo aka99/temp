@@ -64,7 +64,7 @@ def _LLDPGuessPacketClass(p=None, **kargs):
 
         cls = globals()[clsname]
 
-	return cls(p, **kargs)
+    return cls(p, **kargs)
 
 
 class LLDPGeneric(Packet):

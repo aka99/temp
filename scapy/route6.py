@@ -39,15 +39,15 @@ class Route6:
         # TODO : At the moment, resync will drop existing Teredo routes
         #        if any. Change that ...
         self.invalidate_cache()
-	self.routes = read_routes6()
-	if self.routes == []:
-	     log_loading.info("No IPv6 support in kernel")
-        
+        self.routes = read_routes6()
+        if self.routes == []:
+            log_loading.info("No IPv6 support in kernel")
+
     def __repr__(self):
         rtlst = [('Destination', 'Next Hop', "iface", "src candidates")]
 
         for net,msk,gw,iface,cset in self.routes:
-	    rtlst.append(('%s/%i'% (net,msk), gw, iface, ", ".join(cset)))
+            rtlst.append(('%s/%i'% (net,msk), gw, iface, ", ".join(cset)))
 
         colwidth = map(lambda x: max(map(lambda y: len(y), x)), apply(zip, rtlst))
         fmt = "  ".join(map(lambda x: "%%-%ds"%x, colwidth))

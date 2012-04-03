@@ -298,7 +298,7 @@ def pad_trafficclass(pkt):
     if pkt.tf == 0x0:          return 4
     elif pkt.tf == 0x1:        return 2
     elif pkt.tf == 0x2:        return 0
-    else:                       return 0
+    else:                      return 0
 
 def flowlabel_len(pkt):
     """
@@ -310,8 +310,7 @@ def flowlabel_len(pkt):
     """
     if pkt.tf == 0x0:          return 20
     elif pkt.tf == 0x1:        return 20
-    else: 
-                          return 0
+    else:                      return 0
 
 def tf_lowpan(pkt):
     if pkt.tf == 0:

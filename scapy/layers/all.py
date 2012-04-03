@@ -22,7 +22,7 @@ for _l in conf.load_layers:
     try:
         _import_star(_l)
     except Exception,e:
-	log.warning("can't import layer %s: %s" % (_l,e))
+        log.warning("can't import layer %s: %s" % (_l,e))
 
 
 

@@ -18,13 +18,13 @@ from scapy.sendrecv import sr1
 class DNSStrField(StrField):
 
     def h2i(self, pkt, x):
-      if x == "":
-        return "."
-      return x
+        if x == "":
+            return "."
+        return x
 
     def i2m(self, pkt, x):
         if x == ".":
-          return "\x00"
+            return "\x00"
 
         x = [k[:63] for k in x.split(".")] # Truncate chunks that cannot be encoded (more than 63 bytes..)
         x = map(lambda y: chr(len(y))+y, x)
@@ -37,7 +37,7 @@ class DNSStrField(StrField):
         n = ""
 
         if ord(s[0]) == 0:
-          return s[1:], "."
+            return s[1:], "."
 
         while 1:
             l = ord(s[0])

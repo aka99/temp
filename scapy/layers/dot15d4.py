@@ -15,97 +15,97 @@ from scapy.fields import *
 
 # ZigBee Cluster Library Identifiers, Table 2.2 ZCL
 _zcl_cluster_identifier = {
-	# Functional Domain: General
-	0x0000: "basic",
-	0x0001: "power_configuration",
-	0x0002: "device_temperature_configuration",
-	0x0003: "identify",
-	0x0004: "groups",
-	0x0005: "scenes",
-	0x0006: "on_off",
-	0x0007: "on_off_switch_configuration",
-	0x0008: "level_control",
-	0x0009: "alarms",
-	0x000a: "time",
-	0x000b: "rssi_location",
-	0x000c: "analog_input",
-	0x000d: "analog_output",
-	0x000e: "analog_value",
-	0x000f: "binary_input",
-	0x0010: "binary_output",
-	0x0011: "binary_value",
-	0x0012: "multistate_input",
-	0x0013: "multistate_output",
-	0x0014: "multistate_value",
-	0x0015: "commissioning",
-	# 0x0016 - 0x00ff reserved
+    # Functional Domain: General
+    0x0000: "basic",
+    0x0001: "power_configuration",
+    0x0002: "device_temperature_configuration",
+    0x0003: "identify",
+    0x0004: "groups",
+    0x0005: "scenes",
+    0x0006: "on_off",
+    0x0007: "on_off_switch_configuration",
+    0x0008: "level_control",
+    0x0009: "alarms",
+    0x000a: "time",
+    0x000b: "rssi_location",
+    0x000c: "analog_input",
+    0x000d: "analog_output",
+    0x000e: "analog_value",
+    0x000f: "binary_input",
+    0x0010: "binary_output",
+    0x0011: "binary_value",
+    0x0012: "multistate_input",
+    0x0013: "multistate_output",
+    0x0014: "multistate_value",
+    0x0015: "commissioning",
+    # 0x0016 - 0x00ff reserved
     # Functional Domain: Closures
-	0x0100: "shade_configuration",
-	# 0x0101 - 0x01ff reserved
-	# Functional Domain: HVAC
-	0x0200: "pump_configuration_and_control",
-	0x0201: "thermostat",
-	0x0202: "fan_control",
-	0x0203: "dehumidification_control",
-	0x0204: "thermostat_user_interface_configuration",
-	# 0x0205 - 0x02ff reserved
-	# Functional Domain: Lighting
-	0x0300: "color_control",
-	0x0301: "ballast_configuration",
-	# Functional Domain: Measurement and sensing
-	0x0400: "illuminance_measurement",
-	0x0401: "illuminance_level_sensing",
-	0x0402: "temperature_measurement",
-	0x0403: "pressure_measurement",
-	0x0404: "flow_measurement",
-	0x0405: "relative_humidity_measurement",
-	0x0406: "occupancy_sensing",
-	# Functional Domain: Security and safethy
-	0x0500: "ias_zone",
-	0x0501: "ias_ace",
-	0x0502: "ias_wd",
-	# Functional Domain: Protocol Interfaces
-	0x0600: "generic_tunnel",
-	0x0601: "bacnet_protocol_tunnel",
-	0x0602: "analog_input_regular",
-	0x0603: "analog_input_extended",
-	0x0604: "analog_output_regular",
-	0x0605: "analog_output_extended",
-	0x0606: "analog_value_regular",
-	0x0607: "analog_value_extended",
-	0x0608: "binary_input_regular",
-	0x0609: "binary_input_extended",
-	0x060a: "binary_output_regular",
-	0x060b: "binary_output_extended",
-	0x060c: "binary_value_regular",
-	0x060d: "binary_value_extended",
-	0x060e: "multistate_input_regular",
-	0x060f: "multistate_input_extended",
-	0x0610: "multistate_output_regular",
-	0x0611: "multistate_output_extended",
-	0x0612: "multistate_value_regular",
-	0x0613: "multistate_value",
-	# Smart Energy Profile Clusters
-	0x0700: "price",
-	0x0701: "demand_response_and_load_control",
-	0x0702: "metering",
-	0x0703: "messaging",
-	0x0704: "smart_energy_tunneling",
-	0x0705: "prepayment",
-	# Functional Domain: General
-	# Key Establishment
-	0x0800: "key_establishment",
+    0x0100: "shade_configuration",
+    # 0x0101 - 0x01ff reserved
+    # Functional Domain: HVAC
+    0x0200: "pump_configuration_and_control",
+    0x0201: "thermostat",
+    0x0202: "fan_control",
+    0x0203: "dehumidification_control",
+    0x0204: "thermostat_user_interface_configuration",
+    # 0x0205 - 0x02ff reserved
+    # Functional Domain: Lighting
+    0x0300: "color_control",
+    0x0301: "ballast_configuration",
+    # Functional Domain: Measurement and sensing
+    0x0400: "illuminance_measurement",
+    0x0401: "illuminance_level_sensing",
+    0x0402: "temperature_measurement",
+    0x0403: "pressure_measurement",
+    0x0404: "flow_measurement",
+    0x0405: "relative_humidity_measurement",
+    0x0406: "occupancy_sensing",
+    # Functional Domain: Security and safethy
+    0x0500: "ias_zone",
+    0x0501: "ias_ace",
+    0x0502: "ias_wd",
+    # Functional Domain: Protocol Interfaces
+    0x0600: "generic_tunnel",
+    0x0601: "bacnet_protocol_tunnel",
+    0x0602: "analog_input_regular",
+    0x0603: "analog_input_extended",
+    0x0604: "analog_output_regular",
+    0x0605: "analog_output_extended",
+    0x0606: "analog_value_regular",
+    0x0607: "analog_value_extended",
+    0x0608: "binary_input_regular",
+    0x0609: "binary_input_extended",
+    0x060a: "binary_output_regular",
+    0x060b: "binary_output_extended",
+    0x060c: "binary_value_regular",
+    0x060d: "binary_value_extended",
+    0x060e: "multistate_input_regular",
+    0x060f: "multistate_input_extended",
+    0x0610: "multistate_output_regular",
+    0x0611: "multistate_output_extended",
+    0x0612: "multistate_value_regular",
+    0x0613: "multistate_value",
+    # Smart Energy Profile Clusters
+    0x0700: "price",
+    0x0701: "demand_response_and_load_control",
+    0x0702: "metering",
+    0x0703: "messaging",
+    0x0704: "smart_energy_tunneling",
+    0x0705: "prepayment",
+    # Functional Domain: General
+    # Key Establishment
+    0x0800: "key_establishment",
 }
 
 # ZigBee stack profiles
 _zcl_profile_identifier = {
-	0x0000: "ZigBee_Stack_Profile_1",
-	0x0101: "IPM_Industrial_Plant_Monitoring",
-	0x0104: "HA_Home_Automation",
-	0x0105: "CBA_Commercial_Building_Automation",
-	0x0107: "TA_Telecom_Applications",
-	0x0108: "HC_Health_Care",
-	0x0109: "SE_Smart_Energy_Profile",
+    0x0000: "ZigBee_Stack_Profile_1",
+    0x0101: "IPM_Industrial_Plant_Monitoring",
+    0x0104: "HA_Home_Automation",
+    0x0105: "CBA_Commercial_Building_Automation",
+    0x0107: "TA_Telecom_Applications",
+    0x0108: "HC_Health_Care",
+    0x0109: "SE_Smart_Energy_Profile",
 }
 
 # ZigBee Cluster Library, Table 2.8 ZCL Command Frames
@@ -155,76 +155,76 @@ _zcl_enumerated_status_values = {
 
 # ZigBee Cluster Library, Table 2.15 Data Types
 _zcl_attribute_data_types = {
-	0x00: "no_data",
-	# General data
-	0x08: "8-bit_data",
-	0x09: "16-bit_data",
-	0x0a: "24-bit_data",
-	0x0b: "32-bit_data",
-	0x0c: "40-bit_data",
-	0x0d: "48-bit_data",
-	0x0e: "56-bit_data",
-	0x0f: "64-bit_data",
-	# Logical
-	0x10: "boolean",
-	# Bitmap
-	0x18: "8-bit_bitmap",
-	0x19: "16-bit_bitmap",
-	0x1a: "24-bit_bitmap",
-	0x1b: "32-bit_bitmap",
-	0x1c: "40-bit_bitmap",
-	0x1d: "48-bit_bitmap",
-	0x1e: "56-bit_bitmap",
-	0x1f: "64-bit_bitmap",
-	# Unsigned integer
-	0x20: "Unsigned_8-bit_integer",
-	0x21: "Unsigned_16-bit_integer",
-	0x22: "Unsigned_24-bit_integer",
-	0x23: "Unsigned_32-bit_integer",
-	0x24: "Unsigned_40-bit_integer",
-	0x25: "Unsigned_48-bit_integer",
-	0x26: "Unsigned_56-bit_integer",
-	0x27: "Unsigned_64-bit_integer",
-	# Signed integer
-	0x28: "Signed_8-bit_integer",
-	0x29: "Signed_16-bit_integer",
-	0x2a: "Signed_24-bit_integer",
-	0x2b: "Signed_32-bit_integer",
-	0x2c: "Signed_40-bit_integer",
-	0x2d: "Signed_48-bit_integer",
-	0x2e: "Signed_56-bit_integer",
-	0x2f: "Signed_64-bit_integer",
-	# Enumeration
-	0x30: "8-bit_enumeration",
-	0x31: "16-bit_enumeration",
-	# Floating point
-	0x38: "semi_precision",
-	0x39: "single_precision",
-	0x3a: "double_precision",
-	# String
-	0x41: "octet-string",
-	0x42: "character_string",
-	0x43: "long_octet_string",
-	0x44: "long_character_string",
-	# Ordered sequence
-	0x48: "array",
-	0x4c: "structure",
-	# Collection
-	0x50: "set",
-	0x51: "bag",
-	# Time
-	0xe0: "time_of_day",
-	0xe1: "date",
-	0xe2: "utc_time",
-	# Identifier
-	0xe8: "cluster_id",
-	0xe9: "attribute_id",
-	0xea: "bacnet_oid",
-	# Miscellaneous
-	0xf0: "ieee_address",
-	0xf1: "128-bit_security_key",	
-	# Unknown
-	0xff: "unknown",
+    0x00: "no_data",
+    # General data
+    0x08: "8-bit_data",
+    0x09: "16-bit_data",
+    0x0a: "24-bit_data",
+    0x0b: "32-bit_data",
+    0x0c: "40-bit_data",
+    0x0d: "48-bit_data",
+    0x0e: "56-bit_data",
+    0x0f: "64-bit_data",
+    # Logical
+    0x10: "boolean",
+    # Bitmap
+    0x18: "8-bit_bitmap",
+    0x19: "16-bit_bitmap",
+    0x1a: "24-bit_bitmap",
+    0x1b: "32-bit_bitmap",
+    0x1c: "40-bit_bitmap",
+    0x1d: "48-bit_bitmap",
+    0x1e: "56-bit_bitmap",
+    0x1f: "64-bit_bitmap",
+    # Unsigned integer
+    0x20: "Unsigned_8-bit_integer",
+    0x21: "Unsigned_16-bit_integer",
+    0x22: "Unsigned_24-bit_integer",
+    0x23: "Unsigned_32-bit_integer",
+    0x24: "Unsigned_40-bit_integer",
+    0x25: "Unsigned_48-bit_integer",
+    0x26: "Unsigned_56-bit_integer",
+    0x27: "Unsigned_64-bit_integer",
+    # Signed integer
+    0x28: "Signed_8-bit_integer",
+    0x29: "Signed_16-bit_integer",
+    0x2a: "Signed_24-bit_integer",
+    0x2b: "Signed_32-bit_integer",
+    0x2c: "Signed_40-bit_integer",
+    0x2d: "Signed_48-bit_integer",
+    0x2e: "Signed_56-bit_integer",
+    0x2f: "Signed_64-bit_integer",
+    # Enumeration
+    0x30: "8-bit_enumeration",
+    0x31: "16-bit_enumeration",
+    # Floating point
+    0x38: "semi_precision",
+    0x39: "single_precision",
+    0x3a: "double_precision",
+    # String
+    0x41: "octet-string",
+    0x42: "character_string",
+    0x43: "long_octet_string",
+    0x44: "long_character_string",
+    # Ordered sequence
+    0x48: "array",
+    0x4c: "structure",
+    # Collection
+    0x50: "set",
+    0x51: "bag",
+    # Time
+    0xe0: "time_of_day",
+    0xe1: "date",
+    0xe2: "utc_time",
+    # Identifier
+    0xe8: "cluster_id",
+    0xe9: "attribute_id",
+    0xea: "bacnet_oid",
+    # Miscellaneous
+    0xf0: "ieee_address",
+    0xf1: "128-bit_security_key",    
+    # Unknown
+    0xff: "unknown",
 }
 
 ### Fields ###
@@ -582,11 +582,11 @@ class ZigbeeNWKCommandPayload(Packet):
             ), lambda pkt:pkt.cmd_identifier == 1),
         ConditionalField(BitField("reserved", 0, 3), lambda pkt:pkt.cmd_identifier == 1),
         # Route request identifier (1 octet)
-		ConditionalField(ByteField("route_request_identifier", 0), lambda pkt:pkt.cmd_identifier == 1),
+        ConditionalField(ByteField("route_request_identifier", 0), lambda pkt:pkt.cmd_identifier == 1),
         # Destination address (2 octets)
-		ConditionalField(XLEShortField("destination_address", 0x0000), lambda pkt:pkt.cmd_identifier == 1),
+        ConditionalField(XLEShortField("destination_address", 0x0000), lambda pkt:pkt.cmd_identifier == 1),
         # Path cost (1 octet)
-		ConditionalField(ByteField("path_cost", 0), lambda pkt:pkt.cmd_identifier == 1),
+        ConditionalField(ByteField("path_cost", 0), lambda pkt:pkt.cmd_identifier == 1),
         # Destination IEEE Address (0/8 octets), only present when dest_addr_bit has a value of 1
         ConditionalField(dot15d4AddressField("ext_dst", 0, adjust=lambda pkt,x: 8), 
             lambda pkt:(pkt.cmd_identifier == 1 and pkt.dest_addr_bit == 1)),
@@ -599,13 +599,13 @@ class ZigbeeNWKCommandPayload(Packet):
         ConditionalField(BitField("originator_addr_bit", 0, 1), lambda pkt:pkt.cmd_identifier == 2),
         ConditionalField(BitField("reserved", 0, 4), lambda pkt:pkt.cmd_identifier == 2),
         # Route request identifier (1 octet)
-		ConditionalField(ByteField("route_request_identifier", 0), lambda pkt:pkt.cmd_identifier == 2),
+        ConditionalField(ByteField("route_request_identifier", 0), lambda pkt:pkt.cmd_identifier == 2),
         # Originator address (2 octets)
-		ConditionalField(XLEShortField("originator_address", 0x0000), lambda pkt:pkt.cmd_identifier == 2),
+        ConditionalField(XLEShortField("originator_address", 0x0000), lambda pkt:pkt.cmd_identifier == 2),
         # Responder address (2 octets)
-		ConditionalField(XLEShortField("responder_address", 0x0000), lambda pkt:pkt.cmd_identifier == 2),
+        ConditionalField(XLEShortField("responder_address", 0x0000), lambda pkt:pkt.cmd_identifier == 2),
         # Path cost (1 octet)
-		ConditionalField(ByteField("path_cost", 0), lambda pkt:pkt.cmd_identifier == 2),
+        ConditionalField(ByteField("path_cost", 0), lambda pkt:pkt.cmd_identifier == 2),
         # Originator IEEE address (0/8 octets)
         ConditionalField(dot15d4AddressField("originator_addr", 0, adjust=lambda pkt,x: 8),
             lambda pkt:(pkt.cmd_identifier == 2 and pkt.originator_addr_bit == 1)),
@@ -653,7 +653,7 @@ class ZigbeeNWKCommandPayload(Packet):
 
         ### Route Record Command ###
         # Relay count (1 octet)
-		ConditionalField(ByteField("rr_relay_count", 0), lambda pkt:pkt.cmd_identifier == 5),
+        ConditionalField(ByteField("rr_relay_count", 0), lambda pkt:pkt.cmd_identifier == 5),
         # Relay list (variable in length)
         ConditionalField(
             FieldListField("rr_relay_list", [], XLEShortField("", 0x0000), count_from = lambda pkt:pkt.rr_relay_count), 
@@ -672,9 +672,9 @@ class ZigbeeNWKCommandPayload(Packet):
 
         ### Rejoin Response Command ###
         # Network address (2 octets)
-		ConditionalField(XLEShortField("network_address", 0xFFFF), lambda pkt:pkt.cmd_identifier == 7),
+        ConditionalField(XLEShortField("network_address", 0xFFFF), lambda pkt:pkt.cmd_identifier == 7),
         # Rejoin status (1 octet)
-		ConditionalField(ByteField("rejoin_status", 0), lambda pkt:pkt.cmd_identifier == 7),
+        ConditionalField(ByteField("rejoin_status", 0), lambda pkt:pkt.cmd_identifier == 7),
 
         ### Link Status Command ###
         # Command options (1 octet)
@@ -712,11 +712,11 @@ class ZigbeeNWKCommandPayload(Packet):
         # EPID: Extended PAN ID (8 octets)
         ConditionalField(dot15d4AddressField("epid", 0, adjust=lambda pkt,x: 8), lambda pkt:pkt.cmd_identifier == 10),
         # Update Id (1 octet)
-		ConditionalField(ByteField("update_id", 0), lambda pkt:pkt.cmd_identifier == 10),
+        ConditionalField(ByteField("update_id", 0), lambda pkt:pkt.cmd_identifier == 10),
         # Update Information (Variable)
         # Only present if we have a PAN Identifier Update
         # New PAN ID (2 octets)
-		ConditionalField(XLEShortField("new_PAN_ID", 0x0000), 
+        ConditionalField(XLEShortField("new_PAN_ID", 0x0000), 
             lambda pkt:(pkt.cmd_identifier == 10 and pkt.update_command_identifier == 0)),
 
         #ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)),
@@ -837,7 +837,7 @@ class ZigbeeAppCommandPayload(Packet):
             12:"APS_CMD_EA_INIT_MAC_DATA",
             13:"APS_CMD_EA_RSP_MAC_DATA",
             14:"APS_CMD_TUNNEL"
-		}),
+        }),
         ZigbeePayloadField("data", "", length_from=lambda pkt, s:len(s)),
     ]
 
@@ -996,7 +996,7 @@ class ZigbeeAppDataPayloadStub(Packet):
 def util_zcl_attribute_value_len(pkt):
     # Calculate the length of the attribute value field
     if ( pkt.attribute_data_type == 0x00 ): # no data
-		return 0
+        return 0
     elif ( pkt.attribute_data_type == 0x08 ): # 8-bit data
         return 1
     elif ( pkt.attribute_data_type == 0x09 ): # 16-bit data
