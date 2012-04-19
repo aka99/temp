@@ -303,7 +303,7 @@ def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, i
     loop: number of times to process the packet list
     file_cache: cache packets in RAM instead of reading from disk at each iteration
     iface: output interface
-    options: other commandline options"""
+    additional_options: other commandline options"""
     if iface is None:
         iface = conf.iface
     argv = [conf.prog.tcpreplay, "--intf1=%s" % iface ]
