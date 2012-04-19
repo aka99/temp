@@ -295,14 +295,15 @@ sendp_split(packets, iface1, iface2, [inter=0], [loop=0], [verbose=conf.verb]) -
     __gen_send(socket, x, inter=inter, loop=loop, count=count, verbose=verbose, realtime=realtime)
 
 @conf.commands.register
-def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, iface=None):
+def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, iface=None, additional_options=None):
     """Send packets at layer 2 using tcpreplay for performance
     pps:  packets per second
     mpbs: MBits per second
     realtime: use packet's timestamp, bending time with realtime value
     loop: number of times to process the packet list
     file_cache: cache packets in RAM instead of reading from disk at each iteration
-    iface: output interface """
+    iface: output interface
+    options: other commandline options"""
     if iface is None:
         iface = conf.iface
     argv = [conf.prog.tcpreplay, "--intf1=%s" % iface ]
@@ -319,7 +320,8 @@ def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, i
         argv.append("--loop=%i" % loop)
         if file_cache:
             argv.append("--enable-file-cache")
-
+    if additional_options is not None:
+        argv.append(additional_options)
     f = get_temp_file()
     argv.append(f)
     wrpcap(f, x)
