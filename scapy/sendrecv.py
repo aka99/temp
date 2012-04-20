@@ -303,7 +303,7 @@ def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, i
     loop: number of times to process the packet list
     file_cache: cache packets in RAM instead of reading from disk at each iteration
     iface: output interface
-    additional_options: other commandline options"""
+    additional_options: other commandline options, e.g. '--timer=gtod --preload-pcap'"""
     if iface is None:
         iface = conf.iface
     argv = [conf.prog.tcpreplay, "--intf1=%s" % iface ]
@@ -321,7 +321,7 @@ def sendpfast(x, pps=None, mbps=None, realtime=None, loop=0, file_cache=False, i
         if file_cache:
             argv.append("--enable-file-cache")
     if additional_options is not None:
-        argv.append(additional_options)
+        argv.extend(additional_options.split())
     f = get_temp_file()
     argv.append(f)
     wrpcap(f, x)
