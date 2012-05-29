@@ -479,7 +479,7 @@ class IPv6(_IPv6GuessPayload, Packet, IPTools):
 
 
 conf.neighbor.register_l3(Ether, IPv6, lambda l2,l3: getmacbyip6(l3.dst))
-
+IP.overload_fields[IPv6] = {"nh": 4}
 
 class IPerror6(IPv6):
     name = "IPv6 in ICMPv6"
