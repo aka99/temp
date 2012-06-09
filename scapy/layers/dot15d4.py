@@ -1,6 +1,7 @@
 ## This file is for use with Scapy
 ## See http://www.secdev.org/projects/scapy for more information
-## Copyright (C) Ryan Speers <ryan@rmspeers.com> 2011
+## Copyright (C) Ryan Speers <ryan@rmspeers.com> 2011-2012
+## 2012-03-10 Roger Meyer <roger.meyer@csus.edu>: Added frames
 ## This program is published under a GPLv2 license
 
 """
@@ -444,7 +445,8 @@ class Dot15d4Cmd(Packet):
     name = "802.15.4 Command"
     fields_desc = [
                     XLEShortField("dest_panid", 0xFFFF),
-                    dot15d4AddressField("dest_addr", None, length_of="fcf_destaddrmode"),
+                    # Users should correctly set the dest_addr field. By default is 0x0 for construction to work.
+                    dot15d4AddressField("dest_addr", 0x0, length_of="fcf_destaddrmode"),
                     ConditionalField(XLEShortField("src_panid", 0x0), \
                                         lambda pkt:util_srcpanid_present(pkt)),
                     ConditionalField(dot15d4AddressField("src_addr", None, length_of="fcf_srcaddrmode"), \
