@@ -255,6 +255,11 @@ class IPField(Field):
     def randval(self):
         return RandIP()
 
+class LEIPField(IPField):
+    def i2m(self, pkt, x):
+	m = inet_aton(str(x))
+	return struct.pack('I', struct.unpack('>I', m)[0])
+
 class SourceIPField(IPField):
     def __init__(self, name, dstname):
         IPField.__init__(self, name, None)
