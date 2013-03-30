@@ -1,3 +1,9 @@
+<!DOCTYPE HTML>
+<html>
+<head><title>scapy</title></head>
+<body>
 <?php
-phpinfo();
+  echo 'scapy.';
 ?>
+</body>
+</html>
