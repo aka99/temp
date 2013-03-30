@@ -3,7 +3,7 @@
 <head><title>scapy</title></head>
 <body>
 <?php
-  echo 'scapy.';
+  echo 'scapy..';
 ?>
 </body>
 </html>
