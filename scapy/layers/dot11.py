@@ -179,6 +179,13 @@ class RadioTapRateField(RadioTapByteField):
         return "%s Mbps" % (0.5*x) # RadioTap Rate unit is 500 Kbps
         
 
+class RadioTapPadBeforeChannelField(RadioTapByteField):
+    def is_applicable(self, pkt):
+        if (pkt.present != None) and not ( pkt.present & 0x4 == 0x4 ): 
+            return 1
+        return 0
+        
+        
 class RadioTapChannelField(RadioTapField):
     def __init__(self,name,default):
         Field.__init__(self,name,default,"4s")
@@ -255,7 +262,7 @@ class RadioTap(Packet):
     fields_desc = [ ByteField('version', 0),
                     ByteField('pad', 0),
                     FieldLenField('len', None, 'notdecoded', '<H', adjust=lambda pkt,x:x+8),
-                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','Channel',
+                    FlagsField('present', None, -32, ['TSFT','Flags','Rate','PadChannel','Channel',
                                                       'FHSS','dBm_AntSignal','dBm_AntNoise','Lock_Quality',
                                                       'TX_Attenuation','dB_TX_Attenuation','dBm_TX_Power','Antenna',
                                                       'dB_AntSignal','dB_AntNoise','RX_Flags', '',
@@ -266,6 +273,7 @@ class RadioTap(Packet):
                     RadioTapTSFTField('TSFT',0),
                     RadioTapFlagsField('Flags',0),
                     RadioTapRateField('Rate',0),
+                    RadioTapPadBeforeChannelField('PadChannel',0),
                     RadioTapChannelField('Channel',0),
                     RadioTapFHSSField('FHSS',0),
                     RadioTapAntennaSignalField('dBm_AntSignal',0),
@@ -278,19 +286,21 @@ class RadioTap(Packet):
         res = 8 # set in previous version of StrLenField
         if self.fields_desc[4].is_applicable(self): # TSFT
             res+=8
-        if self.fields_desc[5].is_applicable(self):
+        if self.fields_desc[5].is_applicable(self): # flags
             res+=1
-        if self.fields_desc[6].is_applicable(self):
+        if self.fields_desc[6].is_applicable(self): #rate
             res+=1
-        if self.fields_desc[7].is_applicable(self):
+	if self.fields_desc[7].is_applicable(self): #pad before channel ( intstead of rate )
+            res+=1
+        if self.fields_desc[8].is_applicable(self): # channel
             res+=4
-        if self.fields_desc[8].is_applicable(self):
+        if self.fields_desc[9].is_applicable(self): # fhss
             res+=2
-        if self.fields_desc[9].is_applicable(self):
+        if self.fields_desc[10].is_applicable(self): # ant signal
             res+=1
-        if self.fields_desc[10].is_applicable(self):
+        if self.fields_desc[11].is_applicable(self): # ant noise
             res+=1
-        if self.fields_desc[11].is_applicable(self):
+        if self.fields_desc[12].is_applicable(self): # lock quality
             res+=2
         return res
             
