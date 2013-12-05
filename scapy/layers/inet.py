@@ -143,10 +143,10 @@ class IPOption_Security(IPOption):
                     StrFixedLenField("transmission_control_code","",3),
                     ]
     
-class IPOption_LSRR(IPOption):
-    name = "IP Option Loose Source and Record Route"
-    copy_flag = 1
-    option = 3
+class IPOption_RR(IPOption):
+    name = "IP Option Record Route"
+    option = 7
+
     fields_desc = [ _IPOption_HDR,
                     FieldLenField("length", None, fmt="B",
                                   length_of="routers", adjust=lambda pkt,l:l+3),
@@ -157,16 +157,19 @@ class IPOption_LSRR(IPOption):
     def get_current_router(self):
         return self.routers[self.pointer/4-1]
 
-class IPOption_RR(IPOption_LSRR):
-    name = "IP Option Record Route"
-    option = 7
+class IPOption_LSRR(IPOption_RR):
+    name = "IP Option Loose Source and Record Route"
+    copy_flag = 1
+    option = 3
 
-class IPOption_SSRR(IPOption_LSRR):
+class IPOption_SSRR(IPOption_RR):
     name = "IP Option Strict Source and Record Route"
+    copy_flag = 1
     option = 9
 
 class IPOption_Stream_Id(IPOption):
     name = "IP Option Stream ID"
+    copy_flag = 1
     option = 8
     fields_desc = [ _IPOption_HDR,
                     ByteField("length", 4),
