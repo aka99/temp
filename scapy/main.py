@@ -346,7 +346,13 @@ def interact(mydict=None,argv=None,mybanner=None,loglevel=20):
     if IPYTHON:
         banner = the_banner % (conf.version) + " using IPython %s" % IPython.__version__
         args = ['']  # IPython command line args (will be seen as sys.argv)
-        ipshell = IPython.Shell.IPShellEmbed(args, banner = banner)
+
+        try:
+            # IPython.__version__ >= 0.11
+            ipshell=IPython.frontend.terminal.embed.InteractiveShellEmbed(banner1=banner)
+        except AttributeError:
+            ipshell = IPython.Shell.IPShellEmbed(args, banner=banner)
+
         ipshell(local_ns=session)
     else:
         code.interact(banner = the_banner % (conf.version),
